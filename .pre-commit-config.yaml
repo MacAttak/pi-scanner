@@ -1,0 +1,65 @@
+repos:
+  - repo: local
+    hooks:
+      - id: go-test
+        name: Run Go tests
+        entry: go test ./...
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: go-fmt
+        name: Run go fmt
+        entry: bash -c 'test -z "$(gofmt -l .)"'
+        language: system
+        types: [go]
+        
+      - id: go-imports
+        name: Run goimports
+        entry: bash -c 'test -z "$(goimports -l .)"'
+        language: system
+        types: [go]
+
+      - id: go-vet
+        name: Run go vet
+        entry: go vet ./...
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: go-sec
+        name: Run gosec security scan
+        entry: gosec -fmt json -out gosec-report.json ./...
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: go-vulncheck
+        name: Run vulnerability check
+        entry: govulncheck ./...
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: go-mod-tidy
+        name: Run go mod tidy
+        entry: bash -c 'go mod tidy && test -z "$(git diff --name-only go.mod go.sum)"'
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.21.3
+    hooks:
+      - id: gitleaks

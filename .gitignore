@@ -1,0 +1,53 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.txt
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Build output
+/pi-scanner
+/dist/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Security scan reports
+gosec-report.json
+trivy-results.sarif
+
+# Test artifacts
+test-results/
+*.log
+
+# ML models (will be downloaded)
+models/
+*.onnx
+
+# Temporary files
+tmp/
+temp/
+*.tmp
