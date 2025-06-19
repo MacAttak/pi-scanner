@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -79,6 +81,13 @@ using a multi-stage detection pipeline.`,
 				return fmt.Errorf("either --repo or --repo-list must be specified")
 			}
 
+			// Validate repository URL format
+			if repoURL != "" {
+				if err := validateRepositoryURL(repoURL); err != nil {
+					return fmt.Errorf("Error: Invalid repository URL: %v", err)
+				}
+			}
+
 			// Handle repo list
 			if repoList != "" {
 				fmt.Fprintf(cmd.OutOrStdout(), "Reading repository list from: %s\n", repoList)
@@ -99,6 +108,36 @@ using a multi-stage detection pipeline.`,
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 
 	return cmd
+}
+
+// validateRepositoryURL validates that the provided URL is a valid repository URL
+func validateRepositoryURL(repoURL string) error {
+	// Parse the URL
+	u, err := url.Parse(repoURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %v", err)
+	}
+
+	// Must have a scheme
+	if u.Scheme == "" {
+		return fmt.Errorf("URL must include protocol (http:// or https://)")
+	}
+
+	// Must have a host
+	if u.Host == "" {
+		return fmt.Errorf("URL must include a host")
+	}
+
+	// Check if it looks like a GitHub URL
+	if strings.Contains(u.Host, "github.com") {
+		// Basic GitHub URL validation
+		pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+		if len(pathParts) < 2 {
+			return fmt.Errorf("GitHub URL must be in format: https://github.com/owner/repo")
+		}
+	}
+
+	return nil
 }
 
 func newReportCmd() *cobra.Command {
