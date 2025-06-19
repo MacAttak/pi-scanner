@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/MacAttak/pi-scanner/pkg/validation"
 )
 
 // detector implements the Detector interface
@@ -17,6 +19,7 @@ type detector struct {
 	matchers  []PatternMatcher
 	mu        sync.RWMutex
 	compiled  map[string]*regexp.Regexp
+	validators *validation.ValidatorRegistry
 }
 
 // NewDetector creates a new detector with default configuration
@@ -27,9 +30,10 @@ func NewDetector() Detector {
 // NewDetectorWithConfig creates a new detector with custom configuration
 func NewDetectorWithConfig(config *Config) Detector {
 	d := &detector{
-		config:   config,
-		matchers: []PatternMatcher{},
-		compiled: make(map[string]*regexp.Regexp),
+		config:     config,
+		matchers:   []PatternMatcher{},
+		compiled:   make(map[string]*regexp.Regexp),
+		validators: validation.NewValidatorRegistry(),
 	}
 	
 	// Initialize pattern matchers
@@ -117,6 +121,28 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 				DetectorName:   d.Name(),
 				Confidence:     0.8, // Base confidence for pattern match
 				ContextModifier: d.getContextModifier(filename),
+			}
+			
+			// Validate if enabled and validator exists
+			if d.config.ValidateChecksums {
+				if validator, ok := d.validators.Get(string(finding.Type)); ok {
+					valid, err := validator.Validate(finding.Match)
+					finding.Validated = valid
+					if err != nil {
+						finding.ValidationError = err.Error()
+					}
+					
+					// Increase confidence if validated
+					if valid {
+						finding.Confidence = 0.95
+					} else {
+						// Decrease confidence if validation fails
+						finding.Confidence = 0.5
+						if err == nil {
+							finding.ValidationError = "Checksum validation failed"
+						}
+					}
+				}
 			}
 			
 			// Set initial risk level based on type

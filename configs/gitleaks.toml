@@ -1,0 +1,103 @@
+# Gitleaks configuration for Australian PI detection and common secrets
+title = "Australian PI Scanner Configuration"
+
+# Common API keys and secrets
+[[rules]]
+id = "aws-access-key-id"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+keywords = ["aws", "access", "key"]
+
+[[rules]]
+id = "github-pat"  
+description = "GitHub Personal Access Token"
+regex = '''ghp_[a-zA-Z0-9]{36}'''
+keywords = ["github", "token", "ghp"]
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN PRIVATE KEY-----'''
+keywords = ["private", "key", "begin"]
+
+# Australian specific PI patterns
+[[rules]]
+id = "australian-tfn"
+description = "Australian Tax File Number"
+regex = '''\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b'''
+keywords = ["tfn", "tax file", "tax_file", "taxfile"]
+
+[[rules]]
+id = "australian-abn"
+description = "Australian Business Number"
+regex = '''\b\d{2}[\s]?\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
+keywords = ["abn", "business number", "business_number"]
+
+[[rules]]
+id = "australian-medicare"
+description = "Australian Medicare Number"
+regex = '''\b[2-6]\d{3}[\s\-]?\d{5}[\s\-]?\d{1}(?:/\d)?\b'''
+keywords = ["medicare", "health card", "health_card"]
+
+[[rules]]
+id = "australian-bsb"
+description = "Australian Bank State Branch"
+regex = '''\b\d{3}[\-]?\d{3}\b'''
+keywords = ["bsb", "bank state", "bank_state", "branch"]
+
+[[rules]]
+id = "australian-acn"
+description = "Australian Company Number"
+regex = '''\b\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
+keywords = ["acn", "company number", "company_number"]
+
+# Australian Driver's License patterns (state-specific)
+[[rules]]
+id = "australian-drivers-license-nsw"
+description = "Australian Driver's License - NSW"
+regex = '''\b[0-9]{8}\b'''
+keywords = ["license", "licence", "driver", "nsw"]
+
+[[rules]]
+id = "australian-passport"
+description = "Australian Passport Number"
+regex = '''\b[A-Z][0-9]{7}\b'''
+keywords = ["passport", "travel document"]
+
+[[rules]]
+id = "australian-phone-mobile"
+description = "Australian Mobile Phone Number"
+regex = '''\b(?:\+?61|0)[45]\d{8}\b'''
+keywords = ["mobile", "phone", "cell", "contact"]
+
+[[rules]]
+id = "australian-phone-landline"
+description = "Australian Landline Phone Number"
+regex = '''\b(?:\+?61|0)[2378]\d{8}\b|\(\d{2}\)\s*\d{4}\s*\d{4}\b'''
+keywords = ["phone", "landline", "telephone", "contact"]
+
+# Global allowlists to reduce false positives
+[[allowlists]]
+description = "Test files and directories"
+paths = [
+  '''(?i)(test|spec|mock)''',
+  '''(?i)fixture''',
+  '''(?i)example''',
+  '''(?i)\.test\.(js|ts|go|py)$''',
+  '''(?i)_test\.(go|py)$''',
+  '''(?i)test_.*\.(py|js|ts)$''',
+  '''(?i)/tests?/''',
+  '''(?i)/fixtures?/''',
+  '''(?i)/mocks?/'''
+]
+
+[[allowlists]]
+description = "Common false positive patterns"
+regexes = [
+  '''000000000''',   # All zeros TFN
+  '''111111111''',   # All ones TFN
+  '''123456789''',   # Sequential TFN
+  '''000-000''',     # Zero BSB
+  '''(?i)^true|false|null$''',
+  '''^(?i:a+|b+|c+|d+|e+|f+|g+|h+|i+|j+|k+|l+|m+|n+|o+|p+|q+|r+|s+|t+|u+|v+|w+|x+|y+|z+|\*+|\.+)$''',
+]

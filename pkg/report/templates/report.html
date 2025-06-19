@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PI Scanner Report - {{.Repository.Name}}</title>
+    <style>{{template "styles" .}}</style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🔍 Personal Information Scanner Report</h1>
+                <div class="header-info">
+                    <span class="badge">Version {{.ToolVersion}}</span>
+                    <span class="timestamp">Generated: {{formatTime .GeneratedAt}}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Executive Summary -->
+        <section class="summary-section">
+            <h2>Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card critical">
+                    <div class="summary-icon">⚠️</div>
+                    <div class="summary-content">
+                        <div class="summary-count">{{.Summary.CriticalCount}}</div>
+                        <div class="summary-label">Critical Risk</div>
+                    </div>
+                </div>
+                <div class="summary-card high">
+                    <div class="summary-icon">🔴</div>
+                    <div class="summary-content">
+                        <div class="summary-count">{{.Summary.HighCount}}</div>
+                        <div class="summary-label">High Risk</div>
+                    </div>
+                </div>
+                <div class="summary-card medium">
+                    <div class="summary-icon">🟡</div>
+                    <div class="summary-content">
+                        <div class="summary-count">{{.Summary.MediumCount}}</div>
+                        <div class="summary-label">Medium Risk</div>
+                    </div>
+                </div>
+                <div class="summary-card low">
+                    <div class="summary-icon">🟢</div>
+                    <div class="summary-content">
+                        <div class="summary-count">{{.Summary.LowCount}}</div>
+                        <div class="summary-label">Low Risk</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="key-metrics">
+                <div class="metric">
+                    <span class="metric-label">Total Findings:</span>
+                    <span class="metric-value">{{.Summary.TotalFindings}}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Files Scanned:</span>
+                    <span class="metric-value">{{.Repository.FilesScanned}}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Scan Duration:</span>
+                    <span class="metric-value">{{.ScanDuration}}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Validated PI:</span>
+                    <span class="metric-value">{{.Summary.ValidatedCount}}</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Repository Information -->
+        <section class="repo-section">
+            <h2>Repository Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Repository:</span>
+                    <span class="info-value"><a href="{{.Repository.URL}}" target="_blank">{{.Repository.Name}}</a></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Branch:</span>
+                    <span class="info-value">{{.Repository.Branch}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Commit:</span>
+                    <span class="info-value">{{.Repository.CommitHash}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Commit:</span>
+                    <span class="info-value">{{formatDate .Repository.LastCommitDate}}</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Australian Compliance Status -->
+        {{if .Compliance}}
+        <section class="compliance-section">
+            <h2>🏛️ Australian Regulatory Compliance</h2>
+            <div class="compliance-status">
+                <div class="compliance-item {{if .Compliance.APRACompliant}}compliant{{else}}non-compliant{{end}}">
+                    <span class="compliance-icon">{{if .Compliance.APRACompliant}}✅{{else}}❌{{end}}</span>
+                    <span class="compliance-label">APRA Compliance</span>
+                </div>
+                <div class="compliance-item {{if .Compliance.PrivacyActCompliant}}compliant{{else}}non-compliant{{end}}">
+                    <span class="compliance-icon">{{if .Compliance.PrivacyActCompliant}}✅{{else}}❌{{end}}</span>
+                    <span class="compliance-label">Privacy Act 1988</span>
+                </div>
+            </div>
+            
+            {{if gt .Compliance.NotifiableBreaches 0}}
+            <div class="alert alert-warning">
+                <strong>⚠️ Notifiable Data Breaches:</strong> {{.Compliance.NotifiableBreaches}} potential breaches detected
+                {{if .Compliance.RequiredNotifications}}
+                <div class="notification-list">
+                    <strong>Required Notifications:</strong>
+                    <ul>
+                    {{range .Compliance.RequiredNotifications}}
+                        <li>{{.}}</li>
+                    {{end}}
+                    </ul>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+            
+            {{if .Compliance.ComplianceActions}}
+            <div class="compliance-actions">
+                <h3>Required Compliance Actions</h3>
+                <table class="actions-table">
+                    <thead>
+                        <tr>
+                            <th>Priority</th>
+                            <th>Action</th>
+                            <th>Regulation</th>
+                            <th>Deadline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {{range .Compliance.ComplianceActions}}
+                        <tr class="priority-{{.Priority}}">
+                            <td><span class="priority-badge {{.Priority}}">{{.Priority}}</span></td>
+                            <td>{{.Description}}</td>
+                            <td>{{.Regulation}}</td>
+                            <td>{{formatDate .Deadline}}</td>
+                        </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{end}}
+        </section>
+        {{end}}
+
+        <!-- Risk Distribution Chart -->
+        <section class="charts-section">
+            <h2>📊 Risk Analysis</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Risk Level Distribution</h3>
+                    <canvas id="riskChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>PI Type Distribution</h3>
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Critical Findings -->
+        {{if .CriticalFindings}}
+        <section class="findings-section critical">
+            <h2>⚠️ Critical Risk Findings</h2>
+            <div class="findings-list">
+                {{range .CriticalFindings}}
+                <div class="finding-card {{riskLevelClass .RiskLevel}}">
+                    <div class="finding-header">
+                        <span class="finding-type">{{piTypeIcon .Type}} {{.TypeDisplay}}</span>
+                        <span class="finding-score">Confidence: {{formatPercent .ConfidenceScore}}</span>
+                    </div>
+                    <div class="finding-location">
+                        <span class="file-path">{{.File}}</span>
+                        <span class="line-info">Line {{.Line}}, Column {{.Column}}</span>
+                    </div>
+                    <div class="finding-match">
+                        <code>{{.MaskedMatch}}</code>
+                        {{if .Validated}}<span class="validated-badge">✓ Validated</span>{{end}}
+                        {{if .IsTestData}}<span class="test-data-badge">Test Data</span>{{end}}
+                    </div>
+                    {{if .Context}}
+                    <div class="finding-context">
+                        <pre><code>{{.Context}}</code></pre>
+                    </div>
+                    {{end}}
+                    {{if .RiskAssessment}}
+                    <div class="risk-details">
+                        <span class="risk-category">{{.RiskAssessment.RiskCategory}}</span>
+                        <div class="risk-scores">
+                            <span>Impact: {{formatScore .RiskAssessment.ImpactScore}}</span>
+                            <span>Likelihood: {{formatScore .RiskAssessment.LikelihoodScore}}</span>
+                            <span>Exposure: {{formatScore .RiskAssessment.ExposureScore}}</span>
+                        </div>
+                    </div>
+                    {{end}}
+                    {{if .Mitigations}}
+                    <div class="mitigations">
+                        <h4>Recommended Actions:</h4>
+                        <ul>
+                        {{range .Mitigations}}
+                            <li class="mitigation-{{.Priority}}">
+                                <strong>{{.Title}}</strong> - {{.Description}}
+                                <span class="mitigation-meta">({{.Timeline}}, {{.Effort}} effort)</span>
+                            </li>
+                        {{end}}
+                        </ul>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+        </section>
+        {{end}}
+
+        <!-- High Risk Findings -->
+        {{if .HighFindings}}
+        <section class="findings-section high">
+            <h2>🔴 High Risk Findings</h2>
+            <div class="findings-list">
+                {{range .HighFindings}}
+                <div class="finding-card {{riskLevelClass .RiskLevel}}">
+                    <div class="finding-header">
+                        <span class="finding-type">{{piTypeIcon .Type}} {{.TypeDisplay}}</span>
+                        <span class="finding-score">Confidence: {{formatPercent .ConfidenceScore}}</span>
+                    </div>
+                    <div class="finding-location">
+                        <span class="file-path">{{.File}}</span>
+                        <span class="line-info">Line {{.Line}}, Column {{.Column}}</span>
+                    </div>
+                    <div class="finding-match">
+                        <code>{{.MaskedMatch}}</code>
+                        {{if .Validated}}<span class="validated-badge">✓ Validated</span>{{end}}
+                        {{if .IsTestData}}<span class="test-data-badge">Test Data</span>{{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </section>
+        {{end}}
+
+        <!-- Medium Risk Findings Summary -->
+        {{if .MediumFindings}}
+        <section class="findings-section medium">
+            <h2>🟡 Medium Risk Findings</h2>
+            <details class="findings-summary">
+                <summary>{{len .MediumFindings}} findings - click to expand</summary>
+                <div class="findings-list">
+                    {{range .MediumFindings}}
+                    <div class="finding-card {{riskLevelClass .RiskLevel}}">
+                        <div class="finding-header">
+                            <span class="finding-type">{{piTypeIcon .Type}} {{.TypeDisplay}}</span>
+                            <span class="finding-location">{{.File}}:{{.Line}}</span>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </details>
+        </section>
+        {{end}}
+
+        <!-- Low Risk Findings Summary -->
+        {{if .LowFindings}}
+        <section class="findings-section low">
+            <h2>🟢 Low Risk Findings</h2>
+            <details class="findings-summary">
+                <summary>{{len .LowFindings}} findings - click to expand</summary>
+                <div class="findings-list">
+                    {{range .LowFindings}}
+                    <div class="finding-card {{riskLevelClass .RiskLevel}}">
+                        <div class="finding-header">
+                            <span class="finding-type">{{piTypeIcon .Type}} {{.TypeDisplay}}</span>
+                            <span class="finding-location">{{.File}}:{{.Line}}</span>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </details>
+        </section>
+        {{end}}
+
+        <!-- Statistics -->
+        <section class="stats-section">
+            <h2>📈 Detailed Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Top Affected Files</h3>
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Findings</th>
+                                <th>Risk Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{range .Statistics.TopAffectedFiles}}
+                            <tr>
+                                <td class="file-path">{{.Path}}</td>
+                                <td>{{.FindingsCount}}</td>
+                                <td>{{formatScore .RiskScore}}</td>
+                            </tr>
+                        {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Environment Analysis</h3>
+                    <div class="env-stats">
+                        <div class="env-stat">
+                            <span class="env-label">Production:</span>
+                            <span class="env-value">{{.Statistics.EnvironmentStats.ProductionFindings}}</span>
+                        </div>
+                        <div class="env-stat">
+                            <span class="env-label">Test/Mock:</span>
+                            <span class="env-value">{{.Statistics.EnvironmentStats.TestFindings}}</span>
+                        </div>
+                        <div class="env-stat">
+                            <span class="env-label">Configuration:</span>
+                            <span class="env-value">{{.Statistics.EnvironmentStats.ConfigFindings}}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Validation Results</h3>
+                    <div class="validation-stats">
+                        <div class="validation-rate">
+                            <span class="rate-value">{{formatPercent .Statistics.ValidationStats.ValidationRate}}</span>
+                            <span class="rate-label">Validation Rate</span>
+                        </div>
+                        <div class="validation-counts">
+                            <span class="valid">✓ {{.Statistics.ValidationStats.ValidCount}} Valid</span>
+                            <span class="invalid">✗ {{.Statistics.ValidationStats.InvalidCount}} Invalid</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>Generated by PI Scanner {{.ToolVersion}} on {{formatTime .GeneratedAt}}</p>
+                <p>Report ID: {{.ReportID}}</p>
+                <p class="footer-note">This report contains sensitive information. Handle with care and in accordance with your organization's data protection policies.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>{{template "scripts" .}}</script>
+</body>
+</html>

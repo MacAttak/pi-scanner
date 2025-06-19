@@ -1,0 +1,50 @@
+{
+  "SchemaVersion": 2,
+  "CreatedAt": "2025-06-19T15:06:31.806134+10:00",
+  "ArtifactName": ".",
+  "ArtifactType": "filesystem",
+  "Metadata": {
+    "ImageConfig": {
+      "architecture": "",
+      "created": "0001-01-01T00:00:00Z",
+      "os": "",
+      "rootfs": {
+        "type": "",
+        "diff_ids": null
+      },
+      "config": {}
+    }
+  },
+  "Results": [
+    {
+      "Target": "go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    },
+    {
+      "Target": "lib/tokenizers-src/Cargo.lock",
+      "Class": "lang-pkgs",
+      "Type": "cargo"
+    },
+    {
+      "Target": "lib/tokenizers-src/example/go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    },
+    {
+      "Target": "lib/tokenizers-src/go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    },
+    {
+      "Target": "lib/tokenizers-src/release/go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    },
+    {
+      "Target": "test/e2e/go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod"
+    }
+  ]
+}

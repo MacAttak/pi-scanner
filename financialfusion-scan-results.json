@@ -1,0 +1,27 @@
+{
+  "repository": {
+    "url": "Financial-Fusion/financialfusion-enc",
+    "owner": "Financial-Fusion",
+    "name": "financialfusion-enc",
+    "local_path": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750205017041457000/financialfusion-enc",
+    "size": 55201401,
+    "file_count": 589,
+    "cloned_at": "2025-06-18T10:03:46.83411+10:00",
+    "is_shallow": true
+  },
+  "scan_started": "2025-06-18T10:03:36.458673+10:00",
+  "scan_finished": "0001-01-01T00:00:00Z",
+  "duration": 0,
+  "files_scanned": 0,
+  "findings": null,
+  "stats": {
+    "total_files": 416,
+    "scanned_files": 416,
+    "skipped_files": 0,
+    "total_size": 3930647,
+    "findings_by_type": {},
+    "findings_by_risk": {},
+    "processing_time": 0
+  },
+  "error": "File processing failed: failed to submit job /var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750205017041457000/financialfusion-enc/docs/api-client/api-endpoint-audit.md: job queue is full"
+}

@@ -1,0 +1,29 @@
+Security Audit Summary - Thu Jun 19 15:00:22 AEST 2025
+======================================
+
+1. Known Vulnerabilities (govulncheck)
+--------------------------------------
+✅ No known vulnerabilities found
+
+2. Static Security Analysis (gosec)
+-----------------------------------
+⏭️  gosec not installed (skipping)
+
+3. Dependency Scan (trivy)
+--------------------------
+❌ Vulnerabilities found:
+   Critical: 0, High: 1, Medium: 0, Low: 0
+   - [HIGH] CVE-2025-22869: golang.org/x/crypto
+
+4. PI Data Security Checks
+--------------------------
+✅ Data masking implemented
+✅ No hardcoded PI values found
+✅ Using secure random (crypto/rand)
+
+5. License Compliance
+---------------------
+⏭️  go-licenses not installed (skipping)
+
+6. Summary
+----------

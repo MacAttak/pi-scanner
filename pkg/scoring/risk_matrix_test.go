@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pi-scanner/pi-scanner/pkg/detection"
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

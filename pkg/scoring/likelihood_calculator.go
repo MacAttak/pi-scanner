@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pi-scanner/pi-scanner/pkg/detection"
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
 
 // LikelihoodCalculator calculates the likelihood of PI exploitation

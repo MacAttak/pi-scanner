@@ -1,0 +1,133 @@
+
+Report Summary
+
+┌───────────────────────────────────────┬────────────┬─────────────────┬───────────────────┬─────────┐
+│                Target                 │    Type    │ Vulnerabilities │ Misconfigurations │ Secrets │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ go.mod                                │   gomod    │        1        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/Cargo.lock         │   cargo    │        0        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/example/go.mod     │   gomod    │        0        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/go.mod             │   gomod    │        0        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/release/go.mod     │   gomod    │        0        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ test/e2e/go.mod                       │   gomod    │        0        │         -         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ Dockerfile                            │ dockerfile │        -        │         2         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/example/Dockerfile │ dockerfile │        -        │         2         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ lib/tokenizers-src/release/Dockerfile │ dockerfile │        -        │         2         │    -    │
+├───────────────────────────────────────┼────────────┼─────────────────┼───────────────────┼─────────┤
+│ financialfusion-scan-results-v2.json  │    text    │        -        │         -         │    1    │
+└───────────────────────────────────────┴────────────┴─────────────────┴───────────────────┴─────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+go.mod (gomod)
+==============
+Total: 1 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 1, CRITICAL: 0)
+
+┌─────────────────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬───────────────────────────────────────────────────────┐
+│       Library       │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                         Title                         │
+├─────────────────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼───────────────────────────────────────────────────────┤
+│ golang.org/x/crypto │ CVE-2025-22869 │ HIGH     │ fixed  │ v0.32.0           │ 0.35.0        │ golang.org/x/crypto/ssh: Denial of Service in the Key │
+│                     │                │          │        │                   │               │ Exchange of golang.org/x/crypto/ssh                   │
+│                     │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2025-22869            │
+└─────────────────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴───────────────────────────────────────────────────────┘
+
+Dockerfile (dockerfile)
+=======================
+Tests: 27 (SUCCESSES: 25, FAILURES: 2)
+Failures: 2 (UNKNOWN: 0, LOW: 1, MEDIUM: 1, HIGH: 0, CRITICAL: 0)
+
+AVD-DS-0013 (MEDIUM): RUN should not be used to change directory: 'git clone https://github.com/daulet/tokenizers.git &&     cd tokenizers &&     git checkout v1.20.2 &&     make build'. Use 'WORKDIR' statement instead.
+════════════════════════════════════════
+Use WORKDIR instead of proliferating instructions like 'RUN cd … && do-something', which are hard to read, troubleshoot, and maintain.
+
+See https://avd.aquasec.com/misconfig/ds013
+────────────────────────────────────────
+ Dockerfile:10-13
+────────────────────────────────────────
+  10 ┌ RUN git clone https://github.com/daulet/tokenizers.git && \
+  11 │     cd tokenizers && \
+  12 │     git checkout v1.20.2 && \
+  13 └     make build
+────────────────────────────────────────
+
+
+AVD-DS-0026 (LOW): Add HEALTHCHECK instruction in your Dockerfile
+════════════════════════════════════════
+You should add HEALTHCHECK instruction in your docker container images to perform the health check on running containers.
+
+See https://avd.aquasec.com/misconfig/ds026
+────────────────────────────────────────
+
+
+
+lib/tokenizers-src/example/Dockerfile (dockerfile)
+==================================================
+Tests: 27 (SUCCESSES: 25, FAILURES: 2)
+Failures: 2 (UNKNOWN: 0, LOW: 1, MEDIUM: 0, HIGH: 1, CRITICAL: 0)
+
+AVD-DS-0002 (HIGH): Specify at least 1 USER command in Dockerfile with non-root user as argument
+════════════════════════════════════════
+Running containers with 'root' user can lead to a container escape situation. It is a best practice to run containers as non-root users, which can be done by adding a 'USER' statement to the Dockerfile.
+
+See https://avd.aquasec.com/misconfig/ds002
+────────────────────────────────────────
+
+
+AVD-DS-0026 (LOW): Add HEALTHCHECK instruction in your Dockerfile
+════════════════════════════════════════
+You should add HEALTHCHECK instruction in your docker container images to perform the health check on running containers.
+
+See https://avd.aquasec.com/misconfig/ds026
+────────────────────────────────────────
+
+
+
+lib/tokenizers-src/release/Dockerfile (dockerfile)
+==================================================
+Tests: 27 (SUCCESSES: 25, FAILURES: 2)
+Failures: 2 (UNKNOWN: 0, LOW: 1, MEDIUM: 0, HIGH: 1, CRITICAL: 0)
+
+AVD-DS-0002 (HIGH): Specify at least 1 USER command in Dockerfile with non-root user as argument
+════════════════════════════════════════
+Running containers with 'root' user can lead to a container escape situation. It is a best practice to run containers as non-root users, which can be done by adding a 'USER' statement to the Dockerfile.
+
+See https://avd.aquasec.com/misconfig/ds002
+────────────────────────────────────────
+
+
+AVD-DS-0026 (LOW): Add HEALTHCHECK instruction in your Dockerfile
+════════════════════════════════════════
+You should add HEALTHCHECK instruction in your docker container images to perform the health check on running containers.
+
+See https://avd.aquasec.com/misconfig/ds026
+────────────────────────────────────────
+
+
+
+financialfusion-scan-results-v2.json (secrets)
+==============================================
+Total: 1 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 1)
+
+CRITICAL: Stripe (stripe-secret-token)
+════════════════════════════════════════
+Stripe Secret Key
+────────────────────────────────────────
+ financialfusion-scan-results-v2.json:89275
+────────────────────────────────────────
+89273         "context": "Secret Key",
+89274         "context_before": "insights/banking-summary\n\n# --- Clerk Backend API ",
+89275 [       "context_after": " ---\nCLERK_BACKEND_API_KEY=***********************",
+89276         "risk_level": "LOW",
+────────────────────────────────────────
+
+

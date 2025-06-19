@@ -1,7 +1,7 @@
 package scoring
 
 import (
-	"github.com/pi-scanner/pi-scanner/pkg/detection"
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
 
 // ImpactCalculator calculates the potential impact of a PI exposure

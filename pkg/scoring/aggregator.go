@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pi-scanner/pi-scanner/pkg/detection"
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
 
 // ScoreAggregator combines individual factor scores into a final confidence score

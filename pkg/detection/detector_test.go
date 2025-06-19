@@ -240,13 +240,13 @@ func TestDetector_Performance(t *testing.T) {
 	}
 
 	detector := NewDetector()
-	
+
 	// This should complete quickly even with large content
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	findings, err := detector.Detect(ctx, []byte(largeContent), "large_file.go")
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, findings)
 }
@@ -286,5 +286,83 @@ func BenchmarkDetector_LargeFile(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = detector.Detect(ctx, []byte(content), "large.go")
+	}
+}
+
+func TestDetector_DetectWithValidation(t *testing.T) {
+	tests := []struct {
+		name             string
+		content          string
+		expectedValid    bool
+		expectedConfidence float32
+		description      string
+	}{
+		{
+			name:             "valid TFN with checksum",
+			content:          `tfn := "123456782"`, // Valid TFN
+			expectedValid:    true,
+			expectedConfidence: 0.95,
+			description:      "Should increase confidence for valid TFN",
+		},
+		{
+			name:             "invalid TFN checksum",
+			content:          `tfn := "123456789"`, // Invalid checksum
+			expectedValid:    false,
+			expectedConfidence: 0.5,
+			description:      "Should decrease confidence for invalid TFN",
+		},
+		{
+			name:             "valid ABN - Telstra",
+			content:          `abn := "33051775556"`,
+			expectedValid:    true,
+			expectedConfidence: 0.95,
+			description:      "Should validate real ABN",
+		},
+		{
+			name:             "invalid ABN checksum",
+			content:          `abn := "12345678901"`,
+			expectedValid:    false,
+			expectedConfidence: 0.5,
+			description:      "Should detect invalid ABN",
+		},
+		{
+			name:             "valid Medicare",
+			content:          `medicare := "2123456701"`,
+			expectedValid:    true,
+			expectedConfidence: 0.95,
+			description:      "Should validate Medicare with correct checksum",
+		},
+		{
+			name:             "valid BSB",
+			content:          `bsb := "062-000"`,
+			expectedValid:    true,
+			expectedConfidence: 0.95,
+			description:      "Should validate BSB with valid state code",
+		},
+		{
+			name:             "invalid BSB state",
+			content:          `bsb := "068-000"`, // Invalid state digit 8
+			expectedValid:    false,
+			expectedConfidence: 0.5,
+			description:      "Should reject BSB with invalid state",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			detector := NewDetector()
+			findings, err := detector.Detect(context.Background(), []byte(tt.content), "test.go")
+
+			require.NoError(t, err)
+			require.Len(t, findings, 1, "Should find exactly one PI")
+
+			finding := findings[0]
+			assert.Equal(t, tt.expectedValid, finding.Validated, tt.description)
+			assert.Equal(t, tt.expectedConfidence, finding.Confidence, "Confidence should match expected")
+
+			if !tt.expectedValid && finding.ValidationError == "" {
+				t.Errorf("Expected validation error for invalid PI but got none")
+			}
+		})
 	}
 }

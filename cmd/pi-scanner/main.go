@@ -79,15 +79,6 @@ using a multi-stage detection pipeline.`,
 				return fmt.Errorf("either --repo or --repo-list must be specified")
 			}
 
-			if repoURL != "" && !isValidRepoURL(repoURL) {
-				return fmt.Errorf("Invalid repository URL: %s", repoURL)
-			}
-
-			// Show configuration being used
-			if configFile != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), "Using configuration: %s\n", configFile)
-			}
-
 			// Handle repo list
 			if repoList != "" {
 				fmt.Fprintf(cmd.OutOrStdout(), "Reading repository list from: %s\n", repoList)
@@ -96,10 +87,7 @@ using a multi-stage detection pipeline.`,
 			}
 
 			// Single repo scan
-			fmt.Fprintf(cmd.OutOrStdout(), "Scanning repository: %s\n", repoURL)
-			
-			// TODO: Implement actual scanning logic
-			return fmt.Errorf("scanning not yet implemented")
+			return runScan(cmd.Context(), repoURL, outputFile, verbose)
 		},
 	}
 

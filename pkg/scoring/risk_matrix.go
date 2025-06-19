@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pi-scanner/pi-scanner/pkg/detection"
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
 
 // RiskMatrix provides a multi-dimensional risk assessment framework

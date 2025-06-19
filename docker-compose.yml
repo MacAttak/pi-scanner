@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  pi-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ONNX_VERSION: "1.22.0"
+    image: pi-scanner:latest
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./output:/home/scanner/output
+      - ./config:/home/scanner/config
+      - pi-scanner-models:/home/scanner/.pi-scanner/models
+    command: scan --repo github/docs --output /home/scanner/output/scan-results.json
+
+  # Development container with shell access
+  pi-scanner-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ONNX_VERSION: "1.22.0"
+    image: pi-scanner:latest
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - LOG_LEVEL=debug
+    volumes:
+      - ./output:/home/scanner/output
+      - ./config:/home/scanner/config
+      - pi-scanner-models:/home/scanner/.pi-scanner/models
+      - .:/workspace:ro  # Mount source code for reference
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Test service for running tests in Docker
+  pi-scanner-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        ONNX_VERSION: "1.22.0"
+    image: pi-scanner:test
+    environment:
+      - CGO_ENABLED=1
+    volumes:
+      - ./coverage:/coverage
+    working_dir: /build
+    command: ["go", "test", "-v", "-coverprofile=/coverage/coverage.out", "./..."]
+
+  # Batch processing service
+  pi-scanner-batch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ONNX_VERSION: "1.22.0"
+    image: pi-scanner:latest
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./output:/home/scanner/output
+      - ./config:/home/scanner/config
+      - ./repo-lists:/home/scanner/repo-lists
+      - pi-scanner-models:/home/scanner/.pi-scanner/models
+    command: scan --repo-list /home/scanner/repo-lists/australian-repos.txt --output /home/scanner/output/batch-results.json
+
+volumes:
+  pi-scanner-models:
+    driver: local

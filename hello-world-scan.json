@@ -1,0 +1,26 @@
+{
+  "repository": {
+    "url": "octocat/Hello-World",
+    "owner": "octocat",
+    "name": "Hello-World",
+    "local_path": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750205308418042000/Hello-World",
+    "size": 13,
+    "file_count": 1,
+    "cloned_at": "2025-06-18T10:08:30.268704+10:00",
+    "is_shallow": true
+  },
+  "scan_started": "2025-06-18T10:08:27.575748+10:00",
+  "scan_finished": "2025-06-18T10:08:30.273386+10:00",
+  "duration": 2697647542,
+  "files_scanned": 0,
+  "findings": null,
+  "stats": {
+    "total_files": 0,
+    "scanned_files": 0,
+    "skipped_files": 0,
+    "total_size": 0,
+    "findings_by_type": {},
+    "findings_by_risk": {},
+    "processing_time": 334
+  }
+}
