@@ -1,0 +1,5 @@
+26f2297c1be51284ef8510d81ac1949a87f2baccbd4f31ac51e61e7597d15820  pi-scanner-darwin-amd64.tar.gz
+0953d3b1bd61cc9f0fec98f954859a74c219ac44cc6f563b052e734e4065217d  pi-scanner-darwin-arm64-ml.tar.gz
+3e4fb197720fdfe883ac916af0759b79850bdc0f2f2543f9d67387576dc56d47  pi-scanner-linux-amd64.tar.gz
+d195ff143ffd2c746b6ee77d307a511b84c03bdbe21a5e0ba931fdb9727b49d8  pi-scanner-linux-arm64.tar.gz
+e3dca10dfaeecb10ddd0ad1692f9d6f5d7137a031ba7a2ac60dfccb43e535a7d  pi-scanner-windows-amd64.zip

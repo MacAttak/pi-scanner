@@ -1,0 +1,138 @@
+# Default PI Scanner Configuration
+version: "1.0"
+
+scanner:
+  workers: 4
+  file_types:
+    - .go
+    - .py
+    - .js
+    - .ts
+    - .java
+    - .cs
+    - .rb
+    - .php
+    - .cpp
+    - .c
+    - .h
+    - .hpp
+    - .swift
+    - .kt
+    - .scala
+    - .json
+    - .yaml
+    - .yml
+    - .xml
+    - .properties
+    - .conf
+    - .env
+    - .config
+    - .ini
+    - .toml
+    - .txt
+    - .csv
+    - .sql
+    - .sh
+    - .bash
+    - .zsh
+    - .ps1
+    - .bat
+    - .cmd
+  exclude_paths:
+    - .git
+    - .svn
+    - .hg
+    - node_modules
+    - vendor
+    - .venv
+    - venv
+    - __pycache__
+    - .pytest_cache
+    - dist
+    - build
+    - target
+    - bin
+    - obj
+    - .idea
+    - .vscode
+    - "*.min.js"
+    - "*.min.css"
+    - "*.map"
+    - "*.sum"
+    - "*.lock"
+  max_file_size: 10485760  # 10MB
+  proximity_distance: 10
+  ml_validation:
+    enabled: false
+    confidence_threshold: 0.7
+    batch_size: 32
+  validators:
+    tfn:
+      enabled: true
+      strict_mode: true
+      min_confidence: 0.8
+    medicare:
+      enabled: true
+      strict_mode: true
+      min_confidence: 0.8
+    abn:
+      enabled: true
+      strict_mode: false
+      min_confidence: 0.7
+    bsb:
+      enabled: true
+      strict_mode: false
+      min_confidence: 0.7
+    credit_card:
+      enabled: true
+      strict_mode: true
+      min_confidence: 0.9
+    email:
+      enabled: true
+      strict_mode: false
+      min_confidence: 0.6
+    phone:
+      enabled: true
+      strict_mode: false
+      min_confidence: 0.6
+
+risk:
+  thresholds:
+    critical: 0.8
+    high: 0.6
+    medium: 0.4
+    low: 0.2
+  multipliers:
+    production: 1.5
+    staging: 1.2
+    development: 0.8
+    test: 0.5
+  co_occurrence:
+    enabled: true
+    proximity_window: 50
+    min_occurrences: 2
+    score_boost: 0.2
+
+report:
+  formats:
+    - html
+    - csv
+  output_directory: reports
+  include_masked: true
+  include_context: true
+  sarif:
+    tool_name: "PI Scanner"
+    tool_version: "1.0.0"
+    info_uri: "https://github.com/MacAttak/pi-scanner"
+
+github:
+  rate_limit: 30
+  clone_depth: 1
+  temp_directory: "/tmp/pi-scanner"
+
+logging:
+  level: info
+  format: json
+  max_size: 100     # MB
+  max_backups: 3
+  max_age: 28       # days
