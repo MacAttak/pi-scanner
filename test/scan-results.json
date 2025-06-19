@@ -1,6 +1,6 @@
 {
   "repository": null,
-  "scan_started": "2025-06-18T18:33:25.415688+10:00",
+  "scan_started": "2025-06-19T17:16:34.454954+10:00",
   "scan_finished": "0001-01-01T00:00:00Z",
   "duration": 0,
   "files_scanned": 0,
@@ -14,5 +14,5 @@
     "findings_by_risk": {},
     "processing_time": 0
   },
-  "error": "Failed to clone repository: failed to clone repository: git command failed: exit status 128 (output: Cloning into '/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750235605783860000/nonexistent-repo-12345'...\nremote: Repository not found.\nfatal: repository 'https://github.com/invalid/nonexistent-repo-12345.git/' not found\n)"
+  "error": "Failed to clone repository: failed to clone repository: git command failed: exit status 128 (output: Cloning into '/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750317394869908000/nonexistent-repo-12345'...\nremote: Repository not found.\nfatal: repository 'https://github.com/invalid/nonexistent-repo-12345.git/' not found\n)"
 }

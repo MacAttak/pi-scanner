@@ -1,0 +1,312 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: "1.21"
+  TOKENIZERS_VERSION: "v1.20.2"
+  ONNX_VERSION: "1.20.0"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Cache tokenizers library
+        uses: actions/cache@v4
+        with:
+          path: lib
+          key: ${{ runner.os }}-tokenizers-${{ env.TOKENIZERS_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-tokenizers-
+
+      - name: Install tokenizers library
+        run: |
+          if [ ! -f lib/libtokenizers.a ]; then
+            echo "Downloading tokenizers library..."
+            mkdir -p lib
+            cd lib
+            wget -q https://github.com/daulet/tokenizers/releases/download/${{ env.TOKENIZERS_VERSION }}/libtokenizers.linux-x86_64.tar.gz
+            tar -xzf libtokenizers.linux-x86_64.tar.gz
+            rm libtokenizers.linux-x86_64.tar.gz
+            cd ..
+          else
+            echo "Using cached tokenizers library"
+          fi
+          # Set CGO flags
+          echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          echo "CGO_LDFLAGS=-L${PWD}/lib" >> $GITHUB_ENV
+          echo "CGO_CFLAGS=-I${PWD}/lib" >> $GITHUB_ENV
+
+      - name: Install ONNX Runtime
+        run: |
+          # Check if ONNX Runtime is already installed
+          if [ ! -f /usr/local/lib/libonnxruntime.so ]; then
+            echo "Installing ONNX Runtime..."
+            wget -q https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_VERSION}/onnxruntime-linux-x64-${ONNX_VERSION}.tgz
+            tar -xzf onnxruntime-linux-x64-${ONNX_VERSION}.tgz
+            sudo cp onnxruntime-linux-x64-${ONNX_VERSION}/lib/*.so* /usr/local/lib/
+            sudo ldconfig
+            rm -rf onnxruntime-linux-x64-${ONNX_VERSION}*
+          else
+            echo "ONNX Runtime already installed"
+          fi
+          echo "LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests with coverage
+        run: |
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: true
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Install and run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  test-without-ml:
+    name: Test without ML (Fallback)
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests excluding ML packages
+        run: |
+          echo "Running tests without ML packages as fallback..."
+          go test -v -race $(go list ./... | grep -v '/ml')
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run gosec security scanner
+        uses: securego/gosec@master
+        with:
+          args: -fmt sarif -out gosec-results.sarif ./...
+
+      - name: Upload gosec results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: gosec-results.sarif
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  build:
+    name: Build
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Builds without ML support (no CGO)
+          - goos: linux
+            goarch: amd64
+            cgo: 0
+            suffix: "-no-ml"
+          - goos: linux
+            goarch: arm64
+            cgo: 0
+            suffix: "-no-ml"
+          - goos: darwin
+            goarch: amd64
+            cgo: 0
+            suffix: "-no-ml"
+          - goos: darwin
+            goarch: arm64
+            cgo: 0
+            suffix: "-no-ml"
+          - goos: windows
+            goarch: amd64
+            cgo: 0
+            suffix: "-no-ml"
+          # Build with ML support for Linux only (where we have libs)
+          - goos: linux
+            goarch: amd64
+            cgo: 1
+            suffix: "-ml"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies for ML build
+        if: matrix.cgo == 1
+        run: |
+          # Install tokenizers
+          mkdir -p lib
+          cd lib
+          if [ "${{ matrix.goarch }}" = "arm64" ]; then
+            wget -q https://github.com/daulet/tokenizers/releases/download/${{ env.TOKENIZERS_VERSION }}/libtokenizers.linux-aarch64.tar.gz
+            tar -xzf libtokenizers.linux-aarch64.tar.gz
+          else
+            wget -q https://github.com/daulet/tokenizers/releases/download/${{ env.TOKENIZERS_VERSION }}/libtokenizers.linux-x86_64.tar.gz
+            tar -xzf libtokenizers.linux-x86_64.tar.gz
+          fi
+          cd ..
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: ${{ matrix.cgo }}
+          CGO_LDFLAGS: ${{ matrix.cgo == 1 && format('-L{0}/lib', github.workspace) || '' }}
+          CGO_CFLAGS: ${{ matrix.cgo == 1 && format('-I{0}/lib', github.workspace) || '' }}
+        run: |
+          output_name="pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            output_name="${output_name}.exe"
+          fi
+          
+          # Use build tags to exclude ML features when CGO is disabled
+          if [ "${{ matrix.cgo }}" = "0" ]; then
+            go build -tags="!ml" -ldflags="-s -w" -o "dist/${output_name}" ./cmd/pi-scanner
+          else
+            go build -ldflags="-s -w" -o "dist/${output_name}" ./cmd/pi-scanner
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}
+          path: dist/*
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run benchmarks
+        run: |
+          # Run benchmarks for non-ML packages only
+          go test -bench=. -benchmem -run=^$ $(go list ./... | grep -v '/ml') | tee benchmark.txt
+
+      - name: Comment benchmark results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const benchmarkResults = fs.readFileSync('benchmark.txt', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## Benchmark Results\n```\n' + benchmarkResults + '\n```'
+            });
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  docker:
+    name: Docker Build
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: pi-scanner:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

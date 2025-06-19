@@ -3,7 +3,7 @@
 FROM rust:1.75-alpine AS tokenizers-builder
 
 # Install build dependencies
-RUN apk add --no-cache git gcc musl-dev make cmake
+RUN apk add --no-cache git gcc g++ musl-dev make cmake
 
 # Build tokenizers
 WORKDIR /build
@@ -51,12 +51,18 @@ RUN apt-get update && \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ONNX Runtime
+# Install ONNX Runtime (architecture-specific)
 ARG ONNX_VERSION=1.22.0
-RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_VERSION}/onnxruntime-linux-x64-${ONNX_VERSION}.tgz && \
-    tar -xzf onnxruntime-linux-x64-${ONNX_VERSION}.tgz && \
-    cp onnxruntime-linux-x64-${ONNX_VERSION}/lib/* /usr/local/lib/ && \
-    rm -rf onnxruntime-linux-x64-${ONNX_VERSION}* && \
+ARG TARGETPLATFORM
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        ONNX_ARCH="aarch64"; \
+    else \
+        ONNX_ARCH="x64"; \
+    fi && \
+    wget -q https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_VERSION}/onnxruntime-linux-${ONNX_ARCH}-${ONNX_VERSION}.tgz && \
+    tar -xzf onnxruntime-linux-${ONNX_ARCH}-${ONNX_VERSION}.tgz && \
+    cp -r onnxruntime-linux-${ONNX_ARCH}-${ONNX_VERSION}/lib/*.so* /usr/local/lib/ && \
+    rm -rf onnxruntime-linux-${ONNX_ARCH}-${ONNX_VERSION}* && \
     ldconfig
 
 # Create non-root user

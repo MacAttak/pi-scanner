@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sync"
 
+	contextval "github.com/MacAttak/pi-scanner/pkg/context"
 	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"github.com/MacAttak/pi-scanner/pkg/discovery"
 )
@@ -35,16 +36,17 @@ type ProcessingStats struct {
 
 // FileProcessor handles concurrent file processing through the detection pipeline
 type FileProcessor struct {
-	detectors    []detection.Detector
-	numWorkers   int
-	jobQueue     chan FileJob
-	resultQueue  chan ProcessingResult
-	workers      []*FileWorker
-	wg           sync.WaitGroup
-	ctx          context.Context
-	cancel       context.CancelFunc
-	started      bool
-	mu           sync.RWMutex
+	detectors        []detection.Detector
+	contextValidator *contextval.ContextValidator
+	numWorkers       int
+	jobQueue         chan FileJob
+	resultQueue      chan ProcessingResult
+	workers          []*FileWorker
+	wg               sync.WaitGroup
+	ctx              context.Context
+	cancel           context.CancelFunc
+	started          bool
+	mu               sync.RWMutex
 }
 
 // FileWorker represents a single worker processing files
@@ -88,11 +90,12 @@ func NewFileProcessor(config ProcessorConfig, detectors []detection.Detector) *F
 	}
 
 	return &FileProcessor{
-		detectors:   detectors,
-		numWorkers:  config.NumWorkers,
-		jobQueue:    make(chan FileJob, config.QueueSize),
-		resultQueue: make(chan ProcessingResult, config.QueueSize),
-		workers:     make([]*FileWorker, config.NumWorkers),
+		detectors:        detectors,
+		contextValidator: contextval.NewContextValidator(),
+		numWorkers:       config.NumWorkers,
+		jobQueue:         make(chan FileJob, config.QueueSize),
+		resultQueue:      make(chan ProcessingResult, config.QueueSize),
+		workers:          make([]*FileWorker, config.NumWorkers),
 	}
 }
 
@@ -272,12 +275,26 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 			continue
 		}
 
-		// Update file path in findings
+		// Update file path in findings and apply context validation
+		var validFindings []detection.Finding
 		for i := range findings {
 			findings[i].File = job.FilePath
+			
+			// Apply context validation to reduce false positives
+			validationResult, err := w.processor.contextValidator.Validate(w.ctx, findings[i], string(job.Content))
+			if err == nil {
+				if !validationResult.IsValid {
+					// Skip invalid findings
+					continue
+				}
+				// Update confidence based on context validation
+				findings[i].Confidence = float32(validationResult.Confidence)
+			}
+			
+			validFindings = append(validFindings, findings[i])
 		}
 
-		result.Findings = append(result.Findings, findings...)
+		result.Findings = append(result.Findings, validFindings...)
 	}
 
 	return result
