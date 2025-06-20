@@ -80,6 +80,7 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 	for _, matcher := range d.matchers {
 		matches := matcher.Match(content)
 		
+		
 		for _, match := range matches {
 			// Check if this match overlaps with an existing match
 			overlaps := false
@@ -186,18 +187,9 @@ func (d *detector) initializeMatchers() {
 				return false
 			}
 			
-			// Validate using correct ABN algorithm (mod 89)
-			weights := []int{10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19}
-			sum := 0
-			// Subtract 1 from first digit and multiply by weight[0]
-			firstDigit := int(clean[0] - '0')
-			sum += (firstDigit - 1) * weights[0]
-			// Add remaining digits with their weights
-			for i := 1; i < 11; i++ {
-				digit := int(clean[i] - '0')
-				sum += digit * weights[i]
-			}
-			return sum%89 == 0
+			// For pattern matching, we accept any 11-digit number that looks like an ABN
+			// Checksum validation will happen later via the validation registry
+			return true
 		},
 	})
 	
@@ -220,16 +212,9 @@ func (d *detector) initializeMatchers() {
 				return false
 			}
 			
-			// Validate using correct Medicare algorithm (mod 10)
-			weights := []int{1, 3, 7, 9, 1, 3, 7, 9}
-			sum := 0
-			for i := 0; i < 8; i++ {
-				digit := int(medicare[i] - '0')
-				sum += digit * weights[i]
-			}
-			expectedCheckDigit := sum % 10
-			actualCheckDigit := int(medicare[8] - '0')
-			return actualCheckDigit == expectedCheckDigit
+			// For pattern matching, we accept any number that looks like Medicare
+			// Checksum validation will happen later via the validation registry
+			return true
 		},
 	})
 	
@@ -246,14 +231,9 @@ func (d *detector) initializeMatchers() {
 				return false
 			}
 			
-			// Validate using correct TFN algorithm (mod 11)
-			weights := []int{1, 4, 3, 7, 5, 8, 6, 9, 10}
-			sum := 0
-			for i, c := range clean {
-				digit := int(c - '0')
-				sum += digit * weights[i]
-			}
-			return sum%11 == 0
+			// For pattern matching, we accept any 9-digit number that looks like a TFN
+			// Checksum validation will happen later via the validation registry
+			return true
 		},
 	})
 	
@@ -299,18 +279,9 @@ func (d *detector) initializeMatchers() {
 				return false
 			}
 			
-			// Validate using correct ACN algorithm (modified mod 10)
-			weights := []int{8, 7, 6, 5, 4, 3, 2, 1}
-			sum := 0
-			for i := 0; i < 8; i++ {
-				digit := int(clean[i] - '0')
-				sum += digit * weights[i]
-			}
-			// Calculate expected check digit
-			remainder := sum % 10
-			expectedCheckDigit := (10 - remainder) % 10
-			actualCheckDigit := int(clean[8] - '0')
-			return actualCheckDigit == expectedCheckDigit
+			// For pattern matching, we accept any 9-digit number that looks like an ACN
+			// Checksum validation will happen later via the validation registry
+			return true
 		},
 	})
 	
@@ -351,7 +322,7 @@ func (d *detector) initializeMatchers() {
 	// WA: 7 digits
 	// TAS: 7 digits or 2 letters + 5 digits
 	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b(?:[A-Z]\d{6}|[A-Z]{2}\d{5}|\d{7,10})\b`,
+		pattern: `\b(?:[A-Z]\d{6}|[A-Z]{2}\d{5}|\d{7})\b`,
 		piType:  PITypeDriverLicense,
 		d:       d,
 		validator: func(match string) bool {
@@ -369,6 +340,10 @@ func (d *detector) initializeMatchers() {
 			if len(match) >= 7 && len(match) <= 10 {
 				// Numeric formats (NSW/QLD/VIC/WA/TAS)
 				if regexp.MustCompile(`^\d+$`).MatchString(match) {
+					// Exclude 8 or 9-digit numbers that could be TFNs or other IDs
+					if len(match) == 8 || len(match) == 9 {
+						return false
+					}
 					return true
 				}
 				// SA format: Letter + 6 digits
@@ -601,16 +576,8 @@ func (d *detector) isValidPersonName(name string) bool {
 
 // shouldIncludeFinding determines if a finding should be included based on context validation and confidence thresholds
 func (d *detector) shouldIncludeFinding(ctx context.Context, finding Finding, fileContent string) bool {
-	// Apply context modifier to confidence
-	adjustedConfidence := finding.Confidence * finding.ContextModifier
-	
-	// Set minimum confidence threshold based on context
-	minConfidence := d.getMinimumConfidenceThreshold(finding)
-	
-	// If adjusted confidence is below threshold, exclude the finding
-	if adjustedConfidence < minConfidence {
-		return false
-	}
+	// For test files (low context modifier), we still want to detect PI
+	// but we'll rely more on context validation rather than confidence thresholds
 	
 	// Apply advanced context validation if enabled
 	if d.config.EnableContextValidation {
@@ -620,43 +587,43 @@ func (d *detector) shouldIncludeFinding(ctx context.Context, finding Finding, fi
 		}
 	}
 	
-	// Default behavior: include if adjusted confidence meets threshold
-	return adjustedConfidence >= minConfidence
+	// Check base confidence threshold (without context modifier)
+	// This ensures we don't filter out legitimate findings just because they're in test files
+	minConfidence := d.getMinimumConfidenceThreshold(finding)
+	if finding.Confidence < minConfidence {
+		return false
+	}
+	
+	// Include the finding
+	return true
 }
 
 // getMinimumConfidenceThreshold returns the minimum confidence threshold for a finding
 func (d *detector) getMinimumConfidenceThreshold(finding Finding) float32 {
-	// Check if it's a test file context (should have higher threshold)
-	if finding.ContextModifier <= 0.1 {
-		return 0.9 // Very high threshold for test contexts (effectively filters most out)
+	// Use the configured minimum threshold if set
+	if d.config.MinConfidenceThreshold > 0 {
+		return d.config.MinConfidenceThreshold
 	}
 	
-	// Check if it's a mock file context
-	if finding.ContextModifier <= 0.2 {
-		return 0.8 // High threshold for mock contexts
-	}
-	
-	// Different thresholds based on PI type criticality
-	switch finding.Type {
-	case PITypeTFN, PITypeMedicare, PITypeCreditCard:
-		return 0.4 // Lower threshold for high-risk PI types (don't want to miss them)
-	case PITypeABN, PITypeACN, PITypeBSB:
-		return 0.4 // Medium-risk PI types
-	case PITypeName, PITypeEmail, PITypePhone:
-		return 0.3 // Lower-risk PI types can have lower threshold
-	default:
-		return 0.4 // Default threshold
-	}
+	// Default thresholds based on context
+	// Note: We don't want to filter out findings in test files too aggressively
+	// as they might be testing real PI detection
+	return 0.3 // Default threshold allows most findings through
 }
 
 // validateContext performs simplified context validation
 func (d *detector) validateContext(finding Finding, fileContent string) bool {
+	// For test files, we're less strict about context validation
+	// since tests often contain real PI examples for testing purposes
+	isTestFile := finding.ContextModifier <= 0.1
+	
 	// Check if finding is in test data context
-	if d.isInTestContext(finding, fileContent) {
-		return false // Suppress findings in test contexts
+	if !isTestFile && d.isInTestContext(finding, fileContent) {
+		return false // Suppress findings in test contexts (but not in test files)
 	}
 	
 	// Check if finding is in comment and looks like example data
+	// Only suppress if it explicitly mentions it's an example
 	if d.isInCommentExample(finding, fileContent) {
 		return false // Suppress obvious examples in comments
 	}
@@ -701,9 +668,11 @@ func (d *detector) isInCommentExample(finding Finding, content string) bool {
 	   strings.Contains(line, "/*") || strings.Contains(line, "*/") {
 		
 		lineLower := strings.ToLower(line)
+		// More specific keywords that indicate it's definitely not real PI
 		exampleKeywords := []string{
-			"example", "sample", "todo", "fixme", "note:", "warning:",
-			"replace", "change", "update", "placeholder", "format:",
+			"example:", "sample:", "todo", "fixme", "note:", "warning:",
+			"replace with", "change to", "update this", "placeholder", "format:",
+			"test example", "sample data", "dummy value",
 		}
 		
 		for _, keyword := range exampleKeywords {
@@ -722,9 +691,9 @@ func (d *detector) isInMockContext(finding Finding, content string) bool {
 	contextLower := strings.ToLower(context)
 	
 	mockKeywords := []string{
-		"mock", "fake", "stub", "dummy", "placeholder", 
-		"lorem", "ipsum", "demo", "sample", "template", 
-		"test_", "mock_", "dummy_", "fake_", "example_",
+		"fakename", "stub", "dummy", "placeholder", 
+		"lorem", "ipsum", "demo data", "sample data", "template", 
+		"test_data", "mock_data", "dummy_data", "fake_data", "example_data",
 		"testdata", "testfactory", "mockdata",
 	}
 	

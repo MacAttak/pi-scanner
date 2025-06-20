@@ -227,7 +227,7 @@ func DefaultConfig() *Config {
 		},
 		
 		// Confidence settings
-		MinConfidenceThreshold: 0.6,
+		MinConfidenceThreshold: 0.4, // Lower threshold to allow invalid checksums to be detected
 		ContextConfidenceBoost: 0.2,
 		
 		RiskWeights: map[PIType]int{
