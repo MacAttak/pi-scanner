@@ -93,12 +93,30 @@ func (pd *ProximityDetector) AnalyzeContext(content, match string, startIndex, e
 	result.IsTestData = pd.IsTestData("", content, match, startIndex, endIndex)
 	if result.IsTestData {
 		result.Score = 0.1
-		result.Reason = "test data indicator"
+		// Determine specific test data type
+		contextBefore, contextAfter := pd.analyzer.ExtractSurroundingText(content, startIndex, endIndex, 30)
+		fullContext := strings.ToLower(contextBefore + match + contextAfter)
+		
+		if strings.Contains(fullContext, "fake") {
+			result.Reason = "fake data indicator"
+		} else if strings.Contains(fullContext, "dummy") {
+			result.Reason = "dummy data indicator"
+		} else if strings.Contains(fullContext, "example") {
+			result.Reason = "example data indicator"
+		} else if strings.Contains(fullContext, "sample") {
+			result.Reason = "sample data indicator"
+		} else if strings.Contains(fullContext, "demo") {
+			result.Reason = "demo data indicator"
+		} else if strings.Contains(fullContext, "mock") {
+			result.Reason = "mock data indicator"
+		} else {
+			result.Reason = "test data indicator"
+		}
 		result.Context = PIContextTest
 		return result
 	}
 
-	// Identify PI context
+	// Identify PI context (only if it's not test data)
 	contextInfo := pd.IdentifyPIContext(content, match, startIndex, endIndex)
 	result.Context = contextInfo.Type
 	result.Keywords = contextInfo.Keywords
@@ -139,9 +157,14 @@ func (pd *ProximityDetector) IdentifyPIContext(content, match string, startIndex
 	piLabels := pd.patternMatcher.FindPIContextLabels(fullContext)
 	if len(piLabels) > 0 {
 		distance := pd.calculateLabelDistance(contextBefore, piLabels)
+		// Convert labels to lowercase for consistency
+		lowerLabels := make([]string, len(piLabels))
+		for i, label := range piLabels {
+			lowerLabels[i] = strings.ToLower(label)
+		}
 		return PIContextInfo{
 			Type:     PIContextLabel,
-			Keywords: piLabels,
+			Keywords: lowerLabels,
 			Distance: distance,
 		}
 	}

@@ -37,8 +37,13 @@ func (ca *ContextAnalyzer) compilePatterns() {
 
 // ExtractSurroundingText extracts text before and after a match within a specified window
 func (ca *ContextAnalyzer) ExtractSurroundingText(content string, startIndex, endIndex, windowSize int) (before, after string) {
-	if len(content) == 0 || startIndex < 0 || endIndex < 0 || startIndex >= len(content) {
+	if len(content) == 0 || startIndex < 0 || endIndex < 0 {
 		return "", ""
+	}
+
+	// Swap indices if they're reversed
+	if startIndex > endIndex {
+		startIndex, endIndex = endIndex, startIndex
 	}
 
 	// Ensure indices are valid
@@ -47,9 +52,6 @@ func (ca *ContextAnalyzer) ExtractSurroundingText(content string, startIndex, en
 	}
 	if endIndex > len(content) {
 		endIndex = len(content)
-	}
-	if endIndex < startIndex {
-		endIndex = startIndex
 	}
 
 	// Calculate before context
@@ -73,6 +75,19 @@ func (ca *ContextAnalyzer) ExtractSurroundingText(content string, startIndex, en
 func (ca *ContextAnalyzer) GetWordProximity(content, targetWord string, startIndex, endIndex int) (distance int, found bool) {
 	if len(content) == 0 || len(targetWord) == 0 {
 		return -1, false
+	}
+
+	// Swap indices if they're reversed
+	if startIndex > endIndex {
+		startIndex, endIndex = endIndex, startIndex
+	}
+
+	// Ensure indices are valid
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if endIndex > len(content) {
+		endIndex = len(content)
 	}
 
 	// Extract surrounding context (larger window for proximity analysis)
@@ -136,9 +151,22 @@ func (ca *ContextAnalyzer) AnalyzeStructure(content string, startIndex, endIndex
 		return StructureAnalysis{Type: StructurePlainText, NestingLevel: 0}
 	}
 
+	// Swap indices if they're reversed
+	if startIndex > endIndex {
+		startIndex, endIndex = endIndex, startIndex
+	}
+
+	// Ensure indices are valid
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if endIndex > len(content) {
+		endIndex = len(content)
+	}
+
 	// Extract larger context for structure analysis
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 200)
-	context := before + content[max(0, min(startIndex, len(content))):max(0, min(endIndex, len(content)))] + after
+	context := before + content[startIndex:endIndex] + after
 	
 	// Check structure types in order of priority (most specific first)
 	structureOrder := []StructureType{
@@ -197,6 +225,19 @@ func (ca *ContextAnalyzer) FindNearestKeyword(content string, keywords []string,
 		return "", -1, false
 	}
 	
+	// Swap indices if they're reversed
+	if startIndex > endIndex {
+		startIndex, endIndex = endIndex, startIndex
+	}
+
+	// Ensure indices are valid
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if endIndex > len(content) {
+		endIndex = len(content)
+	}
+	
 	minDistance := -1
 	nearestKeyword := ""
 	
@@ -221,6 +262,19 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 		return SemanticAnalysis{Confidence: 0.5, Indicators: []string{}, PITypes: []string{}}
 	}
 	
+	// Swap indices if they're reversed
+	if startIndex > endIndex {
+		startIndex, endIndex = endIndex, startIndex
+	}
+
+	// Ensure indices are valid
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if endIndex > len(content) {
+		endIndex = len(content)
+	}
+	
 	// Extract context for analysis
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 100)
 	context := before + after
@@ -229,53 +283,73 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 	confidence := 0.5 // Start with neutral confidence
 	
 	// Analyze for different semantic indicators
+	lowerContext := strings.ToLower(context)
 	
 	// PI indicators (positive)
 	piIndicators := []string{"customer", "user", "client", "person", "individual", "verification", "authentication", "secure", "private", "confidential"}
-	piCount := ca.CountKeywords(context, piIndicators)
-	if piCount > 0 {
-		confidence += float64(piCount) * 0.1
-		indicators = append(indicators, "customer", "verification")
+	for _, indicator := range piIndicators {
+		if strings.Contains(lowerContext, indicator) {
+			confidence += 0.1
+			indicators = append(indicators, indicator)
+		}
+	}
+	
+	// Check for specific PI type labels
+	if strings.Contains(lowerContext, "ssn") {
+		indicators = append(indicators, "ssn")
+		confidence += 0.2
 	}
 	
 	// Test indicators (negative)
 	testIndicators := []string{"test", "mock", "sample", "demo", "example", "fake", "dummy"}
-	testCount := ca.CountKeywords(context, testIndicators)
-	if testCount > 0 {
-		confidence -= float64(testCount) * 0.2
-		indicators = append(indicators, "test", "mock")
+	for _, indicator := range testIndicators {
+		if strings.Contains(lowerContext, indicator) {
+			confidence -= 0.2
+			indicators = append(indicators, indicator)
+		}
 	}
 	
 	// Database indicators (positive)
 	dbIndicators := []string{"database", "table", "query", "select", "insert", "update", "where"}
-	dbCount := ca.CountKeywords(context, dbIndicators)
-	if dbCount > 0 {
-		confidence += float64(dbCount) * 0.05
-		indicators = append(indicators, "database", "query")
+	foundDB := false
+	for _, indicator := range dbIndicators {
+		if strings.Contains(lowerContext, indicator) && !foundDB {
+			confidence += 0.05
+			indicators = append(indicators, "database", "query")
+			foundDB = true
+		}
 	}
 	
 	// Form indicators (positive)
 	formIndicators := []string{"form", "input", "field", "submit", "validation"}
-	formCount := ca.CountKeywords(context, formIndicators)
-	if formCount > 0 {
-		confidence += float64(formCount) * 0.05
-		indicators = append(indicators, "form", "input")
+	foundForm := false
+	for _, indicator := range formIndicators {
+		if strings.Contains(lowerContext, indicator) && !foundForm {
+			confidence += 0.05
+			indicators = append(indicators, "form", "input")
+			foundForm = true
+		}
 	}
 	
 	// Documentation indicators (negative)
 	docIndicators := []string{"documentation", "comment", "example", "reference", "guide"}
-	docCount := ca.CountKeywords(context, docIndicators)
-	if docCount > 0 {
-		confidence -= float64(docCount) * 0.1
-		indicators = append(indicators, "documentation")
+	for _, indicator := range docIndicators {
+		if strings.Contains(lowerContext, indicator) {
+			confidence -= 0.1
+			indicators = append(indicators, "documentation")
+			break
+		}
 	}
 	
 	// Log indicators (moderate positive)
 	logIndicators := []string{"log", "info", "debug", "error", "warn", "trace"}
-	logCount := ca.CountKeywords(context, logIndicators)
-	if logCount > 0 {
-		confidence += float64(logCount) * 0.03
-		indicators = append(indicators, "log")
+	foundLog := false
+	for _, indicator := range logIndicators {
+		if strings.Contains(lowerContext, indicator) && !foundLog {
+			confidence += 0.03
+			indicators = append(indicators, "log")
+			foundLog = true
+		}
 	}
 	
 	// Detect likely PI types based on context

@@ -2,6 +2,7 @@ package proximity
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -40,12 +41,14 @@ func (pm *PatternMatcher) compilePatterns() {
 	}
 	
 	// Create pattern that matches test keywords as whole words or with common separators
-	testPatterns := make([]string, 0, len(testKeywords)*3)
+	testPatterns := make([]string, 0, len(testKeywords)*5)
 	for _, keyword := range testKeywords {
 		testPatterns = append(testPatterns, 
 			`\b`+regexp.QuoteMeta(keyword)+`\b`,           // whole word
 			`\b`+regexp.QuoteMeta(keyword)+`[_-]`,         // with underscore or dash
 			`[_-]`+regexp.QuoteMeta(keyword)+`\b`,         // prefixed with underscore or dash
+			regexp.QuoteMeta(keyword)+`Data`,              // camelCase pattern (e.g., mockData)
+			`\b`+regexp.QuoteMeta(keyword)+`[A-Z]`,        // camelCase prefix (e.g., mockSSN)
 		)
 	}
 	pm.testDataPattern = regexp.MustCompile(`(?i)` + strings.Join(testPatterns, "|"))
@@ -96,6 +99,11 @@ func (pm *PatternMatcher) compilePatterns() {
 		"Passport", "passport", "Passport Number", "passport number",
 		"Passport No", "passport no",
 	}
+	
+	// Sort labels by length (longest first) to ensure proper matching precedence
+	sort.Slice(piLabels, func(i, j int) bool {
+		return len(piLabels[i]) > len(piLabels[j])
+	})
 	
 	labelPatterns := make([]string, 0, len(piLabels))
 	for _, label := range piLabels {
