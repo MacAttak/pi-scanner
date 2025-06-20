@@ -166,7 +166,13 @@ func (ca *ContextAnalyzer) AnalyzeStructure(content string, startIndex, endIndex
 
 	// Extract larger context for structure analysis
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 200)
-	context := before + content[startIndex:endIndex] + after
+	
+	// Safely extract the match content
+	var matchContent string
+	if startIndex < len(content) && endIndex <= len(content) && startIndex <= endIndex {
+		matchContent = content[startIndex:endIndex]
+	}
+	context := before + matchContent + after
 	
 	// Check structure types in order of priority (most specific first)
 	structureOrder := []StructureType{
