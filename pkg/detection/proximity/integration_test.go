@@ -57,8 +57,8 @@ func TestBasicIntegration(t *testing.T) {
 			startIndex:     11,
 			endIndex:       22,
 			expectTestData: false,
-			expectMinScore: 0.2,
-			expectMaxScore: 0.7, // Allow higher score for variable context
+			expectMinScore: 0.8,
+			expectMaxScore: 1.0, // Variable with PI name gets high score
 		},
 	}
 
