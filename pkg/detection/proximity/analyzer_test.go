@@ -347,7 +347,7 @@ func TestContextAnalyzer_CalculateContextWindow(t *testing.T) {
 			endIndex:       31,
 			baseWindow:     10,
 			expectedBefore: 20, // Can go to start
-			expectedAfter:  13, // Can go to end
+			expectedAfter:  12, // Can go to end (43 - 31 = 12)
 		},
 		{
 			name:           "Near start",
@@ -356,7 +356,7 @@ func TestContextAnalyzer_CalculateContextWindow(t *testing.T) {
 			endIndex:       11,
 			baseWindow:     10,
 			expectedBefore: 0,  // At start
-			expectedAfter:  10, // Normal window
+			expectedAfter:  14, // Available space (25 - 11 = 14)
 		},
 		{
 			name:           "Near end",

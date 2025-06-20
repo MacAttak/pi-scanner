@@ -1,0 +1,18 @@
+{
+  "repository": null,
+  "scan_started": "2025-06-20T04:50:42.410313133Z",
+  "scan_finished": "0001-01-01T00:00:00Z",
+  "duration": 0,
+  "files_scanned": 0,
+  "findings": null,
+  "stats": {
+    "total_files": 0,
+    "scanned_files": 0,
+    "skipped_files": 0,
+    "total_size": 0,
+    "findings_by_type": {},
+    "findings_by_risk": {},
+    "processing_time": 0
+  },
+  "error": "Authentication failed: gh CLI not found: install from https://cli.github.com/"
+}

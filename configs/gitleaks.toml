@@ -77,19 +77,8 @@ regex = '''\b(?:\+?61|0)[2378]\d{8}\b|\(\d{2}\)\s*\d{4}\s*\d{4}\b'''
 keywords = ["phone", "landline", "telephone", "contact"]
 
 # Global allowlists to reduce false positives
-[[allowlists]]
-description = "Test files and directories"
-paths = [
-  '''(?i)(test|spec|mock)''',
-  '''(?i)fixture''',
-  '''(?i)example''',
-  '''(?i)\.test\.(js|ts|go|py)$''',
-  '''(?i)_test\.(go|py)$''',
-  '''(?i)test_.*\.(py|js|ts)$''',
-  '''(?i)/tests?/''',
-  '''(?i)/fixtures?/''',
-  '''(?i)/mocks?/'''
-]
+# NOTE: Test file filtering is handled via ContextModifier in the detector
+# instead of allowlists to ensure proper risk scoring
 
 [[allowlists]]
 description = "Common false positive patterns"

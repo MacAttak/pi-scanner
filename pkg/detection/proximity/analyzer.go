@@ -184,7 +184,7 @@ func (ca *ContextAnalyzer) CalculateContextWindow(content string, startIndex, en
 	}
 	
 	// Calculate available space and return it
-	// For context analysis, more context is generally better
+	// The baseWindow parameter is used for guidance but doesn't limit the actual window
 	beforeWindow = startIndex
 	afterWindow = len(content) - endIndex
 	

@@ -1,0 +1,5 @@
+388d4ab08370345ea1d281b94e456021b5c02cfeeb7fa4c14aaa0851f7a4e81c  pi-scanner-darwin-amd64
+ac1c2bc0e7c663a19a5bc0ed1e0d957f93093d01d7a9448dcbaf29d2ac802e21  pi-scanner-darwin-arm64
+e5eebfffa6dd7193bd44fb919142329a97e0b862d152c8e5634ed129bd28f869  pi-scanner-linux-amd64
+90be14d0ddfd90584f35b7c5d0e593764b540583836593f036acc7e1ba758328  pi-scanner-linux-arm64
+bcb661e0eb5b7d3cffdeb611d41a4f77949858bf6596c440e95b99f0a5bd8f06  pi-scanner-windows-amd64.exe
