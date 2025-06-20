@@ -351,7 +351,7 @@ func TestFileProcessor_QueueCapacity(t *testing.T) {
 	defer processor.Stop()
 
 	// Fill queue capacity
-	for i := 0; i < queueSize+1; i++ { // queue + 1 in worker
+	for i := 0; i < queueSize; i++ {
 		job := FileJob{
 			FilePath: fmt.Sprintf("/test/file%d.txt", i),
 			Content:  []byte("test"),
@@ -361,9 +361,6 @@ func TestFileProcessor_QueueCapacity(t *testing.T) {
 		err = processor.Submit(job)
 		require.NoError(t, err)
 	}
-
-	// Allow time for worker to pick up first job
-	time.Sleep(50 * time.Millisecond)
 
 	// This should fail as queue is full
 	overflowJob := FileJob{

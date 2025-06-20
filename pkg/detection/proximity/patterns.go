@@ -128,8 +128,9 @@ func (pm *PatternMatcher) compilePatterns() {
 		`<input[^>]*>`,                  // HTML input tags
 		`<textarea[^>]*>.*?</textarea>`, // HTML textarea
 		`<select[^>]*>.*?</select>`,     // HTML select
-		`\w+=[^&\s]*`,                   // Form data key=value
-		`[{,]\s*"\w+"\s*:\s*"[^"]*"`,    // JSON field
+		`&\w+=[^&\s]*`,                  // Form data key=value with & prefix
+		`\?\w+=[^&\s]*`,                 // Query string parameters
+		`^\s*\{.*"\w+"\s*:\s*"[^"]*"`,   // JSON object (more specific pattern)
 	}, "|"))
 
 	// Database patterns
@@ -157,14 +158,14 @@ func (pm *PatternMatcher) compilePatterns() {
 	}, "|"))
 
 	// Configuration patterns
-	pm.configPattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`^\s*\w+\s*=\s*[^=]`,                 // Key=value assignments at start of line
-		`\w+\.\w+\s*=\s*[^=\[]`,              // Properties format like user.ssn= (not array access)
-		`^\s*\w+\s*:\s*[^:]`,                 // YAML style key: value at start of line
-		`export\s+\w+\s*=`,                   // Environment variable exports
-		`\[\w+\]`,                            // INI section headers
-		`[{,]\s*"\w+"\s*:\s*`,                // JSON configuration
-		`(default|fallback|initial)_\w+\s*=`, // Default/fallback values
+	pm.configPattern = regexp.MustCompile(strings.Join([]string{
+		`^\s*[a-z_][a-z0-9_]*\s*=\s*[^=]`,                 // Key=value assignments (lowercase keys)
+		`(?i)\w+\.\w+(\.\w+)*\s*=\s*[^=\[]`,               // Properties format like app.config.value= (not array access)
+		`^\s*[a-z_][a-z0-9_]*\s*:\s*[^:]`,                 // YAML style key: value (lowercase keys only)
+		`(?i)export\s+\w+\s*=`,                             // Environment variable exports
+		`(?i)\[\w+\]`,                                      // INI section headers
+		`(?i)(default|fallback|initial|config|setting)_[a-z_]+\s*=`, // Default/fallback/config values (lowercase)
+		`(?i)\w+_(tfn|ssn|medicare|abn|bsb)_\w+\s*=`,      // Config patterns with PI type names
 	}, "|"))
 
 	// Variable patterns

@@ -275,21 +275,23 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 
 		// Update file path in findings and apply context validation
 		var validFindings []detection.Finding
-		for i := range findings {
-			findings[i].File = job.FilePath
+		for _, finding := range findings {
+			// Create a copy of the finding to avoid race conditions
+			f := finding
+			f.File = job.FilePath
 
 			// Apply context validation to reduce false positives
-			validationResult, err := w.processor.contextValidator.Validate(w.ctx, findings[i], string(job.Content))
+			validationResult, err := w.processor.contextValidator.Validate(w.ctx, f, string(job.Content))
 			if err == nil {
 				if !validationResult.IsValid {
 					// Skip invalid findings
 					continue
 				}
 				// Update confidence based on context validation
-				findings[i].Confidence = float32(validationResult.Confidence)
+				f.Confidence = float32(validationResult.Confidence)
 			}
 
-			validFindings = append(validFindings, findings[i])
+			validFindings = append(validFindings, f)
 		}
 
 		result.Findings = append(result.Findings, validFindings...)

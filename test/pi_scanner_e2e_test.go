@@ -81,7 +81,7 @@ type TestRepository struct {
 var australianTestRepositories = []TestRepository{
 	{
 		Name:                "Australian Government Design System",
-		URL:                 "govau/design-system-components",
+		URL:                 "https://github.com/govau/design-system-components",
 		Description:         "Australian Government Design System components",
 		ExpectedMinFiles:    10,
 		ExpectedMaxDuration: 30 * time.Second,
@@ -92,7 +92,7 @@ var australianTestRepositories = []TestRepository{
 	},
 	{
 		Name:                "Australia.gov.au Static Site",
-		URL:                 "govau/australia-gov-au-static",
+		URL:                 "https://github.com/govau/australia-gov-au-static",
 		Description:         "Static site for info.australia.gov.au",
 		ExpectedMinFiles:    5,
 		ExpectedMaxDuration: 20 * time.Second,
@@ -103,7 +103,7 @@ var australianTestRepositories = []TestRepository{
 	},
 	{
 		Name:                "Queensland Government Design System",
-		URL:                 "qld-gov-au/qgds-qol-mvp",
+		URL:                 "https://github.com/qld-gov-au/qgds-qol-mvp",
 		Description:         "Queensland Government Design System",
 		ExpectedMinFiles:    5,
 		ExpectedMaxDuration: 25 * time.Second,
@@ -114,7 +114,7 @@ var australianTestRepositories = []TestRepository{
 	},
 	{
 		Name:                "National Library of Australia",
-		URL:                 "nla/nla-blacklight",
+		URL:                 "https://github.com/nla/nla-blacklight",
 		Description:         "NLA Blacklight discovery interface",
 		ExpectedMinFiles:    10,
 		ExpectedMaxDuration: 40 * time.Second,
@@ -125,7 +125,7 @@ var australianTestRepositories = []TestRepository{
 	},
 	{
 		Name:                "TerriaJS National Map",
-		URL:                 "TerriaJS/nationalmap",
+		URL:                 "https://github.com/TerriaJS/nationalmap",
 		Description:         "Australia's National Map geospatial platform",
 		ExpectedMinFiles:    20,
 		ExpectedMaxDuration: 60 * time.Second,
@@ -140,7 +140,7 @@ var australianTestRepositories = []TestRepository{
 var internationalTestRepositories = []TestRepository{
 	{
 		Name:                "GitHub Documentation",
-		URL:                 "github/docs",
+		URL:                 "https://github.com/github/docs",
 		Description:         "GitHub's public documentation",
 		ExpectedMinFiles:    1000,
 		ExpectedMaxDuration: 120 * time.Second,
@@ -151,7 +151,7 @@ var internationalTestRepositories = []TestRepository{
 	},
 	{
 		Name:                "FreeCodeCamp",
-		URL:                 "freeCodeCamp/freeCodeCamp",
+		URL:                 "https://github.com/freeCodeCamp/freeCodeCamp",
 		Description:         "Educational platform with diverse content",
 		ExpectedMinFiles:    5000,
 		ExpectedMaxDuration: 180 * time.Second,
@@ -207,19 +207,19 @@ func TestPIScannerE2E_PerformanceBenchmarks(t *testing.T) {
 	}{
 		{
 			name:          "Small Repository Performance",
-			repo:          "octocat/Hello-World",
+			repo:          "https://github.com/octocat/Hello-World",
 			maxDuration:   10 * time.Second,
 			minThroughput: 1.0,
 		},
 		{
 			name:          "Medium Repository Performance",
-			repo:          "govau/design-system-components",
+			repo:          "https://github.com/govau/design-system-components",
 			maxDuration:   30 * time.Second,
 			minThroughput: 10.0,
 		},
 		{
 			name:          "Large Repository Performance",
-			repo:          "github/docs",
+			repo:          "https://github.com/github/docs",
 			maxDuration:   120 * time.Second,
 			minThroughput: 50.0,
 		},
@@ -267,13 +267,13 @@ func TestPIScannerE2E_AustralianPIDetection(t *testing.T) {
 	}{
 		{
 			name:          "GitHub Docs - Australian Examples",
-			repo:          "github/docs",
+			repo:          "https://github.com/github/docs",
 			expectedTypes: []string{"TFN", "ABN", "BSB", "MEDICARE"},
 			description:   "Documentation often contains example Australian PI",
 		},
 		{
 			name:          "Educational Content",
-			repo:          "freeCodeCamp/freeCodeCamp",
+			repo:          "https://github.com/freeCodeCamp/freeCodeCamp",
 			expectedTypes: []string{"NAME", "EMAIL", "PHONE"},
 			description:   "Educational platforms with diverse examples",
 		},
@@ -342,11 +342,11 @@ func TestPIScannerE2E_ErrorHandling(t *testing.T) {
 			name:        "Invalid Repository",
 			args:        []string{"scan", "--repo", "invalid/nonexistent-repo-12345"},
 			expectError: true,
-			errorString: "", // May vary based on git/GitHub response
+			errorString: "Invalid repository URL", // Should fail validation
 		},
 		{
 			name:        "Valid Repository",
-			args:        []string{"scan", "--repo", "octocat/Hello-World", "--output", "/tmp/test-valid.json"},
+			args:        []string{"scan", "--repo", "https://github.com/octocat/Hello-World", "--output", "/tmp/test-valid.json"},
 			expectError: false,
 			errorString: "",
 		},
@@ -364,6 +364,9 @@ func TestPIScannerE2E_ErrorHandling(t *testing.T) {
 						"Should contain expected error message")
 				}
 			} else {
+				if err != nil {
+					t.Logf("Command output: %s", string(output))
+				}
 				assert.NoError(t, err, "Command should succeed")
 			}
 
@@ -523,7 +526,7 @@ func BenchmarkE2E_SmallRepository(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("bench-%d.json", time.Now().UnixNano()))
 
-		cmd := exec.Command("../pi-scanner", "scan", "--repo", "octocat/Hello-World", "--output", outputFile)
+		cmd := exec.Command("../pi-scanner", "scan", "--repo", "https://github.com/octocat/Hello-World", "--output", outputFile)
 		_, err := cmd.CombinedOutput()
 
 		if err != nil {
@@ -544,7 +547,7 @@ func BenchmarkE2E_MediumRepository(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("bench-%d.json", time.Now().UnixNano()))
 
-		cmd := exec.Command("../pi-scanner", "scan", "--repo", "govau/design-system-components", "--output", outputFile)
+		cmd := exec.Command("../pi-scanner", "scan", "--repo", "https://github.com/govau/design-system-components", "--output", outputFile)
 		_, err := cmd.CombinedOutput()
 
 		if err != nil {

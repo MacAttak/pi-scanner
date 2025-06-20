@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -490,7 +491,7 @@ func TestGitHubManager_ConcurrentOperations(t *testing.T) {
 		manager.(*gitHubManager).gitCommand = originalGitCmd
 	}()
 
-	cloneCount := int64(0)
+	var cloneCount int64
 	manager.(*gitHubManager).gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			// Simulate concurrent clone operations
@@ -507,7 +508,7 @@ func TestGitHubManager_ConcurrentOperations(t *testing.T) {
 				return err
 			}
 
-			cloneCount++
+			atomic.AddInt64(&cloneCount, 1)
 		}
 		return nil
 	}
@@ -540,7 +541,7 @@ func TestGitHubManager_ConcurrentOperations(t *testing.T) {
 
 	// Verify all operations completed successfully
 	assert.Len(t, repoInfos, numConcurrent)
-	assert.Equal(t, int64(numConcurrent), cloneCount)
+	assert.Equal(t, int64(numConcurrent), atomic.LoadInt64(&cloneCount))
 
 	// Cleanup all repositories
 	for _, info := range repoInfos {
