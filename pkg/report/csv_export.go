@@ -13,10 +13,10 @@ import (
 
 // CSVExporter handles CSV report generation
 type CSVExporter struct {
-	includeContext   bool
-	includeMasked    bool
-	includeMetadata  bool
-	dateFormat       string
+	includeContext  bool
+	includeMasked   bool
+	includeMetadata bool
+	dateFormat      string
 }
 
 // CSVExporterOption configures the CSV exporter
@@ -55,31 +55,31 @@ func NewCSVExporter(opts ...CSVExporterOption) *CSVExporter {
 	exporter := &CSVExporter{
 		dateFormat: "2006-01-02 15:04:05",
 	}
-	
+
 	for _, opt := range opts {
 		opt(exporter)
 	}
-	
+
 	return exporter
 }
 
 // CSVRecord represents a single row in the CSV export
 type CSVRecord struct {
 	// Core fields
-	Timestamp       time.Time
-	Repository      string
-	Branch          string
-	CommitHash      string
-	FilePath        string
-	LineNumber      int
-	ColumnNumber    int
-	PIType          string
-	PITypeDisplay   string
-	Match           string
-	MaskedMatch     string
-	Validated       bool
-	IsTestData      bool
-	
+	Timestamp     time.Time
+	Repository    string
+	Branch        string
+	CommitHash    string
+	FilePath      string
+	LineNumber    int
+	ColumnNumber  int
+	PIType        string
+	PITypeDisplay string
+	Match         string
+	MaskedMatch   string
+	Validated     bool
+	IsTestData    bool
+
 	// Risk assessment
 	ConfidenceScore float64
 	RiskLevel       string
@@ -88,34 +88,34 @@ type CSVRecord struct {
 	LikelihoodScore float64
 	ExposureScore   float64
 	RiskCategory    string
-	
+
 	// Context
-	CodeContext     string
+	CodeContext      string
 	ProximityContext string
-	Environment     string
-	
+	Environment      string
+
 	// Compliance
-	APRARelevant    bool
-	PrivacyActIssue bool
+	APRARelevant     bool
+	PrivacyActIssue  bool
 	NotifiableBreach bool
-	
+
 	// Metadata
-	ScanID          string
-	ScanDuration    time.Duration
-	ToolVersion     string
+	ScanID       string
+	ScanDuration time.Duration
+	ToolVersion  string
 }
 
 // Export writes findings to CSV format
 func (e *CSVExporter) Export(w io.Writer, records []CSVRecord) error {
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
-	
+
 	// Write headers
 	headers := e.getHeaders()
 	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write CSV headers: %w", err)
 	}
-	
+
 	// Write records
 	for _, record := range records {
 		row := e.recordToRow(record)
@@ -123,19 +123,19 @@ func (e *CSVExporter) Export(w io.Writer, records []CSVRecord) error {
 			return fmt.Errorf("failed to write CSV record: %w", err)
 		}
 	}
-	
+
 	return writer.Error()
 }
 
 // ExportFindings converts findings to CSV records and exports them
 func (e *CSVExporter) ExportFindings(w io.Writer, findings []detection.Finding, metadata ExportMetadata) error {
 	records := make([]CSVRecord, 0, len(findings))
-	
+
 	for _, finding := range findings {
 		record := e.findingToRecord(finding, metadata)
 		records = append(records, record)
 	}
-	
+
 	return e.Export(w, records)
 }
 
@@ -167,11 +167,11 @@ func (e *CSVExporter) getHeaders() []string {
 		"Risk Level",
 		"Risk Score",
 	}
-	
+
 	if e.includeMasked {
 		headers = append(headers, "Masked Value")
 	}
-	
+
 	headers = append(headers,
 		"Impact Score",
 		"Likelihood Score",
@@ -179,17 +179,17 @@ func (e *CSVExporter) getHeaders() []string {
 		"Risk Category",
 		"Environment",
 	)
-	
+
 	if e.includeContext {
 		headers = append(headers, "Code Context", "Proximity Context")
 	}
-	
+
 	headers = append(headers,
 		"APRA Relevant",
 		"Privacy Act Issue",
 		"Notifiable Breach",
 	)
-	
+
 	if e.includeMetadata {
 		headers = append(headers,
 			"Scan ID",
@@ -198,7 +198,7 @@ func (e *CSVExporter) getHeaders() []string {
 			"Tool Version",
 		)
 	}
-	
+
 	return headers
 }
 
@@ -219,11 +219,11 @@ func (e *CSVExporter) recordToRow(record CSVRecord) []string {
 		record.RiskLevel,
 		fmt.Sprintf("%.2f", record.RiskScore),
 	}
-	
+
 	if e.includeMasked {
 		row = append(row, record.MaskedMatch)
 	}
-	
+
 	row = append(row,
 		fmt.Sprintf("%.2f", record.ImpactScore),
 		fmt.Sprintf("%.2f", record.LikelihoodScore),
@@ -231,17 +231,17 @@ func (e *CSVExporter) recordToRow(record CSVRecord) []string {
 		record.RiskCategory,
 		record.Environment,
 	)
-	
+
 	if e.includeContext {
 		row = append(row, record.CodeContext, record.ProximityContext)
 	}
-	
+
 	row = append(row,
 		strconv.FormatBool(record.APRARelevant),
 		strconv.FormatBool(record.PrivacyActIssue),
 		strconv.FormatBool(record.NotifiableBreach),
 	)
-	
+
 	if e.includeMetadata {
 		row = append(row,
 			record.ScanID,
@@ -250,40 +250,40 @@ func (e *CSVExporter) recordToRow(record CSVRecord) []string {
 			record.ToolVersion,
 		)
 	}
-	
+
 	return row
 }
 
 // findingToRecord converts a detection.Finding to a CSVRecord
 func (e *CSVExporter) findingToRecord(finding detection.Finding, metadata ExportMetadata) CSVRecord {
 	record := CSVRecord{
-		Timestamp:       metadata.Timestamp,
-		Repository:      metadata.Repository,
-		Branch:          metadata.Branch,
-		CommitHash:      metadata.CommitHash,
-		FilePath:        finding.File,
-		LineNumber:      finding.Line,
-		ColumnNumber:    finding.Column,
-		PIType:          string(finding.Type),
-		PITypeDisplay:   getPITypeDisplay(finding.Type),
-		Match:           finding.Match, // Note: In production, this should be masked
-		Validated:       finding.Validated,
-		IsTestData:      false, // This would come from scoring
-		ScanID:          metadata.ScanID,
-		ScanDuration:    metadata.ScanDuration,
-		ToolVersion:     metadata.ToolVersion,
+		Timestamp:     metadata.Timestamp,
+		Repository:    metadata.Repository,
+		Branch:        metadata.Branch,
+		CommitHash:    metadata.CommitHash,
+		FilePath:      finding.File,
+		LineNumber:    finding.Line,
+		ColumnNumber:  finding.Column,
+		PIType:        string(finding.Type),
+		PITypeDisplay: getPITypeDisplay(finding.Type),
+		Match:         finding.Match, // Note: In production, this should be masked
+		Validated:     finding.Validated,
+		IsTestData:    false, // This would come from scoring
+		ScanID:        metadata.ScanID,
+		ScanDuration:  metadata.ScanDuration,
+		ToolVersion:   metadata.ToolVersion,
 	}
-	
+
 	// Mask the match value
 	record.MaskedMatch = maskSensitiveData(finding.Match, string(finding.Type))
-	
+
 	// Add placeholder values for fields that would come from scoring
 	// In a real implementation, these would be populated from the risk assessment
 	record.ConfidenceScore = 0.0
 	record.RiskLevel = "UNKNOWN"
 	record.RiskScore = 0.0
 	record.Environment = "unknown"
-	
+
 	return record
 }
 
@@ -303,7 +303,7 @@ func getPITypeDisplay(piType detection.PIType) string {
 		detection.PITypeDriverLicense: "Driver License",
 		detection.PITypeIP:            "IP Address",
 	}
-	
+
 	if display, exists := displays[piType]; exists {
 		return display
 	}
@@ -326,13 +326,13 @@ func NewCSVSummaryExporter() *CSVSummaryExporter {
 func (e *CSVSummaryExporter) ExportSummary(w io.Writer, summary ScanSummary, metadata ExportMetadata) error {
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
-	
+
 	// Write headers
 	headers := []string{"Metric", "Value", "Percentage"}
 	if err := writer.Write(headers); err != nil {
 		return fmt.Errorf("failed to write summary headers: %w", err)
 	}
-	
+
 	// Write summary rows
 	rows := [][]string{
 		{"Repository", metadata.Repository, ""},
@@ -347,13 +347,13 @@ func (e *CSVSummaryExporter) ExportSummary(w io.Writer, summary ScanSummary, met
 		{"Validated PI", strconv.Itoa(summary.ValidatedCount), e.percentage(summary.ValidatedCount, summary.TotalFindings)},
 		{"Test Data", strconv.Itoa(summary.TestDataCount), e.percentage(summary.TestDataCount, summary.TotalFindings)},
 	}
-	
+
 	for _, row := range rows {
 		if err := writer.Write(row); err != nil {
 			return fmt.Errorf("failed to write summary row: %w", err)
 		}
 	}
-	
+
 	return writer.Error()
 }
 
@@ -377,12 +377,12 @@ type IntegrationRecord struct {
 // ConvertIntegrationRecord converts an integrated record to CSV record
 func (e *CSVExporter) ConvertIntegrationRecord(ir IntegrationRecord, metadata ExportMetadata) CSVRecord {
 	record := e.findingToRecord(ir.Finding, metadata)
-	
+
 	// Update with actual scoring data
 	record.ConfidenceScore = ir.ConfidenceScore
 	record.Environment = ir.Environment
 	record.ProximityContext = ir.ProximityInfo
-	
+
 	if ir.RiskAssessment != nil {
 		record.RiskLevel = string(ir.RiskAssessment.RiskLevel)
 		record.RiskScore = ir.RiskAssessment.OverallRisk
@@ -390,14 +390,14 @@ func (e *CSVExporter) ConvertIntegrationRecord(ir IntegrationRecord, metadata Ex
 		record.LikelihoodScore = ir.RiskAssessment.LikelihoodScore
 		record.ExposureScore = ir.RiskAssessment.ExposureScore
 		record.RiskCategory = string(ir.RiskAssessment.RiskCategory)
-		
+
 		record.APRARelevant = ir.RiskAssessment.ComplianceFlags.APRAReporting
 		record.PrivacyActIssue = ir.RiskAssessment.ComplianceFlags.PrivacyActBreach
 		record.NotifiableBreach = ir.RiskAssessment.ComplianceFlags.NotifiableDataBreach
 	}
-	
+
 	// Check if it's test data based on environment
 	record.IsTestData = ir.Environment == "test" || ir.Environment == "mock"
-	
+
 	return record
 }

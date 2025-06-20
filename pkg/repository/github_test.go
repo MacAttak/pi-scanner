@@ -15,11 +15,11 @@ import (
 
 func TestGitHubManager_ParseRepositoryURL(t *testing.T) {
 	tests := []struct {
-		name        string
-		url         string
-		expectedOrg string
+		name         string
+		url          string
+		expectedOrg  string
 		expectedRepo string
-		expectError bool
+		expectError  bool
 	}{
 		{
 			name:         "HTTPS URL",
@@ -126,22 +126,22 @@ func TestGitHubManager_CloneRepository_MockSuccess(t *testing.T) {
 		if len(args) > 0 && args[0] == "clone" {
 			// Extract target directory from args
 			targetDir := args[len(args)-1]
-			
+
 			// Create basic repository structure
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			// Create some test files
 			testFiles := map[string]string{
-				"README.md":     "# Test Repository\nThis is a test repository.",
-				"main.go":       "package main\n\nfunc main() {\n\tprintln(\"Hello, World!\")\n}",
-				"src/app.js":    "console.log('Hello from JavaScript');",
-				"config.json":   `{"name": "test-app", "version": "1.0.0"}`,
-				".gitignore":    "*.log\nnode_modules/\n.env",
+				"README.md":   "# Test Repository\nThis is a test repository.",
+				"main.go":     "package main\n\nfunc main() {\n\tprintln(\"Hello, World!\")\n}",
+				"src/app.js":  "console.log('Hello from JavaScript');",
+				"config.json": `{"name": "test-app", "version": "1.0.0"}`,
+				".gitignore":  "*.log\nnode_modules/\n.env",
 			}
-			
+
 			for filePath, content := range testFiles {
 				fullPath := filepath.Join(targetDir, filePath)
 				err := os.MkdirAll(filepath.Dir(fullPath), 0755)
@@ -236,13 +236,13 @@ func TestGitHubManager_GetRepositoryInfo_Success(t *testing.T) {
 
 	// Create test repository structure
 	testFiles := map[string]string{
-		"README.md":        "# Test Repository",
-		"main.go":          "package main\n\nfunc main() {}",
-		"src/app.js":       "console.log('test');",
-		"docs/guide.md":    "# Guide",
-		"config/app.yaml":  "name: test",
-		".git/config":      "[core]\n    bare = false",
-		"binary.exe":       string([]byte{0x00, 0x01, 0x02, 0x03}), // Binary file
+		"README.md":       "# Test Repository",
+		"main.go":         "package main\n\nfunc main() {}",
+		"src/app.js":      "console.log('test');",
+		"docs/guide.md":   "# Guide",
+		"config/app.yaml": "name: test",
+		".git/config":     "[core]\n    bare = false",
+		"binary.exe":      string([]byte{0x00, 0x01, 0x02, 0x03}), // Binary file
 	}
 
 	for filePath, content := range testFiles {
@@ -298,7 +298,7 @@ func TestGitHubManager_CleanupRepository_Success(t *testing.T) {
 
 func TestGitHubManager_CleanupRepository_NonexistentPath(t *testing.T) {
 	manager := NewGitHubManager(DefaultGitHubConfig())
-	
+
 	// Use a path that looks like a temp directory to pass safety check
 	tempPath := filepath.Join(os.TempDir(), "nonexistent-pi-scanner-temp")
 	err := manager.CleanupRepository(tempPath)
@@ -322,7 +322,7 @@ func TestGitHubManager_ShallowClone(t *testing.T) {
 
 	manager.(*gitHubManager).gitCommand = func(ctx context.Context, args ...string) error {
 		gitCommands = append(gitCommands, args)
-		
+
 		// Simulate successful clone
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
@@ -367,13 +367,13 @@ func TestGitHubManager_MultipleRepositories(t *testing.T) {
 		if len(args) > 0 && args[0] == "clone" {
 			cloneCount++
 			targetDir := args[len(args)-1]
-			
+
 			// Create unique content for each clone
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			content := []byte("Repository content " + filepath.Base(targetDir))
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), content, 0644)
 			if err != nil {
@@ -404,7 +404,7 @@ func TestGitHubManager_MultipleRepositories(t *testing.T) {
 	for _, repoInfo := range repoInfos {
 		assert.Contains(t, repoInfo.Name, "repo")
 		assert.FileExists(t, filepath.Join(repoInfo.LocalPath, "README.md"))
-		
+
 		content, err := os.ReadFile(filepath.Join(repoInfo.LocalPath, "README.md"))
 		require.NoError(t, err)
 		assert.Contains(t, string(content), filepath.Base(repoInfo.LocalPath))
@@ -436,13 +436,13 @@ func TestGitHubManager_LargeRepository_SizeLimit(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			
+
 			// Create content larger than size limit
 			largeContent := make([]byte, 200) // 200 bytes > 100 byte limit
 			for i := range largeContent {
 				largeContent[i] = 'A'
 			}
-			
+
 			err = os.WriteFile(filepath.Join(targetDir, "large.txt"), largeContent, 0644)
 			if err != nil {
 				return err
@@ -457,7 +457,7 @@ func TestGitHubManager_LargeRepository_SizeLimit(t *testing.T) {
 	// Should succeed but warn about size
 	require.NoError(t, err)
 	assert.Greater(t, repoInfo.Size, int64(config.MaxRepositorySize))
-	
+
 	// Cleanup
 	err = manager.CleanupRepository(repoInfo.LocalPath)
 	assert.NoError(t, err)
@@ -495,18 +495,18 @@ func TestGitHubManager_ConcurrentOperations(t *testing.T) {
 		if len(args) > 0 && args[0] == "clone" {
 			// Simulate concurrent clone operations
 			time.Sleep(10 * time.Millisecond)
-			
+
 			targetDir := args[len(args)-1]
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), []byte("Concurrent test"), 0644)
 			if err != nil {
 				return err
 			}
-			
+
 			cloneCount++
 		}
 		return nil
@@ -550,7 +550,6 @@ func TestGitHubManager_ConcurrentOperations(t *testing.T) {
 		}
 	}
 }
-
 
 // Benchmark tests
 func BenchmarkGitHubManager_ParseURL(b *testing.B) {

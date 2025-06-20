@@ -157,7 +157,7 @@ func newReportCmd() *cobra.Command {
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Generating report from: %s\n", inputFile)
-			
+
 			if format == "html" {
 				fmt.Fprintf(cmd.OutOrStdout(), "Generating HTML report\n")
 			}

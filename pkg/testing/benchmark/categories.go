@@ -2,8 +2,8 @@ package benchmark
 
 import (
 	"fmt"
-	"strings"
 	"github.com/MacAttak/pi-scanner/pkg/detection"
+	"strings"
 )
 
 // GenerateComprehensiveTestDataset generates a comprehensive dataset with 200+ test cases
@@ -227,7 +227,7 @@ func generateMedicareTestCases(g *TestDataGenerator) []TestCase {
 	// Valid Medicare numbers
 	for i := 0; i < 5; i++ {
 		medicare := g.GenerateValidMedicare()
-		
+
 		// Production context
 		cases = append(cases, TestCase{
 			ID:         fmt.Sprintf("medicare-prod-%03d", id),
@@ -283,7 +283,7 @@ func generateBSBTestCases(g *TestDataGenerator) []TestCase {
 	// Valid BSBs
 	for i := 0; i < 5; i++ {
 		bsb := g.GenerateValidBSB()
-		
+
 		// Production context
 		cases = append(cases, TestCase{
 			ID:         fmt.Sprintf("bsb-prod-%03d", id),
@@ -330,7 +330,7 @@ func generateACNTestCases(g *TestDataGenerator) []TestCase {
 	// Valid ACNs
 	for i := 0; i < 5; i++ {
 		acn := g.GenerateValidACN()
-		
+
 		cases = append(cases, TestCase{
 			ID:         fmt.Sprintf("acn-prod-%03d", id),
 			Code:       fmt.Sprintf(`company.ACN = "%s"`, acn),
@@ -365,14 +365,14 @@ func generateACNTestCases(g *TestDataGenerator) []TestCase {
 func generateDriverLicenseTestCases(g *TestDataGenerator) []TestCase {
 	cases := []TestCase{}
 	id := 0
-	
+
 	states := []string{"NSW", "VIC", "QLD", "SA", "WA", "TAS"}
-	
+
 	for _, state := range states {
 		// Generate multiple licenses per state
 		for i := 0; i < 3; i++ {
 			license := g.GenerateDriverLicense(state)
-			
+
 			// Production context
 			cases = append(cases, TestCase{
 				ID:         fmt.Sprintf("dl-%s-prod-%03d", strings.ToLower(state), id),
@@ -409,7 +409,7 @@ func generateDriverLicenseTestCases(g *TestDataGenerator) []TestCase {
 // generateMultiPITestCases generates test cases with multiple PI types together
 func generateMultiPITestCases(g *TestDataGenerator) []TestCase {
 	cases := []TestCase{}
-	
+
 	// Critical risk: Name + TFN + Address
 	cases = append(cases, TestCase{
 		ID: "multi-critical-001",
@@ -544,9 +544,9 @@ func generateFalsePositiveCases(g *TestDataGenerator) []TestCase {
 
 	// Phone numbers (business)
 	businessPhones := []string{
-		"1300123456",  // 1300 number
-		"1800123456",  // 1800 number
-		"131450",      // Short code
+		"1300123456",   // 1300 number
+		"1800123456",   // 1800 number
+		"131450",       // Short code
 		"+61299999999", // Landline
 	}
 
@@ -667,8 +667,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// HTML/XML content with PI-like patterns
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-html-%03d", id),
-		Code: `<div id="123456789" class="user-profile">`,
+		ID:         fmt.Sprintf("syn-html-%03d", id),
+		Code:       `<div id="123456789" class="user-profile">`,
 		Language:   "html",
 		PIType:     "",
 		IsActualPI: false,
@@ -680,8 +680,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// CSS selectors
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-css-%03d", id),
-		Code: `.form-field-123456789 { display: none; }`,
+		ID:         fmt.Sprintf("syn-css-%03d", id),
+		Code:       `.form-field-123456789 { display: none; }`,
 		Language:   "css",
 		PIType:     "",
 		IsActualPI: false,
@@ -693,8 +693,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// Database IDs
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-db-%03d", id),
-		Code: `db.users.find({_id: ObjectId("507f1f77bcf86cd799439011")})`,
+		ID:         fmt.Sprintf("syn-db-%03d", id),
+		Code:       `db.users.find({_id: ObjectId("507f1f77bcf86cd799439011")})`,
 		Language:   "javascript",
 		PIType:     "",
 		IsActualPI: false,
@@ -706,8 +706,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// Timestamps that might match patterns
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-timestamp-%03d", id),
-		Code: `timestamp := "202312251234567890"`,
+		ID:         fmt.Sprintf("syn-timestamp-%03d", id),
+		Code:       `timestamp := "202312251234567890"`,
 		Language:   "go",
 		PIType:     "",
 		IsActualPI: false,
@@ -719,8 +719,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// API keys that might match patterns
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-apikey-%03d", id),
-		Code: `API_KEY = "sk_test_123456789abcdef"`,
+		ID:         fmt.Sprintf("syn-apikey-%03d", id),
+		Code:       `API_KEY = "sk_test_123456789abcdef"`,
 		Language:   "python",
 		PIType:     "",
 		IsActualPI: false,
@@ -732,8 +732,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// URLs with number patterns
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-url-%03d", id),
-		Code: `url := "https://api.example.com/v2/users/123456789"`,
+		ID:         fmt.Sprintf("syn-url-%03d", id),
+		Code:       `url := "https://api.example.com/v2/users/123456789"`,
 		Language:   "go",
 		PIType:     "",
 		IsActualPI: false,
@@ -745,8 +745,8 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 
 	// File paths with numbers
 	cases = append(cases, TestCase{
-		ID:   fmt.Sprintf("syn-path-%03d", id),
-		Code: `path := "/var/log/app/2024/01/15/123456789.log"`,
+		ID:         fmt.Sprintf("syn-path-%03d", id),
+		Code:       `path := "/var/log/app/2024/01/15/123456789.log"`,
 		Language:   "go",
 		PIType:     "",
 		IsActualPI: false,

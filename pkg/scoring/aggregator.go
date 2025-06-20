@@ -18,22 +18,22 @@ type AggregatorConfig struct {
 	// Aggregation method
 	WeightedCombination bool    `json:"weighted_combination"`
 	ProximityWeight     float64 `json:"proximity_weight"`
-	MLWeight           float64 `json:"ml_weight"`
-	ValidationWeight   float64 `json:"validation_weight"`
-	
+	MLWeight            float64 `json:"ml_weight"`
+	ValidationWeight    float64 `json:"validation_weight"`
+
 	// Score bounds
 	MaxScore float64 `json:"max_score"`
 	MinScore float64 `json:"min_score"`
-	
+
 	// Risk level thresholds (aligned with Australian banking regulations)
 	CriticalThreshold float64 `json:"critical_threshold"` // 0.9+
 	HighThreshold     float64 `json:"high_threshold"`     // 0.7-0.89
 	MediumThreshold   float64 `json:"medium_threshold"`   // 0.4-0.69
-	
+
 	// Regulatory compliance settings
-	APRACompliance     bool `json:"apra_compliance"`
+	APRACompliance       bool `json:"apra_compliance"`
 	PrivacyActCompliance bool `json:"privacy_act_compliance"`
-	
+
 	// Audit trail settings
 	DetailedAuditTrail bool `json:"detailed_audit_trail"`
 	IncludeTimestamps  bool `json:"include_timestamps"`
@@ -42,19 +42,19 @@ type AggregatorConfig struct {
 // DefaultAggregatorConfig returns the default aggregator configuration
 func DefaultAggregatorConfig() *AggregatorConfig {
 	return &AggregatorConfig{
-		WeightedCombination: true,
-		ProximityWeight:     0.4,
-		MLWeight:           0.3,
-		ValidationWeight:   0.3,
-		MaxScore:           1.0,
-		MinScore:           0.0,
-		CriticalThreshold:  0.9,
-		HighThreshold:      0.7,
-		MediumThreshold:    0.4,
-		APRACompliance:     true,
+		WeightedCombination:  true,
+		ProximityWeight:      0.4,
+		MLWeight:             0.3,
+		ValidationWeight:     0.3,
+		MaxScore:             1.0,
+		MinScore:             0.0,
+		CriticalThreshold:    0.9,
+		HighThreshold:        0.7,
+		MediumThreshold:      0.4,
+		APRACompliance:       true,
 		PrivacyActCompliance: true,
-		DetailedAuditTrail: true,
-		IncludeTimestamps:  true,
+		DetailedAuditTrail:   true,
+		IncludeTimestamps:    true,
 	}
 }
 
@@ -63,7 +63,7 @@ func NewScoreAggregator(config *AggregatorConfig) (*ScoreAggregator, error) {
 	if config == nil {
 		config = DefaultAggregatorConfig()
 	}
-	
+
 	return &ScoreAggregator{
 		config: config,
 	}, nil
@@ -72,7 +72,7 @@ func NewScoreAggregator(config *AggregatorConfig) (*ScoreAggregator, error) {
 // AggregateScores combines all factor scores into a final confidence score
 func (a *ScoreAggregator) AggregateScores(factors FactorScores) float64 {
 	var baseScore float64
-	
+
 	if a.config.WeightedCombination {
 		// Weighted combination of primary scores
 		baseScore = factors.ProximityScore*a.config.ProximityWeight +
@@ -82,16 +82,16 @@ func (a *ScoreAggregator) AggregateScores(factors FactorScores) float64 {
 		// Simple average of primary scores
 		baseScore = (factors.ProximityScore + factors.MLScore + factors.ValidationScore) / 3.0
 	}
-	
+
 	// Apply PI type weight
 	baseScore *= factors.PITypeWeight
-	
+
 	// Apply environment factor
 	baseScore *= factors.EnvironmentScore
-	
+
 	// Apply co-occurrence boost/penalty
 	baseScore *= factors.CoOccurrenceScore
-	
+
 	// Ensure score is within bounds
 	if baseScore < a.config.MinScore {
 		baseScore = a.config.MinScore
@@ -99,7 +99,7 @@ func (a *ScoreAggregator) AggregateScores(factors FactorScores) float64 {
 	if baseScore > a.config.MaxScore {
 		baseScore = a.config.MaxScore
 	}
-	
+
 	return baseScore
 }
 
@@ -155,18 +155,18 @@ func (a *ScoreAggregator) GenerateScoreBreakdown(factors FactorScores, finalScor
 			Description: "PI type importance weight (regulatory priority)",
 		},
 	}
-	
+
 	weights := map[string]float64{
-		"proximity":             a.config.ProximityWeight,
-		"ml_validation":         a.config.MLWeight,
+		"proximity":              a.config.ProximityWeight,
+		"ml_validation":          a.config.MLWeight,
 		"algorithmic_validation": a.config.ValidationWeight,
-		"environment":           1.0,
-		"co_occurrence":         1.0,
-		"pi_type_weight":        1.0,
+		"environment":            1.0,
+		"co_occurrence":          1.0,
+		"pi_type_weight":         1.0,
 	}
-	
+
 	adjustments := a.calculateAdjustments(factors)
-	
+
 	return ScoreBreakdown{
 		FinalScore:  finalScore,
 		Components:  components,
@@ -178,7 +178,7 @@ func (a *ScoreAggregator) GenerateScoreBreakdown(factors FactorScores, finalScor
 // calculateAdjustments identifies and quantifies score adjustments
 func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdjustment {
 	adjustments := []ScoreAdjustment{}
-	
+
 	// Environment adjustments
 	if factors.EnvironmentScore < 1.0 {
 		penalty := 1.0 - factors.EnvironmentScore
@@ -195,7 +195,7 @@ func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdju
 			Description: fmt.Sprintf("Production environment bonus: %.1f%% increase", bonus*100),
 		})
 	}
-	
+
 	// Co-occurrence adjustments
 	if factors.CoOccurrenceScore > 1.0 {
 		boost := factors.CoOccurrenceScore - 1.0
@@ -205,7 +205,7 @@ func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdju
 			Description: fmt.Sprintf("Co-occurrence with other PI types: %.1f%% increase", boost*100),
 		})
 	}
-	
+
 	// PI type weight adjustments
 	if factors.PITypeWeight < 1.0 {
 		reduction := 1.0 - factors.PITypeWeight
@@ -215,7 +215,7 @@ func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdju
 			Description: fmt.Sprintf("Lower priority PI type: %.1f%% reduction", reduction*100),
 		})
 	}
-	
+
 	// Validation failure adjustment
 	if factors.ValidationScore == 0.0 {
 		adjustments = append(adjustments, ScoreAdjustment{
@@ -224,7 +224,7 @@ func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdju
 			Description: "Algorithmic validation failed - likely false positive",
 		})
 	}
-	
+
 	return adjustments
 }
 
@@ -232,7 +232,7 @@ func (a *ScoreAggregator) calculateAdjustments(factors FactorScores) []ScoreAdju
 func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore float64, piType detection.PIType) []AuditEntry {
 	now := time.Now()
 	auditTrail := []AuditEntry{}
-	
+
 	// Proximity analysis audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "proximity",
@@ -240,12 +240,12 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 		Score:       factors.ProximityScore,
 		Description: "Proximity and context analysis completed",
 		Details: map[string]string{
-			"weight":     fmt.Sprintf("%.2f", a.config.ProximityWeight),
-			"impact":     fmt.Sprintf("%.3f", factors.ProximityScore*a.config.ProximityWeight),
-			"method":     "pattern_matching_with_context_analysis",
+			"weight": fmt.Sprintf("%.2f", a.config.ProximityWeight),
+			"impact": fmt.Sprintf("%.3f", factors.ProximityScore*a.config.ProximityWeight),
+			"method": "pattern_matching_with_context_analysis",
 		},
 	})
-	
+
 	// ML validation audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "ml_validation",
@@ -253,12 +253,12 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 		Score:       factors.MLScore,
 		Description: "Machine learning validation completed",
 		Details: map[string]string{
-			"weight":     fmt.Sprintf("%.2f", a.config.MLWeight),
-			"impact":     fmt.Sprintf("%.3f", factors.MLScore*a.config.MLWeight),
-			"model":      "deberta-pi-validator",
+			"weight": fmt.Sprintf("%.2f", a.config.MLWeight),
+			"impact": fmt.Sprintf("%.3f", factors.MLScore*a.config.MLWeight),
+			"model":  "deberta-pi-validator",
 		},
 	})
-	
+
 	// Algorithmic validation audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "algorithmic_validation",
@@ -266,12 +266,12 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 		Score:       factors.ValidationScore,
 		Description: "Algorithmic validation completed",
 		Details: map[string]string{
-			"weight":     fmt.Sprintf("%.2f", a.config.ValidationWeight),
-			"impact":     fmt.Sprintf("%.3f", factors.ValidationScore*a.config.ValidationWeight),
-			"algorithm":  a.getValidationAlgorithm(piType),
+			"weight":    fmt.Sprintf("%.2f", a.config.ValidationWeight),
+			"impact":    fmt.Sprintf("%.3f", factors.ValidationScore*a.config.ValidationWeight),
+			"algorithm": a.getValidationAlgorithm(piType),
 		},
 	})
-	
+
 	// Environment analysis audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "environment_analysis",
@@ -283,7 +283,7 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 			"impact":     a.getEnvironmentImpactDescription(factors.EnvironmentScore),
 		},
 	})
-	
+
 	// Co-occurrence analysis audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "co_occurrence_analysis",
@@ -295,7 +295,7 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 			"impact":     a.getCoOccurrenceImpactDescription(factors.CoOccurrenceScore),
 		},
 	})
-	
+
 	// Final aggregation audit
 	auditTrail = append(auditTrail, AuditEntry{
 		Component:   "aggregation",
@@ -303,28 +303,28 @@ func (a *ScoreAggregator) GenerateAuditTrail(factors FactorScores, finalScore fl
 		Score:       finalScore,
 		Description: "Final score aggregation completed",
 		Details: map[string]string{
-			"final_score":         fmt.Sprintf("%.6f", finalScore),
-			"risk_level":          string(a.MapScoreToRiskLevel(finalScore)),
-			"aggregation_method":  a.getAggregationMethod(),
+			"final_score":           fmt.Sprintf("%.6f", finalScore),
+			"risk_level":            string(a.MapScoreToRiskLevel(finalScore)),
+			"aggregation_method":    a.getAggregationMethod(),
 			"regulatory_compliance": a.getRegulatoryComplianceStatus(piType),
 		},
 	})
-	
+
 	return auditTrail
 }
 
 // GenerateRegulatoryCompliance creates regulatory compliance information
 func (a *ScoreAggregator) GenerateRegulatoryCompliance(piType detection.PIType, riskLevel RiskLevel) RegulatoryCompliance {
 	compliance := RegulatoryCompliance{
-		APRA:       a.isAPRARelevant(piType),
-		PrivacyAct: a.isPrivacyActRelevant(piType),
+		APRA:            a.isAPRARelevant(piType),
+		PrivacyAct:      a.isPrivacyActRelevant(piType),
 		RequiredActions: []ComplianceAction{},
 	}
-	
+
 	// Generate required actions based on PI type and risk level
 	actions := a.generateComplianceActions(piType, riskLevel)
 	compliance.RequiredActions = actions
-	
+
 	return compliance
 }
 
@@ -333,7 +333,7 @@ func (a *ScoreAggregator) isAPRARelevant(piType detection.PIType) bool {
 	if !a.config.APRACompliance {
 		return false
 	}
-	
+
 	// APRA regulates banking and financial services, including data that could impact financial services
 	bankingPITypes := map[detection.PIType]bool{
 		detection.PITypeTFN:        true, // Tax File Number - financial identity
@@ -343,7 +343,7 @@ func (a *ScoreAggregator) isAPRARelevant(piType detection.PIType) bool {
 		detection.PITypeCreditCard: true, // Credit card data
 		detection.PITypeABN:        true, // Australian Business Number (business banking)
 	}
-	
+
 	return bankingPITypes[piType]
 }
 
@@ -352,13 +352,13 @@ func (a *ScoreAggregator) isPrivacyActRelevant(piType detection.PIType) bool {
 	if !a.config.PrivacyActCompliance {
 		return false
 	}
-	
+
 	// Privacy Act applies to most personal information
 	nonPersonalTypes := map[detection.PIType]bool{
 		detection.PITypeIP:  true, // IP addresses may not be personal in all contexts
 		detection.PITypeABN: true, // Business numbers are not personal
 	}
-	
+
 	return !nonPersonalTypes[piType]
 }
 
@@ -366,7 +366,7 @@ func (a *ScoreAggregator) isPrivacyActRelevant(piType detection.PIType) bool {
 func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, riskLevel RiskLevel) []ComplianceAction {
 	actions := []ComplianceAction{}
 	now := time.Now()
-	
+
 	// Critical and High risk PI requires immediate action
 	if riskLevel == RiskLevelCritical || riskLevel == RiskLevelHigh {
 		// Immediate notification action
@@ -376,7 +376,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Priority:    "CRITICAL",
 			Deadline:    now.Add(1 * time.Hour),
 		})
-		
+
 		// Risk assessment action
 		actions = append(actions, ComplianceAction{
 			Type:        "RISK_ASSESSMENT",
@@ -385,7 +385,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Deadline:    now.Add(24 * time.Hour),
 		})
 	}
-	
+
 	// Australian banking regulation actions
 	if a.isAPRARelevant(piType) && riskLevel != RiskLevelLow {
 		actions = append(actions, ComplianceAction{
@@ -395,7 +395,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Deadline:    now.Add(72 * time.Hour),
 		})
 	}
-	
+
 	// Healthcare regulation actions for Medicare
 	if piType == detection.PITypeMedicare && riskLevel != RiskLevelLow {
 		actions = append(actions, ComplianceAction{
@@ -405,7 +405,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Deadline:    now.Add(48 * time.Hour),
 		})
 	}
-	
+
 	// Privacy Act compliance actions
 	if a.isPrivacyActRelevant(piType) && (riskLevel == RiskLevelCritical || riskLevel == RiskLevelHigh) {
 		actions = append(actions, ComplianceAction{
@@ -415,7 +415,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Deadline:    now.Add(30 * 24 * time.Hour), // 30 days
 		})
 	}
-	
+
 	// Data remediation for all non-low risk findings
 	if riskLevel != RiskLevelLow {
 		actions = append(actions, ComplianceAction{
@@ -425,7 +425,7 @@ func (a *ScoreAggregator) generateComplianceActions(piType detection.PIType, ris
 			Deadline:    now.Add(7 * 24 * time.Hour), // 7 days
 		})
 	}
-	
+
 	return actions
 }
 
@@ -438,7 +438,7 @@ func (a *ScoreAggregator) getValidationAlgorithm(piType detection.PIType) string
 		detection.PITypeMedicare: "MEDICARE_CHECKSUM",
 		detection.PITypeBSB:      "BSB_FORMAT",
 	}
-	
+
 	if algo, exists := algorithms[piType]; exists {
 		return algo
 	}
@@ -474,17 +474,17 @@ func (a *ScoreAggregator) getAggregationMethod() string {
 
 func (a *ScoreAggregator) getRegulatoryComplianceStatus(piType detection.PIType) string {
 	status := []string{}
-	
+
 	if a.isAPRARelevant(piType) {
 		status = append(status, "APRA")
 	}
 	if a.isPrivacyActRelevant(piType) {
 		status = append(status, "Privacy_Act")
 	}
-	
+
 	if len(status) == 0 {
 		return "minimal_regulatory_impact"
 	}
-	
+
 	return fmt.Sprintf("applicable: %v", status)
 }

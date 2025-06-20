@@ -49,3 +49,7 @@ test-results/
 tmp/
 temp/
 *.tmp
+
+# CI test outputs
+test-output.log
+test-results.log

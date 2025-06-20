@@ -10,34 +10,34 @@ func TestTFNValidator(t *testing.T) {
 	validator := &TFNValidator{}
 
 	tests := []struct {
-		name     string
-		value    string
-		expected bool
+		name       string
+		value      string
+		expected   bool
 		normalized string
 	}{
 		// Valid TFNs (using algorithm to generate valid ones)
 		{
-			name:     "valid TFN - 123456782",
-			value:    "123456782",
-			expected: true,
+			name:       "valid TFN - 123456782",
+			value:      "123456782",
+			expected:   true,
 			normalized: "123456782",
 		},
 		{
-			name:     "valid TFN with spaces",
-			value:    "123 456 782",
-			expected: true,
+			name:       "valid TFN with spaces",
+			value:      "123 456 782",
+			expected:   true,
 			normalized: "123456782",
 		},
 		{
-			name:     "valid TFN with dashes",
-			value:    "123-456-782",
-			expected: true,
+			name:       "valid TFN with dashes",
+			value:      "123-456-782",
+			expected:   true,
 			normalized: "123456782",
 		},
 		{
-			name:     "valid TFN - 876543210",
-			value:    "876543210",
-			expected: true,
+			name:       "valid TFN - 876543210",
+			value:      "876543210",
+			expected:   true,
 			normalized: "876543210",
 		},
 		// Invalid TFNs
@@ -73,7 +73,7 @@ func TestTFNValidator(t *testing.T) {
 			valid, err := validator.Validate(tt.value)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, valid)
-			
+
 			if tt.normalized != "" {
 				assert.Equal(t, tt.normalized, validator.Normalize(tt.value))
 			}
@@ -212,34 +212,34 @@ func TestBSBValidator(t *testing.T) {
 	validator := &BSBValidator{}
 
 	tests := []struct {
-		name     string
-		value    string
-		expected bool
+		name       string
+		value      string
+		expected   bool
 		normalized string
 	}{
 		// Valid BSBs (real bank branches)
 		{
-			name:     "valid BSB - Commonwealth Bank Sydney",
-			value:    "062-000",
-			expected: true,
+			name:       "valid BSB - Commonwealth Bank Sydney",
+			value:      "062-000",
+			expected:   true,
 			normalized: "062-000",
 		},
 		{
-			name:     "valid BSB - ANZ Melbourne",
-			value:    "013-006",
-			expected: true,
+			name:       "valid BSB - ANZ Melbourne",
+			value:      "013-006",
+			expected:   true,
 			normalized: "013-006",
 		},
 		{
-			name:     "valid BSB without dash",
-			value:    "062000",
-			expected: true,
+			name:       "valid BSB without dash",
+			value:      "062000",
+			expected:   true,
 			normalized: "062-000",
 		},
 		{
-			name:     "valid BSB - Westpac Brisbane",
-			value:    "034-002",
-			expected: true,
+			name:       "valid BSB - Westpac Brisbane",
+			value:      "034-002",
+			expected:   true,
 			normalized: "034-002",
 		},
 		// Invalid BSBs
@@ -280,7 +280,7 @@ func TestBSBValidator(t *testing.T) {
 			valid, err := validator.Validate(tt.value)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, valid)
-			
+
 			if tt.normalized != "" && tt.expected {
 				assert.Equal(t, tt.normalized, validator.Normalize(tt.value))
 			}
@@ -364,7 +364,7 @@ func TestValidatorRegistry(t *testing.T) {
 			},
 			{
 				value:        "33051775556", // Valid ABN (Telstra)
-				expectedType: "ABN", 
+				expectedType: "ABN",
 				shouldMatch:  true,
 			},
 			{
@@ -403,16 +403,16 @@ func TestValidatorRegistry(t *testing.T) {
 func TestRealWorldFormats(t *testing.T) {
 	// Test various real-world formatting variations
 	tfnValidator := &TFNValidator{}
-	
+
 	t.Run("TFN format variations", func(t *testing.T) {
 		validFormats := []string{
-			"123456782",      // No formatting
-			"123 456 782",    // Space separated
-			"123-456-782",    // Dash separated
-			"123.456.782",    // Dot separated (less common but seen)
-			" 123456782 ",    // With surrounding spaces
+			"123456782",   // No formatting
+			"123 456 782", // Space separated
+			"123-456-782", // Dash separated
+			"123.456.782", // Dot separated (less common but seen)
+			" 123456782 ", // With surrounding spaces
 		}
-		
+
 		for _, format := range validFormats {
 			normalized := tfnValidator.Normalize(format)
 			assert.Equal(t, "123456782", normalized, "Failed to normalize: %s", format)
@@ -420,15 +420,15 @@ func TestRealWorldFormats(t *testing.T) {
 	})
 
 	abnValidator := &ABNValidator{}
-	
+
 	t.Run("ABN format variations", func(t *testing.T) {
 		validFormats := []string{
-			"33051775556",      // No formatting
-			"33 051 775 556",   // Standard format
-			"33-051-775-556",   // Dash separated
-			"33051775556",      // Continuous
+			"33051775556",    // No formatting
+			"33 051 775 556", // Standard format
+			"33-051-775-556", // Dash separated
+			"33051775556",    // Continuous
 		}
-		
+
 		for _, format := range validFormats {
 			normalized := abnValidator.Normalize(format)
 			assert.Equal(t, "33051775556", normalized, "Failed to normalize: %s", format)
@@ -440,7 +440,7 @@ func TestRealWorldFormats(t *testing.T) {
 func BenchmarkTFNValidator(b *testing.B) {
 	validator := &TFNValidator{}
 	tfn := "123456782"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		validator.Validate(tfn)
@@ -450,7 +450,7 @@ func BenchmarkTFNValidator(b *testing.B) {
 func BenchmarkABNValidator(b *testing.B) {
 	validator := &ABNValidator{}
 	abn := "33051775556"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		validator.Validate(abn)

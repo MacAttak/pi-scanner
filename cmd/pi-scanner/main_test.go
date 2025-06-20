@@ -71,7 +71,7 @@ func TestMainCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Capture output
 			var stdout, stderr bytes.Buffer
-			
+
 			// Set up command
 			cmd := newRootCmd()
 			cmd.SetOut(&stdout)
@@ -91,7 +91,7 @@ func TestMainCommand(t *testing.T) {
 			// Check output contains expected strings
 			output := stdout.String() + stderr.String()
 			for _, expected := range tt.expectedOutput {
-				assert.Contains(t, output, expected, 
+				assert.Contains(t, output, expected,
 					"Output should contain '%s'", expected)
 			}
 		})
@@ -153,7 +153,7 @@ func TestScanCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			
+
 			cmd := newRootCmd()
 			cmd.SetOut(&stdout)
 			cmd.SetErr(&stderr)
@@ -225,7 +225,7 @@ func TestReportCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			
+
 			cmd := newRootCmd()
 			cmd.SetOut(&stdout)
 			cmd.SetErr(&stderr)

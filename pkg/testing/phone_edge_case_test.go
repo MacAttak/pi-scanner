@@ -11,7 +11,7 @@ import (
 func TestPhoneEdgeCases(t *testing.T) {
 	detector := detection.NewDetector()
 	ctx := context.Background()
-	
+
 	// Test specific failing cases
 	testCases := []struct {
 		name string
@@ -34,14 +34,14 @@ func TestPhoneEdgeCases(t *testing.T) {
 			code: `phones = ["+61412345678", "(02) 9999 9999", "0412345678"]`,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Logf("Testing: %s", tc.code)
-			
+
 			findings, err := detector.Detect(ctx, []byte(tc.code), "test.go")
 			require.NoError(t, err)
-			
+
 			t.Logf("  Total findings: %d", len(findings))
 			for _, f := range findings {
 				t.Logf("    -> Type: %s, Match: %s, Context: %s", f.Type, f.Match, f.Context)

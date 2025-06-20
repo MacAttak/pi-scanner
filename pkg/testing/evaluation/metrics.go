@@ -120,14 +120,14 @@ func (em *EvaluationMetrics) CompactReport() string {
 
 // EvaluationResult represents the complete result of an evaluation run
 type EvaluationResult struct {
-	DetectorName   string             `json:"detector_name"`
-	TestSetName    string             `json:"test_set_name"`
-	Timestamp      time.Time          `json:"timestamp"`
-	Metrics        *EvaluationMetrics `json:"metrics"`
-	ExecutionTime  time.Duration      `json:"execution_time"`
-	TestCaseCount  int                `json:"test_case_count"`
-	Configuration  map[string]any     `json:"configuration,omitempty"`
-	Notes          string             `json:"notes,omitempty"`
+	DetectorName  string             `json:"detector_name"`
+	TestSetName   string             `json:"test_set_name"`
+	Timestamp     time.Time          `json:"timestamp"`
+	Metrics       *EvaluationMetrics `json:"metrics"`
+	ExecutionTime time.Duration      `json:"execution_time"`
+	TestCaseCount int                `json:"test_case_count"`
+	Configuration map[string]any     `json:"configuration,omitempty"`
+	Notes         string             `json:"notes,omitempty"`
 }
 
 // ComparisonReport compares multiple evaluation results
@@ -195,11 +195,11 @@ Best Performance:
 
 // QualityAssessment provides overall quality assessment
 type QualityAssessment struct {
-	Grade       string  `json:"grade"`        // A, B, C, D, F
-	Score       float64 `json:"score"`        // 0-100
-	Strengths   []string `json:"strengths"`
-	Weaknesses  []string `json:"weaknesses"`
-	Recommendation string `json:"recommendation"`
+	Grade          string   `json:"grade"` // A, B, C, D, F
+	Score          float64  `json:"score"` // 0-100
+	Strengths      []string `json:"strengths"`
+	Weaknesses     []string `json:"weaknesses"`
+	Recommendation string   `json:"recommendation"`
 }
 
 // AssessQuality provides an overall quality assessment based on metrics

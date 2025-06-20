@@ -14,14 +14,14 @@ type BenchmarkDataset struct {
 
 // TestCase represents a single test case for evaluation
 type TestCase struct {
-	ID          string               `json:"id"`
-	Code        string               `json:"code"`
-	Language    string               `json:"language"`
-	PIType      detection.PIType     `json:"pi_type"`
-	IsActualPI  bool                 `json:"is_actual_pi"`
-	Context     string               `json:"context"` // prod, test, comment, etc.
-	Rationale   string               `json:"rationale"` // Why is this PI or not?
-	Filename    string               `json:"filename"`
+	ID         string           `json:"id"`
+	Code       string           `json:"code"`
+	Language   string           `json:"language"`
+	PIType     detection.PIType `json:"pi_type"`
+	IsActualPI bool             `json:"is_actual_pi"`
+	Context    string           `json:"context"`   // prod, test, comment, etc.
+	Rationale  string           `json:"rationale"` // Why is this PI or not?
+	Filename   string           `json:"filename"`
 }
 
 // AllCases returns all test cases from the dataset

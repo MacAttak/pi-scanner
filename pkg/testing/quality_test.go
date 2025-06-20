@@ -26,8 +26,8 @@ func TestPIDetectionQuality(t *testing.T) {
 
 	// Create detector configurations to test
 	detectors := map[string]detection.Detector{
-		"Pattern-Only":       createPatternDetector(t),
-		"Pattern+Context":    createPatternWithContextDetector(t),
+		"Pattern-Only":    createPatternDetector(t),
+		"Pattern+Context": createPatternWithContextDetector(t),
 	}
 
 	// Try to add Gitleaks detector if available
@@ -100,7 +100,7 @@ func validateContextValidationImprovement(t *testing.T, results map[string]*eval
 
 	// Context validation should improve precision
 	if contextPrecision > patternPrecision {
-		t.Logf("✅ Context validation improved precision by %.1f%%", 
+		t.Logf("✅ Context validation improved precision by %.1f%%",
 			(contextPrecision-patternPrecision)*100)
 	} else {
 		t.Logf("⚠️  Context validation did not improve precision")
@@ -109,7 +109,7 @@ func validateContextValidationImprovement(t *testing.T, results map[string]*eval
 	// Recall should not decrease significantly
 	patternRecall := patternResult.Metrics.Recall()
 	contextRecall := contextResult.Metrics.Recall()
-	
+
 	t.Logf("🎯 Recall Comparison:")
 	t.Logf("  Pattern-Only:    %.1f%%", patternRecall*100)
 	t.Logf("  Pattern+Context: %.1f%%", contextRecall*100)
@@ -129,7 +129,7 @@ func validateMinimumThresholds(t *testing.T, results map[string]*evaluation.Eval
 
 	for detectorName, result := range results {
 		metrics := result.Metrics
-		
+
 		t.Logf("🎯 %s Performance:", detectorName)
 		t.Logf("  Precision: %.1f%% (min: %.1f%%)", metrics.Precision()*100, minimumPrecision*100)
 		t.Logf("  Recall:    %.1f%% (min: %.1f%%)", metrics.Recall()*100, minimumRecall*100)
@@ -156,9 +156,9 @@ func validateMinimumThresholds(t *testing.T, results map[string]*evaluation.Eval
 
 		// At least one detector should meet all thresholds
 		if detectorName == "Pattern+Context" {
-			assert.GreaterOrEqual(t, metrics.Precision(), minimumPrecision, 
+			assert.GreaterOrEqual(t, metrics.Precision(), minimumPrecision,
 				"Context validation should achieve minimum precision")
-			assert.GreaterOrEqual(t, metrics.F1Score(), minimumF1, 
+			assert.GreaterOrEqual(t, metrics.F1Score(), minimumF1,
 				"Context validation should achieve minimum F1-Score")
 		}
 	}
@@ -173,7 +173,7 @@ func validateContextFiltering(t *testing.T, comparator *evaluation.DetectorCompa
 	for context, metrics := range contextResults {
 		precision := metrics.Precision()
 		recall := metrics.Recall()
-		
+
 		t.Logf("  %s: P=%.1f%% R=%.1f%% (TP:%d FP:%d TN:%d FN:%d)",
 			context, precision*100, recall*100,
 			metrics.TruePositives, metrics.FalsePositives,
@@ -181,13 +181,13 @@ func validateContextFiltering(t *testing.T, comparator *evaluation.DetectorCompa
 
 		// Test and comment contexts should have very high precision (low false positives)
 		if context == "test" || context == "comment" {
-			assert.GreaterOrEqual(t, precision, 0.8, 
+			assert.GreaterOrEqual(t, precision, 0.8,
 				"Test and comment contexts should have high precision")
 		}
 
 		// Production context should maintain good recall
 		if context == "production" {
-			assert.GreaterOrEqual(t, recall, 0.8, 
+			assert.GreaterOrEqual(t, recall, 0.8,
 				"Production context should maintain high recall")
 		}
 	}
@@ -198,7 +198,7 @@ func TestDetectorRegression(t *testing.T) {
 	t.Log("🔄 Running Regression Tests")
 
 	detector := detection.NewDetector()
-	
+
 	// Test basic detection still works
 	testCases := []struct {
 		name     string
@@ -213,7 +213,7 @@ func TestDetectorRegression(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "Email Detection", 
+			name:     "Email Detection",
 			code:     `email := "user@example.com"`,
 			piType:   detection.PITypeEmail,
 			expected: true,
@@ -249,7 +249,7 @@ func TestDetectorRegression(t *testing.T) {
 				}
 			}
 
-			assert.Equal(t, tc.expected, detected, 
+			assert.Equal(t, tc.expected, detected,
 				"Detection result for %s", tc.name)
 		})
 	}

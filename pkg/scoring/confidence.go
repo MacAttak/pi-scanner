@@ -22,23 +22,23 @@ type EngineConfig struct {
 	// Thresholds
 	MinConfidenceThreshold float64 `json:"min_confidence_threshold"`
 	MaxConfidenceThreshold float64 `json:"max_confidence_threshold"`
-	
+
 	// Integration settings
-	EnableProximityScoring bool `json:"enable_proximity_scoring"`
-	EnableMLScoring        bool `json:"enable_ml_scoring"`
+	EnableProximityScoring  bool `json:"enable_proximity_scoring"`
+	EnableMLScoring         bool `json:"enable_ml_scoring"`
 	EnableValidationScoring bool `json:"enable_validation_scoring"`
-	
+
 	// Australian regulatory compliance
-	APRACompliance        bool `json:"apra_compliance"`
-	PrivacyActCompliance  bool `json:"privacy_act_compliance"`
-	BankingRegCompliance  bool `json:"banking_reg_compliance"`
-	
+	APRACompliance       bool `json:"apra_compliance"`
+	PrivacyActCompliance bool `json:"privacy_act_compliance"`
+	BankingRegCompliance bool `json:"banking_reg_compliance"`
+
 	// Risk level thresholds (Australian banking aligned)
 	CriticalThreshold float64 `json:"critical_threshold"` // 0.9+
 	HighThreshold     float64 `json:"high_threshold"`     // 0.7-0.89
 	MediumThreshold   float64 `json:"medium_threshold"`   // 0.4-0.69
 	// Low is everything else (0.0-0.39)
-	
+
 	// Performance settings
 	EnableAuditTrail      bool `json:"enable_audit_trail"`
 	EnableDetailedLogging bool `json:"enable_detailed_logging"`
@@ -50,16 +50,16 @@ func DefaultEngineConfig() *EngineConfig {
 		MinConfidenceThreshold:  0.0,
 		MaxConfidenceThreshold:  1.0,
 		EnableProximityScoring:  true,
-		EnableMLScoring:        true,
+		EnableMLScoring:         true,
 		EnableValidationScoring: true,
-		APRACompliance:         true,
-		PrivacyActCompliance:   true,
-		BankingRegCompliance:   true,
-		CriticalThreshold:      0.9,
-		HighThreshold:          0.7,
-		MediumThreshold:        0.4,
-		EnableAuditTrail:       true,
-		EnableDetailedLogging:  false,
+		APRACompliance:          true,
+		PrivacyActCompliance:    true,
+		BankingRegCompliance:    true,
+		CriticalThreshold:       0.9,
+		HighThreshold:           0.7,
+		MediumThreshold:         0.4,
+		EnableAuditTrail:        true,
+		EnableDetailedLogging:   false,
 	}
 }
 
@@ -67,17 +67,17 @@ func DefaultEngineConfig() *EngineConfig {
 type ScoreInput struct {
 	// Core finding data
 	Finding detection.Finding `json:"finding"`
-	Content string           `json:"content"`
-	
+	Content string            `json:"content"`
+
 	// Component scores
 	ProximityScore  *ProximityScore  `json:"proximity_score,omitempty"`
 	MLScore         *MLScore         `json:"ml_score,omitempty"`
 	ValidationScore *ValidationScore `json:"validation_score,omitempty"`
-	
+
 	// Context data
 	CoOccurrences []CoOccurrence `json:"co_occurrences,omitempty"`
 	Environment   string         `json:"environment,omitempty"`
-	
+
 	// Metadata
 	ScanTimestamp time.Time `json:"scan_timestamp"`
 }
@@ -118,14 +118,14 @@ type ConfidenceResult struct {
 	// Final score and risk assessment
 	FinalScore float64   `json:"final_score"`
 	RiskLevel  RiskLevel `json:"risk_level"`
-	
+
 	// Detailed breakdown
-	Breakdown    ScoreBreakdown    `json:"breakdown"`
-	AuditTrail   []AuditEntry      `json:"audit_trail"`
-	
+	Breakdown  ScoreBreakdown `json:"breakdown"`
+	AuditTrail []AuditEntry   `json:"audit_trail"`
+
 	// Regulatory compliance
 	RegulatoryCompliance RegulatoryCompliance `json:"regulatory_compliance"`
-	
+
 	// Metadata
 	CalculatedAt time.Time `json:"calculated_at"`
 	Version      string    `json:"version"`
@@ -143,10 +143,10 @@ const (
 
 // ScoreBreakdown provides detailed information about how the score was calculated
 type ScoreBreakdown struct {
-	FinalScore  float64             `json:"final_score"`
-	Components  []ScoreComponent    `json:"components"`
-	Weights     map[string]float64  `json:"weights"`
-	Adjustments []ScoreAdjustment   `json:"adjustments"`
+	FinalScore  float64            `json:"final_score"`
+	Components  []ScoreComponent   `json:"components"`
+	Weights     map[string]float64 `json:"weights"`
+	Adjustments []ScoreAdjustment  `json:"adjustments"`
 }
 
 // ScoreComponent represents an individual scoring component
@@ -175,8 +175,8 @@ type AuditEntry struct {
 
 // RegulatoryCompliance represents Australian regulatory compliance information
 type RegulatoryCompliance struct {
-	APRA            bool             `json:"apra_compliance"`
-	PrivacyAct      bool             `json:"privacy_act_compliance"`
+	APRA            bool               `json:"apra_compliance"`
+	PrivacyAct      bool               `json:"privacy_act_compliance"`
 	RequiredActions []ComplianceAction `json:"required_actions"`
 }
 
@@ -193,24 +193,24 @@ func NewConfidenceEngine(config *EngineConfig) (*ConfidenceEngine, error) {
 	if config == nil {
 		config = DefaultEngineConfig()
 	}
-	
+
 	// Validate configuration
 	if err := validateEngineConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid engine configuration: %w", err)
 	}
-	
+
 	// Create factor engine
 	factorEngine, err := NewFactorEngine(nil) // Use default factor config
 	if err != nil {
 		return nil, fmt.Errorf("failed to create factor engine: %w", err)
 	}
-	
+
 	// Create score aggregator
 	aggregator, err := NewScoreAggregator(nil) // Use default aggregator config
 	if err != nil {
 		return nil, fmt.Errorf("failed to create score aggregator: %w", err)
 	}
-	
+
 	return &ConfidenceEngine{
 		config:       config,
 		factorEngine: factorEngine,
@@ -224,80 +224,80 @@ func (e *ConfidenceEngine) CalculateScore(ctx context.Context, input ScoreInput)
 	if err := e.validateInput(input); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
-	
+
 	startTime := time.Now()
-	
+
 	// Calculate individual factor scores
 	factors, err := e.calculateFactorScores(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate factor scores: %w", err)
 	}
-	
+
 	// Aggregate scores
 	finalScore := e.aggregator.AggregateScores(factors)
-	
+
 	// Map to risk level
 	riskLevel := e.mapScoreToRiskLevel(finalScore)
-	
+
 	// Generate detailed breakdown
 	breakdown := e.aggregator.GenerateScoreBreakdown(factors, finalScore)
-	
+
 	// Generate audit trail if enabled
 	var auditTrail []AuditEntry
 	if e.config.EnableAuditTrail {
 		auditTrail = e.aggregator.GenerateAuditTrail(factors, finalScore, input.Finding.Type)
 	}
-	
+
 	// Generate regulatory compliance information
 	compliance := e.aggregator.GenerateRegulatoryCompliance(input.Finding.Type, riskLevel)
-	
+
 	result := &ConfidenceResult{
 		FinalScore:           finalScore,
-		RiskLevel:           riskLevel,
-		Breakdown:           breakdown,
-		AuditTrail:          auditTrail,
+		RiskLevel:            riskLevel,
+		Breakdown:            breakdown,
+		AuditTrail:           auditTrail,
 		RegulatoryCompliance: compliance,
-		CalculatedAt:        startTime,
-		Version:             "1.0",
+		CalculatedAt:         startTime,
+		Version:              "1.0",
 	}
-	
+
 	return result, nil
 }
 
 // calculateFactorScores computes all individual factor scores
 func (e *ConfidenceEngine) calculateFactorScores(input ScoreInput) (FactorScores, error) {
 	factors := FactorScores{}
-	
+
 	// Proximity factor
 	if e.config.EnableProximityScoring {
 		factors.ProximityScore = e.factorEngine.CalculateProximityFactor(input.ProximityScore)
 	} else {
 		factors.ProximityScore = 0.5 // neutral default
 	}
-	
+
 	// ML factor
 	if e.config.EnableMLScoring {
 		factors.MLScore = e.factorEngine.CalculateMLFactor(input.MLScore)
 	} else {
 		factors.MLScore = 0.5 // neutral default
 	}
-	
+
 	// Validation factor
 	if e.config.EnableValidationScoring {
 		factors.ValidationScore = e.factorEngine.CalculateValidationFactor(input.ValidationScore)
 	} else {
 		factors.ValidationScore = 0.0 // no validation data
 	}
-	
+
 	// Environment factor
 	factors.EnvironmentScore = e.factorEngine.CalculateEnvironmentFactor(input.Finding.File, input.Content)
-	
+
 	// Co-occurrence factor
 	factors.CoOccurrenceScore = e.factorEngine.CalculateCoOccurrenceFactor(input.Finding.Type, input.CoOccurrences)
-	
+
 	// PI type weight
 	factors.PITypeWeight = e.factorEngine.CalculatePITypeWeight(input.Finding.Type)
-	
+
 	return factors, nil
 }
 
@@ -319,32 +319,32 @@ func (e *ConfidenceEngine) validateInput(input ScoreInput) error {
 	if input.Finding.Type == "" {
 		return fmt.Errorf("invalid finding: missing PI type")
 	}
-	
+
 	if input.Finding.Match == "" {
 		return fmt.Errorf("invalid finding: missing match")
 	}
-	
+
 	// Validate PI type is supported
 	supportedTypes := map[detection.PIType]bool{
-		detection.PITypeTFN:          true,
-		detection.PITypeMedicare:     true,
-		detection.PITypeABN:          true,
-		detection.PITypeBSB:          true,
-		detection.PITypeEmail:        true,
-		detection.PITypePhone:        true,
-		detection.PITypeName:         true,
-		detection.PITypeAddress:      true,
-		detection.PITypeCreditCard:   true,
+		detection.PITypeTFN:           true,
+		detection.PITypeMedicare:      true,
+		detection.PITypeABN:           true,
+		detection.PITypeBSB:           true,
+		detection.PITypeEmail:         true,
+		detection.PITypePhone:         true,
+		detection.PITypeName:          true,
+		detection.PITypeAddress:       true,
+		detection.PITypeCreditCard:    true,
 		detection.PITypeDriverLicense: true,
-		detection.PITypePassport:     true,
-		detection.PITypeAccount:      true,
-		detection.PITypeIP:           true,
+		detection.PITypePassport:      true,
+		detection.PITypeAccount:       true,
+		detection.PITypeIP:            true,
 	}
-	
+
 	if !supportedTypes[input.Finding.Type] {
 		return fmt.Errorf("unsupported PI type: %s", input.Finding.Type)
 	}
-	
+
 	return nil
 }
 
@@ -353,31 +353,31 @@ func validateEngineConfig(config *EngineConfig) error {
 	if config.MinConfidenceThreshold < 0.0 || config.MinConfidenceThreshold > 1.0 {
 		return fmt.Errorf("invalid confidence threshold: min=%f", config.MinConfidenceThreshold)
 	}
-	
+
 	if config.MaxConfidenceThreshold < 0.0 || config.MaxConfidenceThreshold > 1.0 {
 		return fmt.Errorf("invalid confidence threshold: max=%f", config.MaxConfidenceThreshold)
 	}
-	
+
 	if config.MinConfidenceThreshold > config.MaxConfidenceThreshold {
-		return fmt.Errorf("min threshold (%f) cannot be greater than max threshold (%f)", 
+		return fmt.Errorf("min threshold (%f) cannot be greater than max threshold (%f)",
 			config.MinConfidenceThreshold, config.MaxConfidenceThreshold)
 	}
-	
+
 	// Validate risk level thresholds
 	if config.CriticalThreshold <= config.HighThreshold {
-		return fmt.Errorf("critical threshold (%f) must be greater than high threshold (%f)", 
+		return fmt.Errorf("critical threshold (%f) must be greater than high threshold (%f)",
 			config.CriticalThreshold, config.HighThreshold)
 	}
-	
+
 	if config.HighThreshold <= config.MediumThreshold {
-		return fmt.Errorf("high threshold (%f) must be greater than medium threshold (%f)", 
+		return fmt.Errorf("high threshold (%f) must be greater than medium threshold (%f)",
 			config.HighThreshold, config.MediumThreshold)
 	}
-	
+
 	if config.MediumThreshold < 0.0 {
 		return fmt.Errorf("medium threshold (%f) cannot be negative", config.MediumThreshold)
 	}
-	
+
 	return nil
 }
 
@@ -396,9 +396,9 @@ func (e *ConfidenceEngine) GetEngineInfo() map[string]interface{} {
 		},
 		"enabled_features": map[string]bool{
 			"proximity_scoring":  e.config.EnableProximityScoring,
-			"ml_scoring":        e.config.EnableMLScoring,
+			"ml_scoring":         e.config.EnableMLScoring,
 			"validation_scoring": e.config.EnableValidationScoring,
-			"audit_trail":       e.config.EnableAuditTrail,
+			"audit_trail":        e.config.EnableAuditTrail,
 		},
 	}
 }

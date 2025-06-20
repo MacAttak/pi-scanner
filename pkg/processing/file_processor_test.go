@@ -155,7 +155,7 @@ func TestFileProcessor_MultipleDetectors(t *testing.T) {
 	case result := <-processor.Results():
 		assert.NoError(t, result.Error)
 		assert.Len(t, result.Findings, 2)
-		
+
 		// Check both findings are present
 		findingTypes := make(map[detection.PIType]bool)
 		for _, finding := range result.Findings {
@@ -253,13 +253,13 @@ func TestFileProcessor_Concurrency(t *testing.T) {
 	}
 
 	duration := time.Since(start)
-	
+
 	// Verify all results received
 	assert.Len(t, results, numJobs)
 
 	// With proper concurrency, should complete faster than sequential execution
 	maxSequentialTime := time.Duration(numJobs) * 50 * time.Millisecond
-	assert.Less(t, duration, maxSequentialTime, 
+	assert.Less(t, duration, maxSequentialTime,
 		"Concurrent execution should be faster than sequential")
 
 	// Verify each result has correct file path
@@ -331,7 +331,7 @@ done:
 			cancelledResults++
 		}
 	}
-	
+
 	assert.Greater(t, cancelledResults, 0, "Some results should be cancelled")
 }
 
@@ -412,7 +412,7 @@ func TestBatchProcessor_ProcessFiles(t *testing.T) {
 	}
 
 	for _, job := range jobs {
-		assert.True(t, processedFiles[job.FilePath], 
+		assert.True(t, processedFiles[job.FilePath],
 			"File %s should be processed", job.FilePath)
 	}
 }

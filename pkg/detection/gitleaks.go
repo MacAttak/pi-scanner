@@ -26,7 +26,7 @@ func NewGitleaksDetector(configPath string) (Detector, error) {
 	viperConfig := viper.New()
 	viperConfig.SetConfigFile(configPath)
 	viperConfig.SetConfigType("toml")
-	
+
 	if err := viperConfig.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read gitleaks config: %w", err)
 	}
@@ -46,7 +46,7 @@ func NewGitleaksDetector(configPath string) (Detector, error) {
 	detector := detect.NewDetector(cfg)
 	detector.Verbose = false
 	detector.Redact = 0 // 0 means don't redact secrets
-	
+
 	return &gitleaksDetector{
 		detector: detector,
 		config:   cfg,
@@ -120,7 +120,7 @@ func (g *gitleaksDetector) Detect(ctx context.Context, content []byte, filename 
 
 	// Run detection
 	results := g.detector.Detect(fragment)
-	
+
 	// Convert Gitleaks findings to our format
 	findings := make([]Finding, 0, len(results))
 	for _, result := range results {
@@ -135,7 +135,7 @@ func (g *gitleaksDetector) Detect(ctx context.Context, content []byte, filename 
 func (g *gitleaksDetector) convertFinding(finding report.Finding, filename string) Finding {
 	// Map Gitleaks rule IDs to our PI types
 	piType := g.mapRuleToType(finding.RuleID)
-	
+
 	// Calculate line and column from finding (Gitleaks uses 0-based indexing)
 	line := finding.StartLine + 1 // Convert to 1-based indexing
 	column := finding.StartColumn + 1
@@ -243,7 +243,7 @@ func (g *gitleaksDetector) calculateRiskLevel(finding report.Finding) RiskLevel 
 	if strings.Contains(finding.RuleID, "key") || strings.Contains(finding.RuleID, "token") {
 		return RiskLevelHigh
 	}
-	
+
 	return RiskLevelMedium
 }
 
@@ -251,18 +251,18 @@ func (g *gitleaksDetector) calculateRiskLevel(finding report.Finding) RiskLevel 
 func (g *gitleaksDetector) getContextModifier(filename string) float32 {
 	// Reduce risk for test files
 	lowerName := strings.ToLower(filename)
-	if strings.Contains(lowerName, "test") || 
-	   strings.Contains(lowerName, "spec") ||
-	   strings.Contains(lowerName, "mock") {
+	if strings.Contains(lowerName, "test") ||
+		strings.Contains(lowerName, "spec") ||
+		strings.Contains(lowerName, "mock") {
 		return 0.1
 	}
-	
+
 	// Reduce risk for example/sample files
-	if strings.Contains(lowerName, "example") || 
-	   strings.Contains(lowerName, "sample") {
+	if strings.Contains(lowerName, "example") ||
+		strings.Contains(lowerName, "sample") {
 		return 0.3
 	}
-	
+
 	return 1.0
 }
 
@@ -277,7 +277,7 @@ func CreateAustralianPIRules() []config.Rule {
 		},
 		{
 			RuleID:      "australian-abn",
-			Description: "Australian Business Number", 
+			Description: "Australian Business Number",
 			Regex:       regexp.MustCompile(`\b\d{2}[\s]?\d{3}[\s]?\d{3}[\s]?\d{3}\b`),
 			Tags:        []string{"PII", "ABN", "Australia"},
 		},
@@ -300,6 +300,6 @@ func CreateAustralianPIRules() []config.Rule {
 			Tags:        []string{"PII", "ACN", "Australia"},
 		},
 	}
-	
+
 	return rules
 }

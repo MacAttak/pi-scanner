@@ -29,11 +29,11 @@ func TestNewRiskMatrix(t *testing.T) {
 			name: "custom config",
 			config: &RiskMatrixConfig{
 				UseMultiplicativeModel: false,
-				ImpactWeight:          0.5,
-				LikelihoodWeight:      0.3,
-				ExposureWeight:        0.2,
-				APRAAligned:           true,
-				PrivacyActAligned:     true,
+				ImpactWeight:           0.5,
+				LikelihoodWeight:       0.3,
+				ExposureWeight:         0.2,
+				APRAAligned:            true,
+				PrivacyActAligned:      true,
 			},
 			wantErr: false,
 		},
@@ -62,12 +62,12 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name             string
-		input            RiskAssessmentInput
+		name              string
+		input             RiskAssessmentInput
 		expectedRiskRange []float64
-		expectedLevel    RiskLevel
-		expectedCategory RiskCategory
-		description      string
+		expectedLevel     RiskLevel
+		expectedCategory  RiskCategory
+		description       string
 	}{
 		{
 			name: "TFN in public repo - critical risk",
@@ -96,9 +96,9 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 				},
 			},
 			expectedRiskRange: []float64{0.8, 1.0},
-			expectedLevel:    RiskLevelCritical,
-			expectedCategory: RiskCategoryIdentityTheft,
-			description:      "TFN in public banking repo should be critical risk",
+			expectedLevel:     RiskLevelCritical,
+			expectedCategory:  RiskCategoryIdentityTheft,
+			description:       "TFN in public banking repo should be critical risk",
 		},
 		{
 			name: "TFN in test file - low risk",
@@ -123,9 +123,9 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 				},
 			},
 			expectedRiskRange: []float64{0.0, 0.39},
-			expectedLevel:    RiskLevelLow,
-			expectedCategory: RiskCategoryOperational,
-			description:      "Invalid TFN in test file should be low risk",
+			expectedLevel:     RiskLevelLow,
+			expectedCategory:  RiskCategoryOperational,
+			description:       "Invalid TFN in test file should be low risk",
 		},
 		{
 			name: "TFN with credit card co-occurrence - financial fraud risk",
@@ -157,9 +157,9 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 				},
 			},
 			expectedRiskRange: []float64{0.8, 1.0},
-			expectedLevel:    RiskLevelCritical,
-			expectedCategory: RiskCategoryFinancialFraud,
-			description:      "TFN with credit card should indicate financial fraud risk",
+			expectedLevel:     RiskLevelCritical,
+			expectedCategory:  RiskCategoryFinancialFraud,
+			description:       "TFN with credit card should indicate financial fraud risk",
 		},
 	}
 
@@ -169,17 +169,17 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.NotNil(t, result)
-			
+
 			// Check overall risk score
 			assert.GreaterOrEqual(t, result.OverallRisk, tt.expectedRiskRange[0], tt.description)
 			assert.LessOrEqual(t, result.OverallRisk, tt.expectedRiskRange[1], tt.description)
-			
+
 			// Check risk level
 			assert.Equal(t, tt.expectedLevel, result.RiskLevel, tt.description)
-			
+
 			// Check risk category
 			assert.Equal(t, tt.expectedCategory, result.RiskCategory, tt.description)
-			
+
 			// Verify component scores
 			assert.GreaterOrEqual(t, result.ImpactScore, 0.0)
 			assert.LessOrEqual(t, result.ImpactScore, 1.0)
@@ -187,10 +187,10 @@ func TestRiskMatrix_AssessRisk_TFN(t *testing.T) {
 			assert.LessOrEqual(t, result.LikelihoodScore, 1.0)
 			assert.GreaterOrEqual(t, result.ExposureScore, 0.0)
 			assert.LessOrEqual(t, result.ExposureScore, 1.0)
-			
+
 			// Check for mitigations
 			assert.NotEmpty(t, result.Mitigations)
-			
+
 			// Check compliance flags for regulated industries
 			if tt.input.OrganizationInfo.Regulated {
 				assert.NotNil(t, result.ComplianceFlags)
@@ -229,11 +229,11 @@ func TestRiskMatrix_AssessRisk_Medicare(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
-	
+
 	// Medicare in healthcare should be high/critical risk
 	assert.GreaterOrEqual(t, result.OverallRisk, 0.6)
 	assert.Contains(t, []RiskLevel{RiskLevelHigh, RiskLevelCritical}, result.RiskLevel)
-	
+
 	// Should have healthcare-specific mitigations
 	foundHealthcareMitigation := false
 	for _, mit := range result.Mitigations {
@@ -250,38 +250,38 @@ func TestRiskMatrix_Mitigations(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name              string
-		riskLevel         RiskLevel
-		category          RiskCategory
-		minMitigations    int
+		name               string
+		riskLevel          RiskLevel
+		category           RiskCategory
+		minMitigations     int
 		requiredPriorities []string
 	}{
 		{
-			name:              "critical risk mitigations",
-			riskLevel:         RiskLevelCritical,
-			category:          RiskCategoryIdentityTheft,
-			minMitigations:    3,
+			name:               "critical risk mitigations",
+			riskLevel:          RiskLevelCritical,
+			category:           RiskCategoryIdentityTheft,
+			minMitigations:     3,
 			requiredPriorities: []string{"CRITICAL", "HIGH"},
 		},
 		{
-			name:              "high risk mitigations",
-			riskLevel:         RiskLevelHigh,
-			category:          RiskCategoryFinancialFraud,
-			minMitigations:    3,
+			name:               "high risk mitigations",
+			riskLevel:          RiskLevelHigh,
+			category:           RiskCategoryFinancialFraud,
+			minMitigations:     3,
 			requiredPriorities: []string{"HIGH"},
 		},
 		{
-			name:              "medium risk mitigations",
-			riskLevel:         RiskLevelMedium,
-			category:          RiskCategoryOperational,
-			minMitigations:    2,
+			name:               "medium risk mitigations",
+			riskLevel:          RiskLevelMedium,
+			category:           RiskCategoryOperational,
+			minMitigations:     2,
 			requiredPriorities: []string{"MEDIUM"},
 		},
 		{
-			name:              "low risk mitigations",
-			riskLevel:         RiskLevelLow,
-			category:          RiskCategoryOperational,
-			minMitigations:    2,
+			name:               "low risk mitigations",
+			riskLevel:          RiskLevelLow,
+			category:           RiskCategoryOperational,
+			minMitigations:     2,
 			requiredPriorities: []string{"MEDIUM"},
 		},
 	}
@@ -298,12 +298,12 @@ func TestRiskMatrix_Mitigations(t *testing.T) {
 			mitigations := matrix.generateMitigations(input, tt.riskLevel, tt.category)
 
 			assert.GreaterOrEqual(t, len(mitigations), tt.minMitigations)
-			
+
 			// Check for required priority levels
 			priorities := make(map[string]bool)
 			for _, mit := range mitigations {
 				priorities[mit.Priority] = true
-				
+
 				// Verify mitigation structure
 				assert.NotEmpty(t, mit.ID)
 				assert.NotEmpty(t, mit.Title)
@@ -311,9 +311,9 @@ func TestRiskMatrix_Mitigations(t *testing.T) {
 				assert.NotEmpty(t, mit.Timeline)
 				assert.NotEmpty(t, mit.Category)
 			}
-			
+
 			for _, required := range tt.requiredPriorities {
-				assert.True(t, priorities[required], 
+				assert.True(t, priorities[required],
 					"Should have %s priority mitigation for %s risk", required, tt.riskLevel)
 			}
 		})
@@ -325,14 +325,14 @@ func TestRiskMatrix_ComplianceFlags(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name                   string
-		piType                 detection.PIType
-		riskLevel              RiskLevel
-		industry               string
-		expectedNotifiable     bool
-		expectedAPRA           bool
-		expectedPrivacyAct     bool
-		minNotifications       int
+		name               string
+		piType             detection.PIType
+		riskLevel          RiskLevel
+		industry           string
+		expectedNotifiable bool
+		expectedAPRA       bool
+		expectedPrivacyAct bool
+		minNotifications   int
 	}{
 		{
 			name:               "TFN critical - all compliance triggered",
@@ -440,7 +440,7 @@ func TestRiskMatrix_MultiplicativeModel(t *testing.T) {
 	// Both should identify high risk, but scores may differ
 	assert.GreaterOrEqual(t, multResult.OverallRisk, 0.6)
 	assert.GreaterOrEqual(t, avgResult.OverallRisk, 0.6)
-	
+
 	// Multiplicative model should emphasize compounding risks more
 	assert.NotEqual(t, multResult.OverallRisk, avgResult.OverallRisk,
 		"Different models should produce different scores")

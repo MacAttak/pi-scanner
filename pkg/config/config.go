@@ -11,49 +11,49 @@ import (
 
 // Config represents the complete scanner configuration
 type Config struct {
-	Version string         `yaml:"version"`
-	Scanner ScannerConfig  `yaml:"scanner"`
-	Risk    RiskConfig     `yaml:"risk"`
-	Report  ReportConfig   `yaml:"report"`
-	Github  GithubConfig   `yaml:"github"`
-	Logging LoggingConfig  `yaml:"logging"`
+	Version string        `yaml:"version"`
+	Scanner ScannerConfig `yaml:"scanner"`
+	Risk    RiskConfig    `yaml:"risk"`
+	Report  ReportConfig  `yaml:"report"`
+	Github  GithubConfig  `yaml:"github"`
+	Logging LoggingConfig `yaml:"logging"`
 }
 
 // ScannerConfig contains scanner-specific settings
 type ScannerConfig struct {
-	Workers           int               `yaml:"workers"`
-	FileTypes         []string          `yaml:"file_types"`
-	ExcludePaths      []string          `yaml:"exclude_paths"`
-	MaxFileSize       int64             `yaml:"max_file_size"`
-	Timeout           time.Duration     `yaml:"timeout"`
-	Validators        ValidatorConfig   `yaml:"validators"`
-	ProximityDistance int               `yaml:"proximity_distance"`
+	Workers           int             `yaml:"workers"`
+	FileTypes         []string        `yaml:"file_types"`
+	ExcludePaths      []string        `yaml:"exclude_paths"`
+	MaxFileSize       int64           `yaml:"max_file_size"`
+	Timeout           time.Duration   `yaml:"timeout"`
+	Validators        ValidatorConfig `yaml:"validators"`
+	ProximityDistance int             `yaml:"proximity_distance"`
 }
 
 // ValidatorConfig contains validator settings
 type ValidatorConfig struct {
-	TFN      ValidatorSettings `yaml:"tfn"`
-	Medicare ValidatorSettings `yaml:"medicare"`
-	ABN      ValidatorSettings `yaml:"abn"`
-	BSB      ValidatorSettings `yaml:"bsb"`
+	TFN        ValidatorSettings `yaml:"tfn"`
+	Medicare   ValidatorSettings `yaml:"medicare"`
+	ABN        ValidatorSettings `yaml:"abn"`
+	BSB        ValidatorSettings `yaml:"bsb"`
 	CreditCard ValidatorSettings `yaml:"credit_card"`
-	Email    ValidatorSettings `yaml:"email"`
-	Phone    ValidatorSettings `yaml:"phone"`
+	Email      ValidatorSettings `yaml:"email"`
+	Phone      ValidatorSettings `yaml:"phone"`
 }
 
 // ValidatorSettings contains individual validator settings
 type ValidatorSettings struct {
-	Enabled         bool   `yaml:"enabled"`
-	StrictMode      bool   `yaml:"strict_mode"`
-	MinConfidence   float64 `yaml:"min_confidence"`
-	CustomPattern   string `yaml:"custom_pattern,omitempty"`
+	Enabled       bool    `yaml:"enabled"`
+	StrictMode    bool    `yaml:"strict_mode"`
+	MinConfidence float64 `yaml:"min_confidence"`
+	CustomPattern string  `yaml:"custom_pattern,omitempty"`
 }
 
 // RiskConfig contains risk scoring settings
 type RiskConfig struct {
-	Thresholds    RiskThresholds `yaml:"thresholds"`
-	Multipliers   RiskMultipliers `yaml:"multipliers"`
-	CoOccurrence  CoOccurrenceConfig `yaml:"co_occurrence"`
+	Thresholds   RiskThresholds     `yaml:"thresholds"`
+	Multipliers  RiskMultipliers    `yaml:"multipliers"`
+	CoOccurrence CoOccurrenceConfig `yaml:"co_occurrence"`
 }
 
 // RiskThresholds defines risk level thresholds
@@ -66,10 +66,10 @@ type RiskThresholds struct {
 
 // RiskMultipliers defines environment multipliers
 type RiskMultipliers struct {
-	Production float64 `yaml:"production"`
-	Staging    float64 `yaml:"staging"`
+	Production  float64 `yaml:"production"`
+	Staging     float64 `yaml:"staging"`
 	Development float64 `yaml:"development"`
-	Test       float64 `yaml:"test"`
+	Test        float64 `yaml:"test"`
 }
 
 // CoOccurrenceConfig defines co-occurrence settings
@@ -82,12 +82,12 @@ type CoOccurrenceConfig struct {
 
 // ReportConfig contains report generation settings
 type ReportConfig struct {
-	Formats          []string       `yaml:"formats"`
-	OutputDirectory  string         `yaml:"output_directory"`
-	IncludeMasked    bool           `yaml:"include_masked"`
-	IncludeContext   bool           `yaml:"include_context"`
-	TemplateDirectory string        `yaml:"template_directory,omitempty"`
-	SARIF            SARIFConfig    `yaml:"sarif"`
+	Formats           []string    `yaml:"formats"`
+	OutputDirectory   string      `yaml:"output_directory"`
+	IncludeMasked     bool        `yaml:"include_masked"`
+	IncludeContext    bool        `yaml:"include_context"`
+	TemplateDirectory string      `yaml:"template_directory,omitempty"`
+	SARIF             SARIFConfig `yaml:"sarif"`
 }
 
 // SARIFConfig contains SARIF-specific settings
@@ -99,11 +99,11 @@ type SARIFConfig struct {
 
 // GithubConfig contains GitHub integration settings
 type GithubConfig struct {
-	Token           string        `yaml:"token,omitempty"`
-	RateLimit       int           `yaml:"rate_limit"`
-	CloneTimeout    time.Duration `yaml:"clone_timeout"`
-	CloneDepth      int           `yaml:"clone_depth"`
-	TempDirectory   string        `yaml:"temp_directory"`
+	Token         string        `yaml:"token,omitempty"`
+	RateLimit     int           `yaml:"rate_limit"`
+	CloneTimeout  time.Duration `yaml:"clone_timeout"`
+	CloneDepth    int           `yaml:"clone_depth"`
+	TempDirectory string        `yaml:"temp_directory"`
 }
 
 // LoggingConfig contains logging settings

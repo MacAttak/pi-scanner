@@ -20,14 +20,14 @@ type ContextValidator struct {
 
 // ValidationResult represents the result of context validation
 type ValidationResult struct {
-	IsValid     bool    `json:"is_valid"`
-	Confidence  float64 `json:"confidence"`
-	Reason      string  `json:"reason"`
-	IsTestData  bool    `json:"is_test_data"`
-	IsMockData  bool    `json:"is_mock_data"`
-	InComment   bool    `json:"in_comment"`
-	InString    bool    `json:"in_string"`
-	HasContext  bool    `json:"has_context"`
+	IsValid    bool    `json:"is_valid"`
+	Confidence float64 `json:"confidence"`
+	Reason     string  `json:"reason"`
+	IsTestData bool    `json:"is_test_data"`
+	IsMockData bool    `json:"is_mock_data"`
+	InComment  bool    `json:"in_comment"`
+	InString   bool    `json:"in_string"`
+	HasContext bool    `json:"has_context"`
 }
 
 // NewContextValidator creates a new context validator
@@ -50,7 +50,7 @@ func (cv *ContextValidator) Validate(ctx context.Context, finding detection.Find
 	// Check if it's in test/mock data (be more permissive for now)
 	result.IsTestData = cv.isTestData(finding, fileContent)
 	result.IsMockData = cv.isMockData(finding, fileContent)
-	
+
 	// For now, don't filter out test/mock data to avoid breaking existing tests
 	// This can be enabled later with more sophisticated detection
 	// if result.IsTestData || result.IsMockData {
@@ -64,7 +64,7 @@ func (cv *ContextValidator) Validate(ctx context.Context, finding detection.Find
 	syntaxContext := cv.syntaxAnalyzer.AnalyzeContext(fileContent, finding)
 	result.InComment = syntaxContext.InComment
 	result.InString = syntaxContext.InString
-	
+
 	// Only filter out obvious false positives in comments for now
 	if result.InComment && cv.isObviousFalsePositive(finding, fileContent) {
 		result.IsValid = false
@@ -76,7 +76,7 @@ func (cv *ContextValidator) Validate(ctx context.Context, finding detection.Find
 	// Check for contextual clues
 	hasContext := cv.proximityEngine.HasValidContext(finding, fileContent)
 	result.HasContext = hasContext
-	
+
 	if hasContext {
 		result.Confidence = 0.95
 		result.Reason = "Valid context found"
@@ -100,14 +100,14 @@ func (cv *ContextValidator) isTestData(finding detection.Finding, content string
 	testPatterns := []string{
 		"test", "spec", "fixture", "mock", "stub", "dummy", "example", "sample",
 	}
-	
+
 	filename := strings.ToLower(finding.File)
 	for _, pattern := range testPatterns {
 		if strings.Contains(filename, pattern) {
 			return true
 		}
 	}
-	
+
 	// Check surrounding context for test indicators
 	context := cv.extractExtendedContext(content, finding)
 	testIndicators := []string{
@@ -115,14 +115,14 @@ func (cv *ContextValidator) isTestData(finding detection.Finding, content string
 		"describe", "it(", "test(", "expect", "assert", "should", "beforeEach",
 		"afterEach", "setUp", "tearDown", "given", "when", "then",
 	}
-	
+
 	contextLower := strings.ToLower(context)
 	for _, indicator := range testIndicators {
 		if strings.Contains(contextLower, indicator) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -133,14 +133,14 @@ func (cv *ContextValidator) isMockData(finding detection.Finding, content string
 		"mock", "fake", "stub", "dummy", "placeholder", "default", "example",
 		"lorem", "ipsum", "test", "demo", "sample", "template",
 	}
-	
+
 	contextLower := strings.ToLower(context)
 	for _, indicator := range mockIndicators {
 		if strings.Contains(contextLower, indicator) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -148,19 +148,19 @@ func (cv *ContextValidator) isMockData(finding detection.Finding, content string
 func (cv *ContextValidator) isObviousFalsePositive(finding detection.Finding, content string) bool {
 	context := cv.extractExtendedContext(content, finding)
 	contextLower := strings.ToLower(context)
-	
+
 	// Look for obvious fake indicators
 	fakeIndicators := []string{
 		"example", "sample", "todo", "fixme", "note:", "warning:",
 		"replace", "change", "update", "placeholder",
 	}
-	
+
 	for _, indicator := range fakeIndicators {
 		if strings.Contains(contextLower, indicator) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -176,18 +176,18 @@ func (cv *ContextValidator) extractExtendedContext(content string, finding detec
 	if finding.Line <= 0 || finding.Line > len(lines) {
 		return ""
 	}
-	
+
 	start := finding.Line - 6
 	if start < 0 {
 		start = 0
 	}
-	
+
 	end := finding.Line + 5
 	if end >= len(lines) {
 		end = len(lines) - 1
 	}
-	
-	contextLines := lines[start:end+1]
+
+	contextLines := lines[start : end+1]
 	return strings.Join(contextLines, "\n")
 }
 
@@ -199,15 +199,15 @@ type CodePatternAnalyzer struct {
 // NewCodePatternAnalyzer creates a new code pattern analyzer
 func NewCodePatternAnalyzer() *CodePatternAnalyzer {
 	patterns := map[string]*regexp.Regexp{
-		"uuid":        regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-		"hash":        regexp.MustCompile(`[0-9a-f]{32,64}`),
-		"timestamp":   regexp.MustCompile(`\d{10,13}`),
-		"version":     regexp.MustCompile(`\d+\.\d+\.\d+`),
-		"port":        regexp.MustCompile(`:\d{4,5}`),
-		"ip":          regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`),
-		"sequential":  regexp.MustCompile(`\d{3,}\d{3,}\d{3,}`),
+		"uuid":       regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+		"hash":       regexp.MustCompile(`[0-9a-f]{32,64}`),
+		"timestamp":  regexp.MustCompile(`\d{10,13}`),
+		"version":    regexp.MustCompile(`\d+\.\d+\.\d+`),
+		"port":       regexp.MustCompile(`:\d{4,5}`),
+		"ip":         regexp.MustCompile(`\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}`),
+		"sequential": regexp.MustCompile(`\d{3,}\d{3,}\d{3,}`),
 	}
-	
+
 	return &CodePatternAnalyzer{
 		patterns: patterns,
 	}
@@ -216,56 +216,56 @@ func NewCodePatternAnalyzer() *CodePatternAnalyzer {
 // PatternResult represents the result of pattern analysis
 type PatternResult struct {
 	IsLikelyFalsePositive bool   `json:"is_likely_false_positive"`
-	Reason               string `json:"reason"`
-	Pattern              string `json:"pattern"`
+	Reason                string `json:"reason"`
+	Pattern               string `json:"pattern"`
 }
 
 // AnalyzePattern analyzes if a finding matches common false positive patterns
 func (cpa *CodePatternAnalyzer) AnalyzePattern(finding detection.Finding, content string) PatternResult {
 	match := finding.Match
-	
+
 	// Check for sequential numbers (likely not real data)
 	if cpa.patterns["sequential"].MatchString(match) {
 		return PatternResult{
 			IsLikelyFalsePositive: true,
-			Reason:               "Sequential numbers detected",
-			Pattern:              "sequential",
+			Reason:                "Sequential numbers detected",
+			Pattern:               "sequential",
 		}
 	}
-	
+
 	// Check for UUIDs (often confused with other IDs)
 	if cpa.patterns["uuid"].MatchString(match) {
 		return PatternResult{
 			IsLikelyFalsePositive: true,
-			Reason:               "UUID pattern detected",
-			Pattern:              "uuid",
+			Reason:                "UUID pattern detected",
+			Pattern:               "uuid",
 		}
 	}
-	
+
 	// Check for hash patterns
 	if cpa.patterns["hash"].MatchString(match) {
 		return PatternResult{
 			IsLikelyFalsePositive: true,
-			Reason:               "Hash pattern detected",
-			Pattern:              "hash",
+			Reason:                "Hash pattern detected",
+			Pattern:               "hash",
 		}
 	}
-	
+
 	// Check context for variable names
 	context := strings.ToLower(content)
-	if strings.Contains(context, "const") || strings.Contains(context, "var") || 
-	   strings.Contains(context, "let") || strings.Contains(context, "=") {
+	if strings.Contains(context, "const") || strings.Contains(context, "var") ||
+		strings.Contains(context, "let") || strings.Contains(context, "=") {
 		return PatternResult{
 			IsLikelyFalsePositive: false,
-			Reason:               "Variable assignment context",
-			Pattern:              "variable",
+			Reason:                "Variable assignment context",
+			Pattern:               "variable",
 		}
 	}
-	
+
 	return PatternResult{
 		IsLikelyFalsePositive: false,
-		Reason:               "No false positive patterns detected",
-		Pattern:              "none",
+		Reason:                "No false positive patterns detected",
+		Pattern:               "none",
 	}
 }
 
@@ -306,7 +306,7 @@ func NewProximityAnalyzer() *ProximityAnalyzer {
 			"financial", "transfer", "payment", "banking",
 		},
 	}
-	
+
 	return &ProximityAnalyzer{
 		contextPatterns: contextPatterns,
 	}
@@ -318,33 +318,33 @@ func (pa *ProximityAnalyzer) HasValidContext(finding detection.Finding, content 
 	if !exists {
 		return false
 	}
-	
+
 	// Extract context around the finding
 	lines := strings.Split(content, "\n")
 	if finding.Line <= 0 || finding.Line > len(lines) {
 		return false
 	}
-	
+
 	start := finding.Line - 3
 	if start < 0 {
 		start = 0
 	}
-	
+
 	end := finding.Line + 2
 	if end >= len(lines) {
 		end = len(lines) - 1
 	}
-	
-	contextLines := lines[start:end+1]
+
+	contextLines := lines[start : end+1]
 	context := strings.ToLower(strings.Join(contextLines, " "))
-	
+
 	// Check for contextual patterns
 	for _, pattern := range patterns {
 		if strings.Contains(context, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -366,24 +366,24 @@ type SyntaxContext struct {
 // AnalyzeContext analyzes the syntax context of a finding
 func (sca *SyntaxContextAnalyzer) AnalyzeContext(content string, finding detection.Finding) SyntaxContext {
 	result := SyntaxContext{}
-	
+
 	// Get the line content
 	lines := strings.Split(content, "\n")
 	if finding.Line <= 0 || finding.Line > len(lines) {
 		return result
 	}
-	
+
 	line := lines[finding.Line-1]
-	
+
 	// Check if in comment
 	result.InComment = sca.isInComment(line, finding.Column)
-	
+
 	// Check if in string
 	result.InString = sca.isInString(line, finding.Column)
-	
+
 	// Detect language
 	result.Language = sca.detectLanguage(finding.File)
-	
+
 	return result
 }
 
@@ -391,13 +391,13 @@ func (sca *SyntaxContextAnalyzer) AnalyzeContext(content string, finding detecti
 func (sca *SyntaxContextAnalyzer) isInComment(line string, column int) bool {
 	// Check for common comment patterns
 	commentPatterns := []string{"//", "#", "/*", "*/", "<!--", "-->"}
-	
+
 	for _, pattern := range commentPatterns {
 		if idx := strings.Index(line, pattern); idx != -1 && idx < column {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -406,7 +406,7 @@ func (sca *SyntaxContextAnalyzer) isInString(line string, column int) bool {
 	// Simple string detection - count quotes before position
 	singleQuotes := 0
 	doubleQuotes := 0
-	
+
 	for i := 0; i < column-1 && i < len(line); i++ {
 		switch line[i] {
 		case '\'':
@@ -419,59 +419,59 @@ func (sca *SyntaxContextAnalyzer) isInString(line string, column int) bool {
 			}
 		}
 	}
-	
+
 	return singleQuotes%2 == 1 || doubleQuotes%2 == 1
 }
 
 // detectLanguage detects programming language from filename
 func (sca *SyntaxContextAnalyzer) detectLanguage(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
-	
+
 	langMap := map[string]string{
-		".go":   "go",
-		".js":   "javascript", 
-		".ts":   "typescript",
-		".py":   "python",
-		".java": "java",
-		".c":    "c",
-		".cpp":  "cpp",
-		".cs":   "csharp",
-		".rb":   "ruby",
-		".php":  "php",
-		".rs":   "rust",
-		".kt":   "kotlin",
+		".go":    "go",
+		".js":    "javascript",
+		".ts":    "typescript",
+		".py":    "python",
+		".java":  "java",
+		".c":     "c",
+		".cpp":   "cpp",
+		".cs":    "csharp",
+		".rb":    "ruby",
+		".php":   "php",
+		".rs":    "rust",
+		".kt":    "kotlin",
 		".swift": "swift",
 		".scala": "scala",
-		".hs":   "haskell",
-		".ml":   "ocaml",
-		".clj":  "clojure",
-		".ex":   "elixir",
-		".erl":  "erlang",
-		".lua":  "lua",
-		".r":    "r",
-		".sql":  "sql",
-		".sh":   "shell",
-		".bash": "bash",
-		".zsh":  "zsh",
-		".ps1":  "powershell",
-		".bat":  "batch",
-		".cmd":  "batch",
-		".html": "html",
-		".xml":  "xml",
-		".json": "json",
-		".yaml": "yaml",
-		".yml":  "yaml",
-		".toml": "toml",
-		".ini":  "ini",
-		".cfg":  "config",
-		".conf": "config",
-		".md":   "markdown",
-		".txt":  "text",
+		".hs":    "haskell",
+		".ml":    "ocaml",
+		".clj":   "clojure",
+		".ex":    "elixir",
+		".erl":   "erlang",
+		".lua":   "lua",
+		".r":     "r",
+		".sql":   "sql",
+		".sh":    "shell",
+		".bash":  "bash",
+		".zsh":   "zsh",
+		".ps1":   "powershell",
+		".bat":   "batch",
+		".cmd":   "batch",
+		".html":  "html",
+		".xml":   "xml",
+		".json":  "json",
+		".yaml":  "yaml",
+		".yml":   "yaml",
+		".toml":  "toml",
+		".ini":   "ini",
+		".cfg":   "config",
+		".conf":  "config",
+		".md":    "markdown",
+		".txt":   "text",
 	}
-	
+
 	if lang, exists := langMap[ext]; exists {
 		return lang
 	}
-	
+
 	return "unknown"
 }

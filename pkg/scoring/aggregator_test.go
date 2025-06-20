@@ -29,10 +29,10 @@ func TestNewScoreAggregator(t *testing.T) {
 			config: &AggregatorConfig{
 				WeightedCombination: true,
 				ProximityWeight:     0.4,
-				MLWeight:           0.3,
-				ValidationWeight:   0.3,
-				MaxScore:           1.0,
-				MinScore:           0.0,
+				MLWeight:            0.3,
+				ValidationWeight:    0.3,
+				MaxScore:            1.0,
+				MinScore:            0.0,
 			},
 			wantErr: false,
 		},
@@ -67,12 +67,12 @@ func TestScoreAggregator_AggregateScores(t *testing.T) {
 		{
 			name: "all high scores",
 			factors: FactorScores{
-				ProximityScore:   0.9,
-				MLScore:         0.95,
-				ValidationScore: 1.0,
-				EnvironmentScore: 1.0,
+				ProximityScore:    0.9,
+				MLScore:           0.95,
+				ValidationScore:   1.0,
+				EnvironmentScore:  1.0,
 				CoOccurrenceScore: 1.2,
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedRange: []float64{0.9, 1.0},
 			description:   "high scores across all factors should result in high aggregate",
@@ -80,12 +80,12 @@ func TestScoreAggregator_AggregateScores(t *testing.T) {
 		{
 			name: "mixed scores",
 			factors: FactorScores{
-				ProximityScore:   0.7,
-				MLScore:         0.6,
-				ValidationScore: 0.8,
-				EnvironmentScore: 1.0,
+				ProximityScore:    0.7,
+				MLScore:           0.6,
+				ValidationScore:   0.8,
+				EnvironmentScore:  1.0,
 				CoOccurrenceScore: 1.0,
-				PITypeWeight:    0.9,
+				PITypeWeight:      0.9,
 			},
 			expectedRange: []float64{0.6, 0.8},
 			description:   "mixed scores should result in moderate aggregate",
@@ -93,12 +93,12 @@ func TestScoreAggregator_AggregateScores(t *testing.T) {
 		{
 			name: "test environment penalty",
 			factors: FactorScores{
-				ProximityScore:   0.8,
-				MLScore:         0.9,
-				ValidationScore: 1.0,
-				EnvironmentScore: 0.2, // test environment
+				ProximityScore:    0.8,
+				MLScore:           0.9,
+				ValidationScore:   1.0,
+				EnvironmentScore:  0.2, // test environment
 				CoOccurrenceScore: 1.0,
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedRange: []float64{0.15, 0.25},
 			description:   "test environment should significantly reduce aggregate score",
@@ -106,12 +106,12 @@ func TestScoreAggregator_AggregateScores(t *testing.T) {
 		{
 			name: "validation failure override",
 			factors: FactorScores{
-				ProximityScore:   0.9,
-				MLScore:         0.95,
-				ValidationScore: 0.0, // validation failed
-				EnvironmentScore: 1.0,
+				ProximityScore:    0.9,
+				MLScore:           0.95,
+				ValidationScore:   0.0, // validation failed
+				EnvironmentScore:  1.0,
 				CoOccurrenceScore: 1.0,
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedRange: []float64{0.6, 0.7},
 			description:   "validation failure should reduce confidence but not eliminate it",
@@ -119,12 +119,12 @@ func TestScoreAggregator_AggregateScores(t *testing.T) {
 		{
 			name: "co-occurrence boost",
 			factors: FactorScores{
-				ProximityScore:   0.7,
-				MLScore:         0.7,
-				ValidationScore: 1.0,
-				EnvironmentScore: 1.0,
+				ProximityScore:    0.7,
+				MLScore:           0.7,
+				ValidationScore:   1.0,
+				EnvironmentScore:  1.0,
 				CoOccurrenceScore: 1.5, // high co-occurrence boost
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedRange: []float64{0.8, 1.0},
 			description:   "co-occurrence should boost the aggregate score",
@@ -179,11 +179,11 @@ func TestScoreAggregator_GenerateScoreBreakdown(t *testing.T) {
 
 	factors := FactorScores{
 		ProximityScore:    0.8,
-		MLScore:          0.9,
-		ValidationScore:  1.0,
-		EnvironmentScore: 0.2, // test environment
+		MLScore:           0.9,
+		ValidationScore:   1.0,
+		EnvironmentScore:  0.2, // test environment
 		CoOccurrenceScore: 1.3,
-		PITypeWeight:     1.0,
+		PITypeWeight:      1.0,
 	}
 
 	breakdown := aggregator.GenerateScoreBreakdown(factors, 0.65)
@@ -226,11 +226,11 @@ func TestScoreAggregator_GenerateAuditTrail(t *testing.T) {
 
 	factors := FactorScores{
 		ProximityScore:    0.8,
-		MLScore:          0.9,
-		ValidationScore:  1.0,
-		EnvironmentScore: 1.0,
+		MLScore:           0.9,
+		ValidationScore:   1.0,
+		EnvironmentScore:  1.0,
 		CoOccurrenceScore: 1.2,
-		PITypeWeight:     1.0,
+		PITypeWeight:      1.0,
 	}
 
 	piType := detection.PITypeTFN
@@ -344,12 +344,12 @@ func TestScoreAggregator_GenerateRegulatoryCompliance(t *testing.T) {
 				for _, action := range compliance.RequiredActions {
 					if action.Type == "BANKING_REGULATION" || action.Type == "HEALTHCARE_REGULATION" {
 						foundAustralianAction = true
-						assert.Contains(t, action.Description, "Australian", 
+						assert.Contains(t, action.Description, "Australian",
 							"should mention Australian regulations")
 					}
 				}
 				if tt.riskLevel != RiskLevelLow {
-					assert.True(t, foundAustralianAction, 
+					assert.True(t, foundAustralianAction,
 						"should have Australian-specific action for %s", tt.piType)
 				}
 			}
@@ -368,19 +368,19 @@ func TestScoreAggregator_WeightedCombination(t *testing.T) {
 	require.NoError(t, err)
 
 	factors := FactorScores{
-		ProximityScore:   0.8,
-		MLScore:         0.6,
-		ValidationScore: 1.0,
-		EnvironmentScore: 1.0,
+		ProximityScore:    0.8,
+		MLScore:           0.6,
+		ValidationScore:   1.0,
+		EnvironmentScore:  1.0,
 		CoOccurrenceScore: 1.0,
-		PITypeWeight:    1.0,
+		PITypeWeight:      1.0,
 	}
 
 	result := aggregator.AggregateScores(factors)
 
 	// Expected: (0.8 * 0.4 + 0.6 * 0.3 + 1.0 * 0.3) * 1.0 * 1.0 * 1.0 = 0.8
 	expectedWeightedScore := 0.8*0.4 + 0.6*0.3 + 1.0*0.3 // = 0.8
-	assert.InDelta(t, expectedWeightedScore, result, 0.1, 
+	assert.InDelta(t, expectedWeightedScore, result, 0.1,
 		"weighted combination should follow configured weights")
 }
 
@@ -398,12 +398,12 @@ func TestScoreAggregator_EdgeCases(t *testing.T) {
 		{
 			name: "all zero scores",
 			factors: FactorScores{
-				ProximityScore:   0.0,
-				MLScore:         0.0,
-				ValidationScore: 0.0,
-				EnvironmentScore: 0.0,
+				ProximityScore:    0.0,
+				MLScore:           0.0,
+				ValidationScore:   0.0,
+				EnvironmentScore:  0.0,
 				CoOccurrenceScore: 0.0,
-				PITypeWeight:    0.0,
+				PITypeWeight:      0.0,
 			},
 			expectedMin: 0.0,
 			expectedMax: 0.0,
@@ -412,12 +412,12 @@ func TestScoreAggregator_EdgeCases(t *testing.T) {
 		{
 			name: "maximum scores",
 			factors: FactorScores{
-				ProximityScore:   1.0,
-				MLScore:         1.0,
-				ValidationScore: 1.0,
-				EnvironmentScore: 2.0, // boosted
+				ProximityScore:    1.0,
+				MLScore:           1.0,
+				ValidationScore:   1.0,
+				EnvironmentScore:  2.0, // boosted
 				CoOccurrenceScore: 2.0, // boosted
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedMin: 0.9,
 			expectedMax: 1.0,
@@ -426,12 +426,12 @@ func TestScoreAggregator_EdgeCases(t *testing.T) {
 		{
 			name: "negative environment score",
 			factors: FactorScores{
-				ProximityScore:   0.8,
-				MLScore:         0.8,
-				ValidationScore: 0.8,
-				EnvironmentScore: -0.1, // invalid negative
+				ProximityScore:    0.8,
+				MLScore:           0.8,
+				ValidationScore:   0.8,
+				EnvironmentScore:  -0.1, // invalid negative
 				CoOccurrenceScore: 1.0,
-				PITypeWeight:    1.0,
+				PITypeWeight:      1.0,
 			},
 			expectedMin: 0.0,
 			expectedMax: 0.3,
@@ -467,7 +467,7 @@ func TestScoreAggregator_AustralianBankingCompliance(t *testing.T) {
 			compliance := aggregator.GenerateRegulatoryCompliance(piType, RiskLevelHigh)
 
 			// Banking PI should always trigger APRA compliance
-			assert.True(t, compliance.APRA, 
+			assert.True(t, compliance.APRA,
 				"Banking PI type %s should trigger APRA compliance", piType)
 
 			// Should have banking-specific actions
@@ -475,15 +475,15 @@ func TestScoreAggregator_AustralianBankingCompliance(t *testing.T) {
 			for _, action := range compliance.RequiredActions {
 				if action.Type == "BANKING_REGULATION" {
 					foundBankingAction = true
-					assert.Contains(t, action.Description, "banking", 
+					assert.Contains(t, action.Description, "banking",
 						"Banking action should mention banking regulations")
-					assert.Equal(t, "HIGH", action.Priority, 
+					assert.Equal(t, "HIGH", action.Priority,
 						"Banking actions should be high priority")
 				}
 			}
 
 			if piType == detection.PITypeTFN || piType == detection.PITypeBSB {
-				assert.True(t, foundBankingAction, 
+				assert.True(t, foundBankingAction,
 					"Should have banking action for %s", piType)
 			}
 		})
@@ -497,11 +497,11 @@ func BenchmarkScoreAggregator_AggregateScores(b *testing.B) {
 
 	factors := FactorScores{
 		ProximityScore:    0.8,
-		MLScore:          0.7,
-		ValidationScore:  1.0,
-		EnvironmentScore: 1.0,
+		MLScore:           0.7,
+		ValidationScore:   1.0,
+		EnvironmentScore:  1.0,
 		CoOccurrenceScore: 1.2,
-		PITypeWeight:     0.9,
+		PITypeWeight:      0.9,
 	}
 
 	b.ResetTimer()
@@ -516,11 +516,11 @@ func BenchmarkScoreAggregator_GenerateScoreBreakdown(b *testing.B) {
 
 	factors := FactorScores{
 		ProximityScore:    0.8,
-		MLScore:          0.7,
-		ValidationScore:  1.0,
-		EnvironmentScore: 1.0,
+		MLScore:           0.7,
+		ValidationScore:   1.0,
+		EnvironmentScore:  1.0,
 		CoOccurrenceScore: 1.2,
-		PITypeWeight:     0.9,
+		PITypeWeight:      0.9,
 	}
 
 	b.ResetTimer()
@@ -535,11 +535,11 @@ func BenchmarkScoreAggregator_GenerateAuditTrail(b *testing.B) {
 
 	factors := FactorScores{
 		ProximityScore:    0.8,
-		MLScore:          0.7,
-		ValidationScore:  1.0,
-		EnvironmentScore: 1.0,
+		MLScore:           0.7,
+		ValidationScore:   1.0,
+		EnvironmentScore:  1.0,
 		CoOccurrenceScore: 1.2,
-		PITypeWeight:     0.9,
+		PITypeWeight:      0.9,
 	}
 
 	b.ResetTimer()

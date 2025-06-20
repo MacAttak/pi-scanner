@@ -35,10 +35,10 @@ func NewDetectorWithConfig(config *Config) Detector {
 		compiled:   make(map[string]*regexp.Regexp),
 		validators: validation.NewValidatorRegistry(),
 	}
-	
+
 	// Initialize pattern matchers
 	d.initializeMatchers()
-	
+
 	return d
 }
 
@@ -55,75 +55,74 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 		return nil, ctx.Err()
 	default:
 	}
-	
+
 	// Check file size limit
 	if d.config.MaxFileSize > 0 && int64(len(content)) > d.config.MaxFileSize {
 		return nil, fmt.Errorf("file too large: %d bytes (max: %d)", len(content), d.config.MaxFileSize)
 	}
-	
+
 	// Skip excluded paths
 	if d.shouldExclude(filename) {
 		return nil, nil
 	}
-	
+
 	findings := []Finding{}
 	contentStr := string(content)
-	
+
 	// Track which positions have been matched to avoid overlaps
 	type matchRange struct {
 		start, end int
 		piType     PIType
 	}
 	var matchedRanges []matchRange
-	
+
 	// Apply each matcher
 	for _, matcher := range d.matchers {
 		matches := matcher.Match(content)
-		
-		
+
 		for _, match := range matches {
 			// Check if this match overlaps with an existing match
 			overlaps := false
 			for _, existing := range matchedRanges {
 				if (match.StartIndex >= existing.start && match.StartIndex < existing.end) ||
-				   (match.EndIndex > existing.start && match.EndIndex <= existing.end) {
+					(match.EndIndex > existing.start && match.EndIndex <= existing.end) {
 					overlaps = true
 					break
 				}
 			}
-			
+
 			if overlaps {
 				continue
 			}
-			
+
 			// Add to matched ranges
 			matchedRanges = append(matchedRanges, matchRange{
 				start:  match.StartIndex,
 				end:    match.EndIndex,
 				piType: matcher.Type(),
 			})
-			
+
 			// Calculate line and column
 			line, column := d.getPosition(contentStr, match.StartIndex)
-			
+
 			// Extract context
 			contextBefore, contextAfter := d.extractContext(contentStr, match.StartIndex, match.EndIndex)
-			
+
 			finding := Finding{
-				Type:           matcher.Type(),
-				Match:          match.Value,
-				File:           filename,
-				Line:           line,
-				Column:         column,
-				Context:        match.Value,
-				ContextBefore:  contextBefore,
-				ContextAfter:   contextAfter,
-				DetectedAt:     time.Now(),
-				DetectorName:   d.Name(),
-				Confidence:     0.8, // Base confidence for pattern match
+				Type:            matcher.Type(),
+				Match:           match.Value,
+				File:            filename,
+				Line:            line,
+				Column:          column,
+				Context:         match.Value,
+				ContextBefore:   contextBefore,
+				ContextAfter:    contextAfter,
+				DetectedAt:      time.Now(),
+				DetectorName:    d.Name(),
+				Confidence:      0.8, // Base confidence for pattern match
 				ContextModifier: d.getContextModifier(filename),
 			}
-			
+
 			// Validate if enabled and validator exists
 			if d.config.ValidateChecksums {
 				if validator, ok := d.validators.Get(string(finding.Type)); ok {
@@ -132,7 +131,7 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 					if err != nil {
 						finding.ValidationError = err.Error()
 					}
-					
+
 					// Increase confidence if validated
 					if valid {
 						finding.Confidence = 0.95
@@ -145,17 +144,17 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 					}
 				}
 			}
-			
+
 			// Set initial risk level based on type
 			finding.RiskLevel = d.calculateRiskLevel(finding.Type)
-			
+
 			// Apply context validation and confidence-based filtering
 			if d.shouldIncludeFinding(ctx, finding, contentStr) {
 				findings = append(findings, finding)
 			}
 		}
 	}
-	
+
 	// Sort findings by position for consistent ordering
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].Line != findings[j].Line {
@@ -163,7 +162,7 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 		}
 		return findings[i].Column < findings[j].Column
 	})
-	
+
 	return findings, nil
 }
 
@@ -186,13 +185,13 @@ func (d *detector) initializeMatchers() {
 			if strings.HasPrefix(clean, "614") {
 				return false
 			}
-			
+
 			// For pattern matching, we accept any 11-digit number that looks like an ABN
 			// Checksum validation will happen later via the validation registry
 			return true
 		},
 	})
-	
+
 	// Medicare matcher
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b[2-6]\d{3}[\s\-]?\d{5}[\s\-]?\d{1}(?:/\d)?\b`,
@@ -206,18 +205,18 @@ func (d *detector) initializeMatchers() {
 				return false
 			}
 			medicare := clean[:10]
-			
+
 			// First digit must be 2-6
 			if medicare[0] < '2' || medicare[0] > '6' {
 				return false
 			}
-			
+
 			// For pattern matching, we accept any number that looks like Medicare
 			// Checksum validation will happen later via the validation registry
 			return true
 		},
 	})
-	
+
 	// TFN matcher - exactly 9 digits (after ABN to avoid confusion)
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b`,
@@ -230,13 +229,13 @@ func (d *detector) initializeMatchers() {
 			if len(clean) != 9 || clean[0] == '0' {
 				return false
 			}
-			
+
 			// For pattern matching, we accept any 9-digit number that looks like a TFN
 			// Checksum validation will happen later via the validation registry
 			return true
 		},
 	})
-	
+
 	// BSB matcher - exactly 6 digits with optional hyphen
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b\d{3}[\-]?\d{3}\b`,
@@ -256,7 +255,7 @@ func (d *detector) initializeMatchers() {
 			return true
 		},
 	})
-	
+
 	// ACN matcher - exactly 9 digits with ACN context
 	// Must check for ACN-specific context to differentiate from TFN
 	d.matchers = append(d.matchers, &regexMatcher{
@@ -278,13 +277,13 @@ func (d *detector) initializeMatchers() {
 			if len(clean) != 9 {
 				return false
 			}
-			
+
 			// For pattern matching, we accept any 9-digit number that looks like an ACN
 			// Checksum validation will happen later via the validation registry
 			return true
 		},
 	})
-	
+
 	// Phone matcher (Australian formats) - MUST BE BEFORE driver license to avoid conflicts
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `(?:\+61[\s.-]?[2-9]\d{8}|\b0[2-9](?:[\s.-]?\d){8}\b|\(\d{2}\)\s*\d{4}\s*\d{4}|\b1[38]00[\s.-]?\d{3}[\s.-]?\d{3}\b)`,
@@ -307,17 +306,17 @@ func (d *detector) initializeMatchers() {
 			return false
 		},
 	})
-	
+
 	// Email matcher
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b`,
 		piType:  PITypeEmail,
 		d:       d,
 	})
-	
+
 	// Driver License matcher - state-specific patterns (AFTER phone to avoid conflicts)
 	// NSW/QLD: 8 digits
-	// VIC: 8-10 digits  
+	// VIC: 8-10 digits
 	// SA: Letter + 6 digits
 	// WA: 7 digits
 	// TAS: 7 digits or 2 letters + 5 digits
@@ -328,14 +327,14 @@ func (d *detector) initializeMatchers() {
 		validator: func(match string) bool {
 			// Remove all non-digits for checking
 			digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(match, "")
-			
+
 			// Exclude phone numbers - they start with 0, +61, or 1300/1800
-			if match[0] == '0' || strings.HasPrefix(match, "+61") || 
-			   strings.HasPrefix(digits, "1300") || strings.HasPrefix(digits, "1800") ||
-			   strings.HasPrefix(digits, "04") { // Mobile numbers
+			if match[0] == '0' || strings.HasPrefix(match, "+61") ||
+				strings.HasPrefix(digits, "1300") || strings.HasPrefix(digits, "1800") ||
+				strings.HasPrefix(digits, "04") { // Mobile numbers
 				return false
 			}
-			
+
 			// Check driver license formats
 			if len(match) >= 7 && len(match) <= 10 {
 				// Numeric formats (NSW/QLD/VIC/WA/TAS)
@@ -358,7 +357,7 @@ func (d *detector) initializeMatchers() {
 			return false
 		},
 	})
-	
+
 	// Name matcher with context-aware filtering for code scanning
 	// Only detects names in appropriate contexts (comments, strings, documentation)
 	d.matchers = append(d.matchers, &regexMatcher{
@@ -396,7 +395,7 @@ func (d *detector) getContextModifier(filename string) float32 {
 			return 0.1
 		}
 	}
-	
+
 	// Check if it's a mock file
 	for _, pattern := range d.config.MockPathPatterns {
 		if matched, _ := filepath.Match(pattern, filename); matched {
@@ -406,14 +405,14 @@ func (d *detector) getContextModifier(filename string) float32 {
 			return 0.1
 		}
 	}
-	
+
 	return 1.0
 }
 
 // calculateRiskLevel determines risk level based on PI type
 func (d *detector) calculateRiskLevel(piType PIType) RiskLevel {
 	weight := d.config.RiskWeights[piType]
-	
+
 	switch {
 	case weight >= 90:
 		return RiskLevelHigh
@@ -428,7 +427,7 @@ func (d *detector) calculateRiskLevel(piType PIType) RiskLevel {
 func (d *detector) getPosition(content string, index int) (line, column int) {
 	line = 1
 	column = 1
-	
+
 	for i := 0; i < index && i < len(content); i++ {
 		if content[i] == '\n' {
 			line++
@@ -437,28 +436,28 @@ func (d *detector) getPosition(content string, index int) (line, column int) {
 			column++
 		}
 	}
-	
+
 	return line, column
 }
 
 // extractContext extracts surrounding context
 func (d *detector) extractContext(content string, start, end int) (before, after string) {
 	contextSize := 50
-	
+
 	// Extract before context
 	beforeStart := start - contextSize
 	if beforeStart < 0 {
 		beforeStart = 0
 	}
 	before = content[beforeStart:start]
-	
+
 	// Extract after context
 	afterEnd := end + contextSize
 	if afterEnd > len(content) {
 		afterEnd = len(content)
 	}
 	after = content[end:afterEnd]
-	
+
 	return before, after
 }
 
@@ -467,7 +466,7 @@ func (d *detector) extractContext(content string, start, end int) (before, after
 func (d *detector) isValidPersonName(name string) bool {
 	// Convert to lowercase for comparison
 	nameLower := strings.ToLower(name)
-	
+
 	// Filter out common programming language constructs
 	programmingTerms := []string{
 		// Java/Scala constructs
@@ -482,14 +481,14 @@ func (d *detector) isValidPersonName(name string) bool {
 		"request processor", "response builder", "query builder",
 		"validation service", "security service", "auth service",
 		"payment service", "notification service",
-		
+
 		// Python constructs
 		"user manager", "data handler", "api client", "base model",
 		"view controller", "form validator", "signal handler",
 		"middleware handler", "context processor", "template loader",
 		"database router", "cache backend", "storage backend",
 		"task scheduler", "message broker", "event dispatcher",
-		
+
 		// Generic technical terms
 		"system admin", "database admin", "network admin",
 		"super user", "guest user", "admin user", "test user",
@@ -499,27 +498,27 @@ func (d *detector) isValidPersonName(name string) bool {
 		"status code", "response code", "error code",
 		"api key", "access token", "refresh token",
 		"session id", "request id", "transaction id",
-		
+
 		// Brand/Technology names
 		"java spring", "react native", "angular material",
 		"node express", "django rest", "spring boot",
 		"apache kafka", "redis cache", "mongo db",
 		"elastic search", "rabbit mq", "amazon aws",
 		"google cloud", "microsoft azure", "docker container",
-		
+
 		// Common false positives
 		"lorem ipsum", "foo bar", "hello world",
 		"test data", "sample data", "mock data",
 		"dummy data", "fake data", "example data",
 	}
-	
+
 	// Check against programming terms
 	for _, term := range programmingTerms {
 		if strings.Contains(nameLower, term) {
 			return false
 		}
 	}
-	
+
 	// Filter out obvious code patterns
 	codePatterns := []string{
 		"service", "manager", "handler", "processor", "controller",
@@ -532,13 +531,13 @@ func (d *detector) isValidPersonName(name string) bool {
 		"exception", "error", "warning", "info", "debug",
 		"test", "mock", "stub", "fake", "dummy",
 	}
-	
+
 	for _, pattern := range codePatterns {
 		if strings.Contains(nameLower, pattern) {
 			return false
 		}
 	}
-	
+
 	// Filter out single character names or very short names
 	parts := strings.Fields(name)
 	for _, part := range parts {
@@ -546,7 +545,7 @@ func (d *detector) isValidPersonName(name string) bool {
 			return false
 		}
 	}
-	
+
 	// Filter out names with numbers or special characters
 	for _, char := range name {
 		if char >= '0' && char <= '9' {
@@ -556,7 +555,7 @@ func (d *detector) isValidPersonName(name string) bool {
 			return false
 		}
 	}
-	
+
 	// Additional validation: check if it looks like a real name
 	// Real names typically don't have all caps or unusual patterns
 	allCaps := true
@@ -569,7 +568,7 @@ func (d *detector) isValidPersonName(name string) bool {
 	if allCaps {
 		return false
 	}
-	
+
 	// Passed all filters - likely a real person name
 	return true
 }
@@ -578,7 +577,7 @@ func (d *detector) isValidPersonName(name string) bool {
 func (d *detector) shouldIncludeFinding(ctx context.Context, finding Finding, fileContent string) bool {
 	// For test files (low context modifier), we still want to detect PI
 	// but we'll rely more on context validation rather than confidence thresholds
-	
+
 	// Apply advanced context validation if enabled
 	if d.config.EnableContextValidation {
 		isValid := d.validateContext(finding, fileContent)
@@ -586,14 +585,14 @@ func (d *detector) shouldIncludeFinding(ctx context.Context, finding Finding, fi
 			return false
 		}
 	}
-	
+
 	// Check base confidence threshold (without context modifier)
 	// This ensures we don't filter out legitimate findings just because they're in test files
 	minConfidence := d.getMinimumConfidenceThreshold(finding)
 	if finding.Confidence < minConfidence {
 		return false
 	}
-	
+
 	// Include the finding
 	return true
 }
@@ -604,7 +603,7 @@ func (d *detector) getMinimumConfidenceThreshold(finding Finding) float32 {
 	if d.config.MinConfidenceThreshold > 0 {
 		return d.config.MinConfidenceThreshold
 	}
-	
+
 	// Default thresholds based on context
 	// Note: We don't want to filter out findings in test files too aggressively
 	// as they might be testing real PI detection
@@ -616,23 +615,23 @@ func (d *detector) validateContext(finding Finding, fileContent string) bool {
 	// For test files, we're less strict about context validation
 	// since tests often contain real PI examples for testing purposes
 	isTestFile := finding.ContextModifier <= 0.1
-	
+
 	// Check if finding is in test data context
 	if !isTestFile && d.isInTestContext(finding, fileContent) {
 		return false // Suppress findings in test contexts (but not in test files)
 	}
-	
+
 	// Check if finding is in comment and looks like example data
 	// Only suppress if it explicitly mentions it's an example
 	if d.isInCommentExample(finding, fileContent) {
 		return false // Suppress obvious examples in comments
 	}
-	
+
 	// Check if finding looks like mock/dummy data
 	if d.isInMockContext(finding, fileContent) {
 		return false // Suppress mock data
 	}
-	
+
 	return true // Include by default
 }
 
@@ -641,7 +640,7 @@ func (d *detector) isInTestContext(finding Finding, content string) bool {
 	// Extract context around the finding
 	context := d.extractLineContext(content, finding.Line, 3)
 	contextLower := strings.ToLower(context)
-	
+
 	// Test framework keywords
 	testKeywords := []string{
 		"test", "spec", "describe", "it(", "expect", "assert", "should",
@@ -649,24 +648,24 @@ func (d *detector) isInTestContext(finding Finding, content string) bool {
 		"@test", "@parameterizedtest", "@valueSource", "unittest", "pytest",
 		"scalatest", "wordspec", "funspec", "junit", "testng", "mockito",
 	}
-	
+
 	for _, keyword := range testKeywords {
 		if strings.Contains(contextLower, keyword) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 // isInCommentExample checks if finding is in a comment that appears to be an example
 func (d *detector) isInCommentExample(finding Finding, content string) bool {
 	line := d.getLineContent(content, finding.Line)
-	
+
 	// Check if line contains comment markers
-	if strings.Contains(line, "//") || strings.Contains(line, "#") || 
-	   strings.Contains(line, "/*") || strings.Contains(line, "*/") {
-		
+	if strings.Contains(line, "//") || strings.Contains(line, "#") ||
+		strings.Contains(line, "/*") || strings.Contains(line, "*/") {
+
 		lineLower := strings.ToLower(line)
 		// More specific keywords that indicate it's definitely not real PI
 		exampleKeywords := []string{
@@ -674,14 +673,14 @@ func (d *detector) isInCommentExample(finding Finding, content string) bool {
 			"replace with", "change to", "update this", "placeholder", "format:",
 			"test example", "sample data", "dummy value",
 		}
-		
+
 		for _, keyword := range exampleKeywords {
 			if strings.Contains(lineLower, keyword) {
 				return true
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -689,20 +688,20 @@ func (d *detector) isInCommentExample(finding Finding, content string) bool {
 func (d *detector) isInMockContext(finding Finding, content string) bool {
 	context := d.extractLineContext(content, finding.Line, 2)
 	contextLower := strings.ToLower(context)
-	
+
 	mockKeywords := []string{
-		"fakename", "stub", "dummy", "placeholder", 
-		"lorem", "ipsum", "demo data", "sample data", "template", 
+		"fakename", "stub", "dummy", "placeholder",
+		"lorem", "ipsum", "demo data", "sample data", "template",
 		"test_data", "mock_data", "dummy_data", "fake_data", "example_data",
 		"testdata", "testfactory", "mockdata",
 	}
-	
+
 	for _, keyword := range mockKeywords {
 		if strings.Contains(contextLower, keyword) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -712,18 +711,18 @@ func (d *detector) extractLineContext(content string, lineNum int, contextLines 
 	if lineNum <= 0 || lineNum > len(lines) {
 		return ""
 	}
-	
+
 	start := lineNum - contextLines - 1
 	if start < 0 {
 		start = 0
 	}
-	
+
 	end := lineNum + contextLines - 1
 	if end >= len(lines) {
 		end = len(lines) - 1
 	}
-	
-	contextSlice := lines[start:end+1]
+
+	contextSlice := lines[start : end+1]
 	return strings.Join(contextSlice, "\n")
 }
 
@@ -744,20 +743,20 @@ func (d *detector) getRegexp(pattern string) (*regexp.Regexp, error) {
 		return re, nil
 	}
 	d.mu.RUnlock()
-	
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if re, ok := d.compiled[pattern]; ok {
 		return re, nil
 	}
-	
+
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	d.compiled[pattern] = re
 	return re, nil
 }
@@ -777,14 +776,14 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 	if err != nil {
 		return nil
 	}
-	
+
 	var matches []PatternMatch
 	allMatches := re.FindAllIndex(content, -1)
-	
+
 	for _, match := range allMatches {
 		if len(match) >= 2 {
 			value := string(content[match[0]:match[1]])
-			
+
 			// Apply validator if present
 			// Apply extractor if present
 			extractedValue := value
@@ -794,12 +793,12 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 					continue
 				}
 			}
-			
+
 			// Apply validator if present
 			if m.validator != nil && !m.validator(extractedValue) {
 				continue
 			}
-			
+
 			matches = append(matches, PatternMatch{
 				Value:      extractedValue,
 				StartIndex: match[0],
@@ -807,7 +806,7 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 			})
 		}
 	}
-	
+
 	return matches
 }
 

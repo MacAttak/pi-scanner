@@ -9,14 +9,14 @@ import (
 // PatternMatcher provides methods to identify various patterns that indicate PI context vs test data
 type PatternMatcher struct {
 	// Compiled regex patterns for performance
-	testDataPattern     *regexp.Regexp
-	piLabelPattern      *regexp.Regexp
+	testDataPattern      *regexp.Regexp
+	piLabelPattern       *regexp.Regexp
 	documentationPattern *regexp.Regexp
-	formFieldPattern    *regexp.Regexp
-	databasePattern     *regexp.Regexp
-	logPattern          *regexp.Regexp
-	configPattern       *regexp.Regexp
-	variablePattern     *regexp.Regexp
+	formFieldPattern     *regexp.Regexp
+	databasePattern      *regexp.Regexp
+	logPattern           *regexp.Regexp
+	configPattern        *regexp.Regexp
+	variablePattern      *regexp.Regexp
 }
 
 // NewPatternMatcher creates a new pattern matcher with compiled patterns
@@ -39,16 +39,16 @@ func (pm *PatternMatcher) compilePatterns() {
 		"dummy", "DUMMY", "Dummy",
 		"placeholder", "PLACEHOLDER", "Placeholder",
 	}
-	
+
 	// Create pattern that matches test keywords as whole words or with common separators
 	testPatterns := make([]string, 0, len(testKeywords)*5)
 	for _, keyword := range testKeywords {
-		testPatterns = append(testPatterns, 
-			`\b`+regexp.QuoteMeta(keyword)+`\b`,           // whole word
-			`\b`+regexp.QuoteMeta(keyword)+`[_-]`,         // with underscore or dash
-			`[_-]`+regexp.QuoteMeta(keyword)+`\b`,         // prefixed with underscore or dash
-			regexp.QuoteMeta(keyword)+`Data`,              // camelCase pattern (e.g., mockData)
-			`\b`+regexp.QuoteMeta(keyword)+`[A-Z]`,        // camelCase prefix (e.g., mockSSN)
+		testPatterns = append(testPatterns,
+			`\b`+regexp.QuoteMeta(keyword)+`\b`,    // whole word
+			`\b`+regexp.QuoteMeta(keyword)+`[_-]`,  // with underscore or dash
+			`[_-]`+regexp.QuoteMeta(keyword)+`\b`,  // prefixed with underscore or dash
+			regexp.QuoteMeta(keyword)+`Data`,       // camelCase pattern (e.g., mockData)
+			`\b`+regexp.QuoteMeta(keyword)+`[A-Z]`, // camelCase prefix (e.g., mockSSN)
 		)
 	}
 	pm.testDataPattern = regexp.MustCompile(`(?i)` + strings.Join(testPatterns, "|"))
@@ -58,53 +58,53 @@ func (pm *PatternMatcher) compilePatterns() {
 		// SSN variations
 		"SSN", "ssn", "Social Security Number", "social security number",
 		"Social Security No", "social security no",
-		
+
 		// TFN variations
 		"TFN", "tfn", "Tax File Number", "tax file number",
 		"Tax File No", "tax file no",
-		
+
 		// Medicare variations
 		"Medicare No", "medicare no", "Medicare Number", "medicare number",
 		"Medicare Card", "medicare card", "Medicare", "medicare",
-		
+
 		// ABN variations
 		"ABN", "abn", "Australian Business Number", "australian business number",
 		"Business Number", "business number", "Company ABN", "company abn",
-		
+
 		// BSB variations
 		"BSB", "bsb", "Bank State Branch", "bank state branch",
 		"BSB Code", "bsb code", "Branch Code", "branch code",
 		"Routing Code", "routing code", "Bank Code", "bank code",
-		
+
 		// Australian Address variations
 		"Address", "address", "Street Address", "street address",
 		"Postal Address", "postal address", "Home Address", "home address",
 		"Residential Address", "residential address",
-		
+
 		// Credit Card variations
 		"Credit Card", "credit card", "CC", "cc", "Card Number", "card number",
-		
+
 		// Phone variations
 		"Phone", "phone", "Phone Number", "phone number", "Mobile", "mobile",
 		"Tel", "tel", "Telephone", "telephone",
-		
+
 		// Email variations
 		"Email", "email", "Email Address", "email address", "E-mail", "e-mail",
-		
+
 		// Driver License variations
 		"Driver License", "driver license", "DL", "dl", "License Number", "license number",
 		"Drivers License", "drivers license",
-		
+
 		// Passport variations
 		"Passport", "passport", "Passport Number", "passport number",
 		"Passport No", "passport no",
 	}
-	
+
 	// Sort labels by length (longest first) to ensure proper matching precedence
 	sort.Slice(piLabels, func(i, j int) bool {
 		return len(piLabels[i]) > len(piLabels[j])
 	})
-	
+
 	labelPatterns := make([]string, 0, len(piLabels))
 	for _, label := range piLabels {
 		// Match label followed by colon, equals, or space
@@ -114,68 +114,68 @@ func (pm *PatternMatcher) compilePatterns() {
 
 	// Documentation patterns
 	pm.documentationPattern = regexp.MustCompile(`(?s)` + strings.Join([]string{
-		`//.*?$`,                    // Single line C++ style comments
-		`/\*.*?\*/`,                 // Multi-line C style comments
-		`#.*?$`,                     // Hash comments
-		`<!--.*?-->`,                // HTML comments
-		`--.*?$`,                    // SQL comments
-		`""".*?"""`,                 // Python docstrings
-		`'''.*?'''`,                 // Python docstrings alternate
+		`//.*?$`,     // Single line C++ style comments
+		`/\*.*?\*/`,  // Multi-line C style comments
+		`#.*?$`,      // Hash comments
+		`<!--.*?-->`, // HTML comments
+		`--.*?$`,     // SQL comments
+		`""".*?"""`,  // Python docstrings
+		`'''.*?'''`,  // Python docstrings alternate
 	}, "|"))
 
 	// Form field patterns
 	pm.formFieldPattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`<input[^>]*>`,                          // HTML input tags
-		`<textarea[^>]*>.*?</textarea>`,         // HTML textarea
-		`<select[^>]*>.*?</select>`,             // HTML select
-		`\w+=[^&\s]*`,                          // Form data key=value
-		`[{,]\s*"\w+"\s*:\s*"[^"]*"`,          // JSON field
+		`<input[^>]*>`,                  // HTML input tags
+		`<textarea[^>]*>.*?</textarea>`, // HTML textarea
+		`<select[^>]*>.*?</select>`,     // HTML select
+		`\w+=[^&\s]*`,                   // Form data key=value
+		`[{,]\s*"\w+"\s*:\s*"[^"]*"`,    // JSON field
 	}, "|"))
 
 	// Database patterns
 	pm.databasePattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`\bSELECT\b.*?\bFROM\b`,               // SELECT queries
-		`\bINSERT\s+INTO\b`,                   // INSERT queries
-		`\bUPDATE\b.*?\bSET\b`,                // UPDATE queries
-		`\bDELETE\s+FROM\b`,                   // DELETE queries
-		`\bWHERE\b.*?=`,                       // WHERE clauses
-		`\.where\s*\(`,                        // ORM where methods
-		`\.filter\s*\(`,                       // ORM filter methods
-		`\.findOne\s*\(`,                      // ORM findOne methods
-		`mongodb://`,                          // MongoDB connection strings
-		`jdbc:`,                               // JDBC URLs
+		`\bSELECT\b.*?\bFROM\b`, // SELECT queries
+		`\bINSERT\s+INTO\b`,     // INSERT queries
+		`\bUPDATE\b.*?\bSET\b`,  // UPDATE queries
+		`\bDELETE\s+FROM\b`,     // DELETE queries
+		`\bWHERE\b.*?=`,         // WHERE clauses
+		`\.where\s*\(`,          // ORM where methods
+		`\.filter\s*\(`,         // ORM filter methods
+		`\.findOne\s*\(`,        // ORM findOne methods
+		`mongodb://`,            // MongoDB connection strings
+		`jdbc:`,                 // JDBC URLs
 	}, "|"))
 
 	// Log patterns
 	pm.logPattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`\b(INFO|DEBUG|ERROR|WARN|TRACE|FATAL)\s*[:]\s*`,  // Log levels with colon
-		`\b(info|debug|error|warn|trace|fatal)\s*[:]\s*`,  // Lowercase log levels
-		`\d{4}-\d{2}-\d{2}.*?(INFO|DEBUG|ERROR|WARN)`,     // Timestamp with log level
-		`logger\.(info|debug|error|warn|trace)`,           // Logger method calls
-		`console\.(log|info|debug|error|warn)`,            // Console logging
-		`<\d+>.*?:`,                                       // Syslog format
+		`\b(INFO|DEBUG|ERROR|WARN|TRACE|FATAL)\s*[:]\s*`, // Log levels with colon
+		`\b(info|debug|error|warn|trace|fatal)\s*[:]\s*`, // Lowercase log levels
+		`\d{4}-\d{2}-\d{2}.*?(INFO|DEBUG|ERROR|WARN)`,    // Timestamp with log level
+		`logger\.(info|debug|error|warn|trace)`,          // Logger method calls
+		`console\.(log|info|debug|error|warn)`,           // Console logging
+		`<\d+>.*?:`,                                      // Syslog format
 	}, "|"))
 
 	// Configuration patterns
 	pm.configPattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`^\s*\w+\s*=\s*[^=]`,                  // Key=value assignments at start of line
-		`\w+\.\w+\s*=\s*[^=\[]`,               // Properties format like user.ssn= (not array access)
-		`^\s*\w+\s*:\s*[^:]`,                  // YAML style key: value at start of line
-		`export\s+\w+\s*=`,                    // Environment variable exports
-		`\[\w+\]`,                             // INI section headers
+		`^\s*\w+\s*=\s*[^=]`,                 // Key=value assignments at start of line
+		`\w+\.\w+\s*=\s*[^=\[]`,              // Properties format like user.ssn= (not array access)
+		`^\s*\w+\s*:\s*[^:]`,                 // YAML style key: value at start of line
+		`export\s+\w+\s*=`,                   // Environment variable exports
+		`\[\w+\]`,                            // INI section headers
 		`[{,]\s*"\w+"\s*:\s*`,                // JSON configuration
 		`(default|fallback|initial)_\w+\s*=`, // Default/fallback values
 	}, "|"))
 
 	// Variable patterns
 	pm.variablePattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
-		`\b(var|let|const)\s+\w+\s*=`,        // JavaScript variable declarations
-		`^\s*[a-zA-Z_]\w*\s*=\s*[^=]`,        // Simple assignments at start of line (no object properties)
-		`(var|string|int|float|double)\s+\w+.*?=`, // Typed variable declarations (including Go)
-		`function\s+\w+\s*\([^)]*=`,           // Function parameters with defaults
-		`\(\s*\w+\s*=`,                        // Lambda/arrow function parameters
-		`const\s*{\s*\w+\s*=`,                 // Destructuring with defaults
-		`const\s*\[\s*\w+\s*=`,                // Array destructuring with defaults
+		`\b(var|let|const)\s+\w+\s*=`,                    // JavaScript variable declarations
+		`^\s*[a-zA-Z_]\w*\s*=\s*[^=]`,                    // Simple assignments at start of line (no object properties)
+		`(var|string|int|float|double)\s+\w+.*?=`,        // Typed variable declarations (including Go)
+		`function\s+\w+\s*\([^)]*=`,                      // Function parameters with defaults
+		`\(\s*\w+\s*=`,                                   // Lambda/arrow function parameters
+		`const\s*{\s*\w+\s*=`,                            // Destructuring with defaults
+		`const\s*\[\s*\w+\s*=`,                           // Array destructuring with defaults
 		`(test_|mock|sample_|demo_|fake_|dummy_)\w+\s*=`, // Test variable patterns
 	}, "|"))
 }
@@ -189,7 +189,7 @@ func (pm *PatternMatcher) ContainsTestDataKeywords(text string) bool {
 func (pm *PatternMatcher) FindPIContextLabels(text string) []string {
 	matches := pm.piLabelPattern.FindAllString(text, -1)
 	labels := make([]string, 0, len(matches))
-	
+
 	for _, match := range matches {
 		// Clean up the match by removing trailing separators
 		label := strings.TrimSpace(match)
@@ -199,7 +199,7 @@ func (pm *PatternMatcher) FindPIContextLabels(text string) []string {
 			labels = append(labels, label)
 		}
 	}
-	
+
 	// Remove duplicates
 	seen := make(map[string]bool)
 	unique := make([]string, 0, len(labels))
@@ -209,7 +209,7 @@ func (pm *PatternMatcher) FindPIContextLabels(text string) []string {
 			unique = append(unique, label)
 		}
 	}
-	
+
 	return unique
 }
 

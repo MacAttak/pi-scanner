@@ -60,21 +60,21 @@ type FileWorker struct {
 
 // ProcessorConfig configures the file processor
 type ProcessorConfig struct {
-	NumWorkers      int
-	QueueSize       int
-	MaxFileSize     int64
-	EnablePatterns  bool
-	EnableGitleaks  bool
+	NumWorkers     int
+	QueueSize      int
+	MaxFileSize    int64
+	EnablePatterns bool
+	EnableGitleaks bool
 }
 
 // DefaultProcessorConfig returns sensible defaults
 func DefaultProcessorConfig() ProcessorConfig {
 	return ProcessorConfig{
-		NumWorkers:      runtime.NumCPU(),
-		QueueSize:       10000, // Support very large repositories
-		MaxFileSize:     10 * 1024 * 1024, // 10MB
-		EnablePatterns:  true,
-		EnableGitleaks:  true,
+		NumWorkers:     runtime.NumCPU(),
+		QueueSize:      10000,            // Support very large repositories
+		MaxFileSize:    10 * 1024 * 1024, // 10MB
+		EnablePatterns: true,
+		EnableGitleaks: true,
 	}
 }
 
@@ -277,7 +277,7 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 		var validFindings []detection.Finding
 		for i := range findings {
 			findings[i].File = job.FilePath
-			
+
 			// Apply context validation to reduce false positives
 			validationResult, err := w.processor.contextValidator.Validate(w.ctx, findings[i], string(job.Content))
 			if err == nil {
@@ -288,7 +288,7 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 				// Update confidence based on context validation
 				findings[i].Confidence = float32(validationResult.Confidence)
 			}
-			
+
 			validFindings = append(validFindings, findings[i])
 		}
 
@@ -411,7 +411,7 @@ func (p *Pipeline) ProcessRepository(ctx context.Context, repoPath string) (*Rep
 
 		// Read file content here (implementation would read from disk)
 		content := []byte{} // TODO: Implement file reading
-		
+
 		jobs = append(jobs, FileJob{
 			FilePath: file.Path,
 			Content:  content,

@@ -102,8 +102,8 @@ func hardcodedDefaults() *Config {
 			},
 		},
 		Github: GithubConfig{
-			RateLimit:   30,
-			CloneDepth:  1,
+			RateLimit:     30,
+			CloneDepth:    1,
 			TempDirectory: "/tmp/pi-scanner",
 		},
 		Logging: LoggingConfig{
@@ -146,14 +146,14 @@ func defaultExcludePaths() []string {
 // ExampleConfig generates an example configuration file
 func ExampleConfig() (*Config, error) {
 	config := DefaultConfig()
-	
+
 	// Add some example customizations
 	config.Scanner.Workers = 8
-	
+
 	config.Report.Formats = []string{"html", "csv", "sarif"}
-	
+
 	config.Github.Token = "${GITHUB_TOKEN}" // Placeholder
-	
+
 	return config, nil
 }
 
@@ -163,7 +163,7 @@ func GenerateExampleConfig(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate example config: %w", err)
 	}
-	
+
 	// Add header comment
 	header := `# PI Scanner Configuration
 # This is an example configuration file for the PI Scanner.
@@ -171,12 +171,12 @@ func GenerateExampleConfig(path string) error {
 # Environment variables can be used with ${VAR_NAME} syntax.
 
 `
-	
+
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	fullContent := []byte(header + string(data))
 	return os.WriteFile(path, fullContent, 0644)
 }

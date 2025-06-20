@@ -15,10 +15,10 @@ import (
 func TestFileDiscovery_DiscoverFiles(t *testing.T) {
 	// Create a temporary directory structure for testing
 	tmpDir := t.TempDir()
-	
+
 	// Create test file structure
 	files := map[string]string{
-		"main.go":                    "package main",
+		"main.go":                   "package main",
 		"src/app.js":                "console.log('test')",
 		"src/config.py":             "API_KEY = 'secret'",
 		"test/main_test.go":         "func TestMain(t *testing.T) {}",
@@ -33,16 +33,16 @@ func TestFileDiscovery_DiscoverFiles(t *testing.T) {
 		"scripts/deploy.sh":         "#!/bin/bash",
 		"config/settings.yaml":      "database: localhost",
 	}
-	
+
 	for path, content := range files {
 		fullPath := filepath.Join(tmpDir, path)
 		require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0755))
 		require.NoError(t, os.WriteFile(fullPath, []byte(content), 0644))
 	}
-	
+
 	tests := []struct {
-		name         string
-		config       Config
+		name          string
+		config        Config
 		expectedFiles []string
 		excludedFiles []string
 		description   string
@@ -51,12 +51,12 @@ func TestFileDiscovery_DiscoverFiles(t *testing.T) {
 			name:   "default discovery",
 			config: DefaultConfig(),
 			expectedFiles: []string{
-				"main.go", "src/app.js", "src/config.py", 
-				"README.md", ".env", "docs/guide.md", 
+				"main.go", "src/app.js", "src/config.py",
+				"README.md", ".env", "docs/guide.md",
 				"scripts/deploy.sh", "config/settings.yaml",
 			},
 			excludedFiles: []string{
-				"test/main_test.go", "vendor/lib.go", 
+				"test/main_test.go", "vendor/lib.go",
 				"node_modules/package.json", ".git/config", "binary.exe",
 			},
 			description: "Should include source files and exclude test/vendor/binary",
@@ -89,7 +89,7 @@ func TestFileDiscovery_DiscoverFiles(t *testing.T) {
 			},
 			expectedFiles: []string{"main.go", "src/config.py"},
 			excludedFiles: []string{
-				"src/app.js", "test/main_test.go", "vendor/lib.go", 
+				"src/app.js", "test/main_test.go", "vendor/lib.go",
 				"README.md", ".env", "docs/guide.md",
 			},
 			description: "Should only include specified file extensions",
@@ -99,25 +99,25 @@ func TestFileDiscovery_DiscoverFiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			discovery := NewFileDiscovery(tt.config)
-			
+
 			results, err := discovery.DiscoverFiles(context.Background(), tmpDir)
 			require.NoError(t, err, tt.description)
-			
+
 			// Check expected files are included
 			resultPaths := make(map[string]bool)
 			for _, result := range results {
 				relPath, _ := filepath.Rel(tmpDir, result.Path)
 				resultPaths[filepath.ToSlash(relPath)] = true
 			}
-			
+
 			for _, expectedFile := range tt.expectedFiles {
-				assert.True(t, resultPaths[expectedFile], 
+				assert.True(t, resultPaths[expectedFile],
 					"Expected file %s should be included: %s", expectedFile, tt.description)
 			}
-			
+
 			// Check excluded files are not included
 			for _, excludedFile := range tt.excludedFiles {
-				assert.False(t, resultPaths[excludedFile], 
+				assert.False(t, resultPaths[excludedFile],
 					"Excluded file %s should not be included: %s", excludedFile, tt.description)
 			}
 		})
@@ -198,17 +198,17 @@ func TestFileDiscovery_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			
+
 			if tt.setupFunc != nil {
 				err := tt.setupFunc(tmpDir)
 				if err != nil && tt.name != "permission denied directory" {
 					require.NoError(t, err, "Setup function should not fail")
 				}
 			}
-			
+
 			discovery := NewFileDiscovery(tt.config)
 			results, err := discovery.DiscoverFiles(context.Background(), tmpDir)
-			
+
 			if tt.expectError {
 				assert.Error(t, err, tt.description)
 			} else {
@@ -216,7 +216,7 @@ func TestFileDiscovery_EdgeCases(t *testing.T) {
 				// Results should not be nil, but can be empty
 				assert.NotNil(t, results, "Results should not be nil")
 			}
-			
+
 			// Cleanup permission denied directory for next tests
 			if tt.name == "permission denied directory" {
 				restrictedDir := filepath.Join(tmpDir, "restricted")
@@ -229,28 +229,28 @@ func TestFileDiscovery_EdgeCases(t *testing.T) {
 func TestFileDiscovery_Performance(t *testing.T) {
 	// Create a large directory structure
 	tmpDir := t.TempDir()
-	
+
 	// Create many nested directories and files
 	for i := 0; i < 10; i++ {
 		subDir := filepath.Join(tmpDir, "dir"+fmt.Sprintf("%d", i))
 		require.NoError(t, os.MkdirAll(subDir, 0755))
-		
+
 		for j := 0; j < 50; j++ {
 			fileName := filepath.Join(subDir, fmt.Sprintf("file%d.txt", j))
 			require.NoError(t, os.WriteFile(fileName, []byte("content"), 0644))
 		}
 	}
-	
+
 	discovery := NewFileDiscovery(DefaultConfig())
-	
+
 	// Test with timeout to ensure it completes quickly
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	start := time.Now()
 	results, err := discovery.DiscoverFiles(ctx, tmpDir)
 	duration := time.Since(start)
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, results)
 	assert.Less(t, duration, 3*time.Second, "Discovery should complete quickly")
@@ -259,21 +259,21 @@ func TestFileDiscovery_Performance(t *testing.T) {
 
 func TestFileDiscovery_Cancellation(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	// Create some files
 	for i := 0; i < 10; i++ {
 		fileName := filepath.Join(tmpDir, fmt.Sprintf("file%d.txt", i))
 		require.NoError(t, os.WriteFile(fileName, []byte("content"), 0644))
 	}
-	
+
 	discovery := NewFileDiscovery(DefaultConfig())
-	
+
 	// Create a context that gets cancelled immediately
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
-	
+
 	results, err := discovery.DiscoverFiles(ctx, tmpDir)
-	
+
 	// Should handle cancellation gracefully
 	assert.Error(t, err, "Should return error when context is cancelled")
 	assert.ErrorIs(t, err, context.Canceled, "Error should be context cancellation")
@@ -282,38 +282,38 @@ func TestFileDiscovery_Cancellation(t *testing.T) {
 
 func TestFileDiscovery_BinaryDetection(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	files := map[string][]byte{
-		"text.txt":     []byte("This is a text file with readable content"),
-		"binary.exe":   {0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE}, // Binary content
-		"utf8.txt":     []byte("UTF-8 content: 测试 🔑"), 
-		"empty.txt":    {},
-		"mixed.dat":    append([]byte("Text start"), []byte{0x00, 0x01, 0x02}...),
-		"image.jpg":    {0xFF, 0xD8, 0xFF, 0xE0}, // JPEG header
+		"text.txt":   []byte("This is a text file with readable content"),
+		"binary.exe": {0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE}, // Binary content
+		"utf8.txt":   []byte("UTF-8 content: 测试 🔑"),
+		"empty.txt":  {},
+		"mixed.dat":  append([]byte("Text start"), []byte{0x00, 0x01, 0x02}...),
+		"image.jpg":  {0xFF, 0xD8, 0xFF, 0xE0}, // JPEG header
 	}
-	
+
 	for name, content := range files {
 		path := filepath.Join(tmpDir, name)
 		require.NoError(t, os.WriteFile(path, content, 0644))
 	}
-	
+
 	config := Config{
 		IncludePatterns: []string{"**/*"},
 		ExcludePatterns: []string{},
 		ExcludeBinary:   true,
 		MaxFileSize:     10 * 1024 * 1024,
 	}
-	
+
 	discovery := NewFileDiscovery(config)
 	results, err := discovery.DiscoverFiles(context.Background(), tmpDir)
 	require.NoError(t, err)
-	
+
 	// Check which files are included
 	resultPaths := make(map[string]bool)
 	for _, result := range results {
 		name := filepath.Base(result.Path)
 		resultPaths[name] = true
-		
+
 		// Verify binary detection is set correctly
 		if name == "binary.exe" || name == "image.jpg" {
 			assert.True(t, result.IsBinary, "Binary files should be detected as binary")
@@ -321,7 +321,7 @@ func TestFileDiscovery_BinaryDetection(t *testing.T) {
 			assert.False(t, result.IsBinary, "Text files should not be detected as binary")
 		}
 	}
-	
+
 	// With ExcludeBinary=true, binary files should be excluded
 	assert.False(t, resultPaths["binary.exe"], "Binary files should be excluded")
 	assert.False(t, resultPaths["image.jpg"], "Image files should be excluded as binary")
@@ -332,46 +332,46 @@ func TestFileDiscovery_BinaryDetection(t *testing.T) {
 
 func TestFileDiscovery_SizeLimit(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	// Create files of different sizes
 	smallContent := []byte("small file")
 	largeContent := make([]byte, 5*1024*1024) // 5MB
 	for i := range largeContent {
 		largeContent[i] = byte('A' + (i % 26))
 	}
-	
+
 	files := map[string][]byte{
 		"small.txt": smallContent,
 		"large.txt": largeContent,
 	}
-	
+
 	for name, content := range files {
 		path := filepath.Join(tmpDir, name)
 		require.NoError(t, os.WriteFile(path, content, 0644))
 	}
-	
+
 	config := Config{
 		IncludePatterns: []string{"**/*"},
 		ExcludePatterns: []string{},
 		ExcludeBinary:   false,
 		MaxFileSize:     1024 * 1024, // 1MB limit
 	}
-	
+
 	discovery := NewFileDiscovery(config)
 	results, err := discovery.DiscoverFiles(context.Background(), tmpDir)
 	require.NoError(t, err)
-	
+
 	// Check size filtering
 	resultPaths := make(map[string]bool)
 	for _, result := range results {
 		name := filepath.Base(result.Path)
 		resultPaths[name] = true
-		
+
 		// Verify size information
-		assert.LessOrEqual(t, result.Size, int64(config.MaxFileSize), 
+		assert.LessOrEqual(t, result.Size, int64(config.MaxFileSize),
 			"File size should be within limit")
 	}
-	
+
 	assert.True(t, resultPaths["small.txt"], "Small files should be included")
 	assert.False(t, resultPaths["large.txt"], "Large files should be excluded")
 }

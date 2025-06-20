@@ -29,7 +29,7 @@ func ExampleCSVExporter_Export() {
 
 	// Create exporter with masked values
 	exporter := report.NewCSVExporter(report.WithMaskedValues())
-	
+
 	// Export to buffer
 	var buf bytes.Buffer
 	if err := exporter.Export(&buf, records); err != nil {
@@ -73,7 +73,7 @@ func ExampleCSVExporter_ExportFindings() {
 
 	// Create exporter
 	exporter := report.NewCSVExporter(report.WithMaskedValues())
-	
+
 	// Export findings
 	var buf bytes.Buffer
 	if err := exporter.ExportFindings(&buf, findings, metadata); err != nil {
@@ -105,7 +105,7 @@ func ExampleCSVSummaryExporter_ExportSummary() {
 
 	// Create summary exporter
 	exporter := report.NewCSVSummaryExporter()
-	
+
 	// Export summary
 	var buf bytes.Buffer
 	if err := exporter.ExportSummary(&buf, summary, metadata); err != nil {

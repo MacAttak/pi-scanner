@@ -33,7 +33,7 @@ func TestGetHTMLTemplate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, tmpl)
-				
+
 				// Verify all sub-templates are loaded
 				assert.NotNil(t, tmpl.Lookup("styles"))
 				assert.NotNil(t, tmpl.Lookup("scripts"))
@@ -162,7 +162,7 @@ func TestHTMLTemplateRendering(t *testing.T) {
 	require.NoError(t, err)
 
 	html := buf.String()
-	
+
 	// Verify key elements are present
 	assert.Contains(t, html, "PI Scanner Report")
 	assert.Contains(t, html, "test-repo")
@@ -173,11 +173,11 @@ func TestHTMLTemplateRendering(t *testing.T) {
 	assert.Contains(t, html, "Risk Analysis")
 	assert.Contains(t, html, "riskChart") // Chart element
 	assert.Contains(t, html, "typeChart") // Chart element
-	
+
 	// Verify CSS is included
 	assert.Contains(t, html, "summary-card")
 	assert.Contains(t, html, "finding-card")
-	
+
 	// Verify JavaScript is included
 	assert.Contains(t, html, "chart.js") // CDN link uses lowercase
 	assert.Contains(t, html, "createRiskDistributionChart")
@@ -425,12 +425,12 @@ func BenchmarkHTMLTemplateRendering(b *testing.B) {
 	}
 
 	data := HTMLTemplateData{
-		ReportID:      "bench-test",
-		GeneratedAt:   time.Now(),
-		ToolVersion:   "1.0.0",
-		Repository:    RepositoryInfo{Name: "bench-repo", FilesScanned: 1000},
-		Summary:       ScanSummary{TotalFindings: 100, HighCount: 20},
-		HighFindings:  findings,
+		ReportID:     "bench-test",
+		GeneratedAt:  time.Now(),
+		ToolVersion:  "1.0.0",
+		Repository:   RepositoryInfo{Name: "bench-repo", FilesScanned: 1000},
+		Summary:      ScanSummary{TotalFindings: 100, HighCount: 20},
+		HighFindings: findings,
 		Statistics: Statistics{
 			TypeDistribution: map[string]int{
 				"TFN": 40, "Medicare": 30, "ABN": 20, "BSB": 10,
@@ -482,7 +482,7 @@ func TestHTMLTemplateEscaping(t *testing.T) {
 	require.NoError(t, err)
 
 	html := buf.String()
-	
+
 	// Debug: print a snippet to see what's happening
 	if strings.Contains(html, "onerror") {
 		idx := strings.Index(html, "onerror")
@@ -496,15 +496,15 @@ func TestHTMLTemplateEscaping(t *testing.T) {
 		}
 		t.Logf("Found 'onerror' at position %d: %s", idx, html[start:end])
 	}
-	
+
 	// Verify XSS attempts are escaped - check for actual dangerous content
 	assert.NotContains(t, html, "<script>alert('xss')</script>")
 	assert.NotContains(t, html, "javascript:alert('xss')")
-	
+
 	// The onerror attribute might be in escaped form in the file path
 	// Check that the actual XSS attempt is not executable
 	assert.NotRegexp(t, `<img[^>]+onerror\s*=`, html, "Should not contain executable onerror attribute")
-	
+
 	// Verify escaped versions are present
 	assert.Contains(t, html, "&lt;script&gt;")
 	assert.Contains(t, html, "&lt;img")
@@ -519,9 +519,9 @@ func TestHTMLTemplateAccount(t *testing.T) {
 	var buf bytes.Buffer
 	testTmpl, err := tmpl.New("test").Parse(`{{piTypeIcon "ACCOUNT"}}`)
 	require.NoError(t, err)
-	
+
 	err = testTmpl.ExecuteTemplate(&buf, "test", nil)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "📄", buf.String()) // Default icon
 }

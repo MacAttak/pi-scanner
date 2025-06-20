@@ -9,7 +9,7 @@ import (
 func GenerateAustralianPITestCases() *BenchmarkDataset {
 	// For backward compatibility, return a subset of the comprehensive dataset
 	// comprehensive := GenerateComprehensiveTestDataset()
-	
+
 	// Create a smaller dataset with representative samples
 	dataset := &BenchmarkDataset{}
 
@@ -167,7 +167,7 @@ func GenerateAustralianPITestCases() *BenchmarkDataset {
 
 	// CRITICAL RISK - Multiple PI types together
 	dataset.TruePositives = append(dataset.TruePositives, TestCase{
-		ID:   "au-multi-001",
+		ID: "au-multi-001",
 		Code: `
 customer := Customer{
 	Name: "John Smith",
@@ -245,7 +245,7 @@ func GenerateExtendedTestCases() []TestCase {
 			Rationale:  "Actual customer name being processed",
 			Filename:   "customer.go",
 		},
-		
+
 		// Phone numbers
 		{
 			ID:         "ext-phone-001",

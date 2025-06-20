@@ -27,7 +27,7 @@ func TestNewFactorEngine(t *testing.T) {
 		{
 			name: "custom weights",
 			config: &FactorConfig{
-				ProximityWeight:   0.4,
+				ProximityWeight:  0.4,
 				MLWeight:         0.3,
 				ValidationWeight: 0.3,
 				EnvironmentPenalties: map[string]float64{
@@ -68,10 +68,10 @@ func TestFactorEngine_CalculateProximityFactor(t *testing.T) {
 		{
 			name: "high confidence proximity with label context",
 			proximityData: &ProximityScore{
-				Score:     0.9,
-				Context:   "label",
-				Keywords:  []string{"tfn", "tax", "file", "number"},
-				Distance:  1,
+				Score:    0.9,
+				Context:  "label",
+				Keywords: []string{"tfn", "tax", "file", "number"},
+				Distance: 1,
 			},
 			expected:    0.9,
 			description: "should maintain high score for label context",
@@ -79,10 +79,10 @@ func TestFactorEngine_CalculateProximityFactor(t *testing.T) {
 		{
 			name: "form context with medium confidence",
 			proximityData: &ProximityScore{
-				Score:     0.7,
-				Context:   "form",
-				Keywords:  []string{"input", "form"},
-				Distance:  2,
+				Score:    0.7,
+				Context:  "form",
+				Keywords: []string{"input", "form"},
+				Distance: 2,
 			},
 			expected:    0.7,
 			description: "form context should be treated normally",
@@ -90,10 +90,10 @@ func TestFactorEngine_CalculateProximityFactor(t *testing.T) {
 		{
 			name: "test context should be heavily penalized",
 			proximityData: &ProximityScore{
-				Score:     0.8,
-				Context:   "test",
-				Keywords:  []string{"test", "mock", "sample"},
-				Distance:  1,
+				Score:    0.8,
+				Context:  "test",
+				Keywords: []string{"test", "mock", "sample"},
+				Distance: 1,
 			},
 			expected:    0.16, // 0.8 * 0.2 (test penalty)
 			description: "test context should apply heavy penalty",
@@ -101,10 +101,10 @@ func TestFactorEngine_CalculateProximityFactor(t *testing.T) {
 		{
 			name: "documentation context penalty",
 			proximityData: &ProximityScore{
-				Score:     0.6,
-				Context:   "documentation",
-				Keywords:  []string{"example", "docs"},
-				Distance:  3,
+				Score:    0.6,
+				Context:  "documentation",
+				Keywords: []string{"example", "docs"},
+				Distance: 3,
 			},
 			expected:    0.3, // 0.6 * 0.5 (documentation penalty)
 			description: "documentation should apply moderate penalty",
@@ -596,7 +596,7 @@ func TestFactorEngine_AustralianComplianceWeights(t *testing.T) {
 	// Test that Australian-specific PI types have appropriate weights
 	australianTypes := []detection.PIType{
 		detection.PITypeTFN,
-		detection.PITypeMedicare, 
+		detection.PITypeMedicare,
 		detection.PITypeABN,
 		detection.PITypeBSB,
 	}
@@ -604,11 +604,11 @@ func TestFactorEngine_AustralianComplianceWeights(t *testing.T) {
 	for _, piType := range australianTypes {
 		t.Run(string(piType), func(t *testing.T) {
 			weight := engine.CalculatePITypeWeight(piType)
-			
+
 			// Australian PI types should have high weights (>= 0.7)
-			assert.GreaterOrEqual(t, weight, 0.7, 
+			assert.GreaterOrEqual(t, weight, 0.7,
 				"Australian PI type %s should have high weight for regulatory compliance", piType)
-			
+
 			// TFN should have the highest weight
 			if piType == detection.PITypeTFN {
 				assert.Equal(t, 1.0, weight, "TFN should have maximum weight")

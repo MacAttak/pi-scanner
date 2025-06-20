@@ -22,13 +22,13 @@ func NewProximityDetector() *ProximityDetector {
 
 // ProximityResult represents the result of proximity context analysis
 type ProximityResult struct {
-	Score       float64            `json:"score"`
-	Reason      string             `json:"reason"`
-	Context     PIContextType      `json:"context"`
-	Keywords    []string           `json:"keywords"`
-	Structure   StructureAnalysis  `json:"structure"`
-	Semantic    SemanticAnalysis   `json:"semantic"`
-	IsTestData  bool               `json:"is_test_data"`
+	Score      float64           `json:"score"`
+	Reason     string            `json:"reason"`
+	Context    PIContextType     `json:"context"`
+	Keywords   []string          `json:"keywords"`
+	Structure  StructureAnalysis `json:"structure"`
+	Semantic   SemanticAnalysis  `json:"semantic"`
+	IsTestData bool              `json:"is_test_data"`
 }
 
 // PIContextType represents different types of PI context
@@ -96,19 +96,23 @@ func (pd *ProximityDetector) AnalyzeContext(content, match string, startIndex, e
 		// Determine specific test data type
 		contextBefore, contextAfter := pd.analyzer.ExtractSurroundingText(content, startIndex, endIndex, 30)
 		fullContext := strings.ToLower(contextBefore + match + contextAfter)
-		
-		if strings.Contains(fullContext, "fake") {
+
+		// Check for test data keywords in priority order
+		// Check for more specific indicators first
+		if strings.Contains(fullContext, "demo user") || strings.Contains(fullContext, "demo ") {
+			result.Reason = "demo data indicator"
+		} else if strings.Contains(fullContext, "fake") {
 			result.Reason = "fake data indicator"
 		} else if strings.Contains(fullContext, "dummy") {
 			result.Reason = "dummy data indicator"
-		} else if strings.Contains(fullContext, "example") {
-			result.Reason = "example data indicator"
-		} else if strings.Contains(fullContext, "sample") {
-			result.Reason = "sample data indicator"
-		} else if strings.Contains(fullContext, "demo") {
-			result.Reason = "demo data indicator"
 		} else if strings.Contains(fullContext, "mock") {
 			result.Reason = "mock data indicator"
+		} else if strings.Contains(fullContext, "sample") {
+			result.Reason = "sample data indicator"
+		} else if strings.Contains(fullContext, "example") {
+			result.Reason = "example data indicator"
+		} else if strings.Contains(fullContext, "test") {
+			result.Reason = "test data indicator"
 		} else {
 			result.Reason = "test data indicator"
 		}
@@ -328,9 +332,9 @@ func (pd *ProximityDetector) combineScores(proximityScore, semanticScore float64
 		structureModifier = 0.9 // Code context might be variable names
 	}
 
-	combinedScore := (proximityScore*proximityWeight + 
-					 semanticScore*semanticWeight + 
-					 proximityScore*structureWeight) * structureModifier
+	combinedScore := (proximityScore*proximityWeight +
+		semanticScore*semanticWeight +
+		proximityScore*structureWeight) * structureModifier
 
 	// Ensure score is within bounds
 	if combinedScore < 0.0 {
@@ -347,7 +351,18 @@ func (pd *ProximityDetector) combineScores(proximityScore, semanticScore float64
 func (pd *ProximityDetector) generateReason(contextType PIContextType, keywords []string, isTestData bool) string {
 	if isTestData {
 		// Return specific test data reason based on keywords found
-		testKeywords := []string{"example", "mock", "sample", "demo", "fake", "dummy"}
+		testKeywords := []string{"test", "example", "mock", "sample", "demo", "fake", "dummy"}
+
+		// First check for exact matches
+		for _, testKeyword := range testKeywords {
+			for _, keyword := range keywords {
+				if strings.ToLower(keyword) == testKeyword {
+					return testKeyword + " data indicator"
+				}
+			}
+		}
+
+		// Then check for partial matches
 		for _, testKeyword := range testKeywords {
 			for _, keyword := range keywords {
 				if strings.Contains(strings.ToLower(keyword), testKeyword) {
@@ -355,6 +370,7 @@ func (pd *ProximityDetector) generateReason(contextType PIContextType, keywords 
 				}
 			}
 		}
+
 		if len(keywords) > 0 {
 			return strings.ToLower(keywords[0]) + " data indicator"
 		}

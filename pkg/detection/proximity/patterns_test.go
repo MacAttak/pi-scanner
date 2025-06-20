@@ -377,7 +377,7 @@ func TestPatternMatcher_ConfigurationPatterns(t *testing.T) {
 
 		// Negative cases
 		{"Function call", "validate('123-45-6789')", false},
-		{"Array element", "users[0] = '123-45-6789'", true}, // Actually detected by JSON config pattern
+		{"Array element", "users[0] = '123-45-6789'", true},    // Actually detected by JSON config pattern
 		{"Object property", "user.name = '123-45-6789'", true}, // Properties format matches this
 	}
 

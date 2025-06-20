@@ -24,19 +24,19 @@ type FileResult struct {
 type Config struct {
 	// Include patterns (glob-style)
 	IncludePatterns []string
-	
+
 	// Exclude patterns (glob-style)
 	ExcludePatterns []string
-	
+
 	// Exclude binary files
 	ExcludeBinary bool
-	
+
 	// Maximum file size to include (bytes)
 	MaxFileSize int64
-	
+
 	// Include hidden files (starting with .)
 	IncludeHidden bool
-	
+
 	// Follow symbolic links
 	FollowSymlinks bool
 }
@@ -77,22 +77,22 @@ func DefaultConfig() Config {
 			"**/*.min.js", "**/*.min.css", "**/*.bundle.*",
 			"**/.DS_Store", "**/Thumbs.db", "**/*.tmp", "**/*.temp",
 		},
-		ExcludeBinary:   true,
-		MaxFileSize:     10 * 1024 * 1024, // 10MB
-		IncludeHidden:   true, // Include hidden files like .env
-		FollowSymlinks:  false,
+		ExcludeBinary:  true,
+		MaxFileSize:    10 * 1024 * 1024, // 10MB
+		IncludeHidden:  true,             // Include hidden files like .env
+		FollowSymlinks: false,
 	}
 }
 
 // DiscoverFiles discovers all files in the given directory matching the configuration
 func (fd *FileDiscovery) DiscoverFiles(ctx context.Context, rootPath string) ([]FileResult, error) {
 	var results []FileResult
-	
+
 	// Check if root path exists
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory does not exist: %s", rootPath)
 	}
-	
+
 	err := filepath.WalkDir(rootPath, func(path string, entry fs.DirEntry, err error) error {
 		// Check for context cancellation
 		select {
@@ -100,7 +100,7 @@ func (fd *FileDiscovery) DiscoverFiles(ctx context.Context, rootPath string) ([]
 			return ctx.Err()
 		default:
 		}
-		
+
 		// Handle permission errors gracefully
 		if err != nil {
 			// Skip permission denied errors
@@ -109,19 +109,19 @@ func (fd *FileDiscovery) DiscoverFiles(ctx context.Context, rootPath string) ([]
 			}
 			return err
 		}
-		
+
 		// Skip directories
 		if entry.IsDir() {
 			return nil
 		}
-		
+
 		// Get file info
 		info, err := entry.Info()
 		if err != nil {
 			// Skip files we can't stat
 			return nil
 		}
-		
+
 		// Check if file should be included
 		if fd.shouldIncludeFile(path, info, rootPath) {
 			// Detect if file is binary
@@ -130,34 +130,34 @@ func (fd *FileDiscovery) DiscoverFiles(ctx context.Context, rootPath string) ([]
 				// If we can't determine, assume text
 				isBinary = false
 			}
-			
+
 			// Skip binary files if configured
 			if fd.config.ExcludeBinary && isBinary {
 				return nil
 			}
-			
+
 			result := FileResult{
 				Path:     path,
 				Size:     info.Size(),
 				IsBinary: isBinary,
 				IsHidden: fd.isHiddenFile(path),
 			}
-			
+
 			results = append(results, result)
 		}
-		
+
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("error walking directory: %w", err)
 	}
-	
+
 	// Ensure we always return a non-nil slice
 	if results == nil {
 		results = []FileResult{}
 	}
-	
+
 	return results, nil
 }
 
@@ -167,36 +167,36 @@ func (fd *FileDiscovery) shouldIncludeFile(path string, info fs.FileInfo, rootPa
 	if fd.config.MaxFileSize > 0 && info.Size() > fd.config.MaxFileSize {
 		return false
 	}
-	
+
 	// Check hidden files
 	if !fd.config.IncludeHidden && fd.isHiddenFile(path) {
 		return false
 	}
-	
+
 	// Get relative path for pattern matching
 	relPath, err := filepath.Rel(rootPath, path)
 	if err != nil {
 		relPath = path
 	}
-	
+
 	// Check exclude patterns first
 	for _, pattern := range fd.config.ExcludePatterns {
 		if fd.matchesPattern(relPath, pattern) {
 			return false
 		}
 	}
-	
+
 	// Check include patterns
 	if len(fd.config.IncludePatterns) == 0 {
 		return true // Include all if no patterns specified
 	}
-	
+
 	for _, pattern := range fd.config.IncludePatterns {
 		if fd.matchesPattern(relPath, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -205,13 +205,13 @@ func (fd *FileDiscovery) matchesPattern(path, pattern string) bool {
 	// Convert to forward slashes for consistent matching
 	path = filepath.ToSlash(path)
 	pattern = filepath.ToSlash(pattern)
-	
+
 	// Use doublestar for robust glob matching
 	matched, err := doublestar.Match(pattern, path)
 	if err != nil {
 		return false
 	}
-	
+
 	return matched
 }
 
@@ -228,29 +228,29 @@ func (fd *FileDiscovery) isBinaryFile(path string) (bool, error) {
 		return false, err
 	}
 	defer file.Close()
-	
+
 	// Read first 512 bytes to determine if binary
 	buffer := make([]byte, 512)
 	n, err := file.Read(buffer)
 	if err != nil && n == 0 {
 		return false, err
 	}
-	
+
 	// Truncate buffer to actual read size
 	buffer = buffer[:n]
-	
+
 	// Check for null bytes (strong indicator of binary)
 	for _, b := range buffer {
 		if b == 0 {
 			return true, nil
 		}
 	}
-	
+
 	// Check if content is valid UTF-8
 	if !utf8.Valid(buffer) {
 		return true, nil
 	}
-	
+
 	// Check for high ratio of non-printable characters
 	nonPrintable := 0
 	for _, b := range buffer {
@@ -258,12 +258,12 @@ func (fd *FileDiscovery) isBinaryFile(path string) (bool, error) {
 			nonPrintable++
 		}
 	}
-	
+
 	// If more than 30% non-printable, consider binary
 	if len(buffer) > 0 && float64(nonPrintable)/float64(len(buffer)) > 0.3 {
 		return true, nil
 	}
-	
+
 	return false, nil
 }
 
@@ -272,20 +272,20 @@ func (fd *FileDiscovery) GetStats(results []FileResult) DiscoveryStats {
 	stats := DiscoveryStats{
 		TotalFiles: len(results),
 	}
-	
+
 	for _, result := range results {
 		stats.TotalSize += result.Size
-		
+
 		if result.IsBinary {
 			stats.BinaryFiles++
 		} else {
 			stats.TextFiles++
 		}
-		
+
 		if result.IsHidden {
 			stats.HiddenFiles++
 		}
-		
+
 		// Count by extension
 		ext := strings.ToLower(filepath.Ext(result.Path))
 		if ext != "" {
@@ -295,7 +295,7 @@ func (fd *FileDiscovery) GetStats(results []FileResult) DiscoveryStats {
 			stats.Extensions[ext]++
 		}
 	}
-	
+
 	return stats
 }
 

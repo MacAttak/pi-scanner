@@ -267,7 +267,7 @@ func TestMergeConfig(t *testing.T) {
 
 	// Override values should take precedence
 	assert.Equal(t, 8, merged.Scanner.Workers)
-	
+
 	// Note: Current MergeConfig implementation doesn't properly merge nested fields
 	// This is noted in the comment about needing a more sophisticated merge
 	// For now, test what actually happens

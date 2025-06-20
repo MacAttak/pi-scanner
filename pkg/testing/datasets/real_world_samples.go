@@ -4,15 +4,15 @@ import "github.com/MacAttak/pi-scanner/pkg/detection"
 
 // RealWorldSample represents a realistic code sample for testing
 type RealWorldSample struct {
-	ID           string                `json:"id"`
-	Description  string                `json:"description"`
-	Language     string                `json:"language"`
-	Filename     string                `json:"filename"`
-	Code         string                `json:"code"`
-	ExpectedPIs  []ExpectedPI          `json:"expected_pis"`
-	Context      string                `json:"context"`
-	Complexity   string                `json:"complexity"` // simple, medium, complex
-	Source       string                `json:"source"`     // github, enterprise, synthetic
+	ID          string       `json:"id"`
+	Description string       `json:"description"`
+	Language    string       `json:"language"`
+	Filename    string       `json:"filename"`
+	Code        string       `json:"code"`
+	ExpectedPIs []ExpectedPI `json:"expected_pis"`
+	Context     string       `json:"context"`
+	Complexity  string       `json:"complexity"` // simple, medium, complex
+	Source      string       `json:"source"`     // github, enterprise, synthetic
 }
 
 // ExpectedPI defines what PI should be detected
@@ -65,7 +65,7 @@ public class TaxFileNumberService {
 			Complexity: "medium",
 			Source:     "synthetic",
 		},
-		
+
 		// Banking Integration
 		{
 			ID:          "banking-001",
@@ -115,7 +115,7 @@ class BankingController @Inject()(cc: ControllerComponents) extends AbstractCont
 			Complexity: "complex",
 			Source:     "synthetic",
 		},
-		
+
 		// Healthcare System
 		{
 			ID:          "healthcare-001",
@@ -176,7 +176,7 @@ def validate_medicare_checksum(medicare_str):
 			Complexity: "complex",
 			Source:     "synthetic",
 		},
-		
+
 		// Configuration Files
 		{
 			ID:          "config-001",
@@ -243,7 +243,7 @@ test_bank_accounts:
 			Complexity: "complex",
 			Source:     "enterprise",
 		},
-		
+
 		// Unit Test File (should have lower detection)
 		{
 			ID:          "unittest-001",
@@ -305,7 +305,7 @@ class TaxServiceTest {
 			Complexity: "medium",
 			Source:     "synthetic",
 		},
-		
+
 		// Log Analysis Sample
 		{
 			ID:          "logs-001",
@@ -345,13 +345,13 @@ class TaxServiceTest {
 func GetSamplesByComplexity(complexity string) []RealWorldSample {
 	samples := GetRealWorldSamples()
 	var filtered []RealWorldSample
-	
+
 	for _, sample := range samples {
 		if sample.Complexity == complexity {
 			filtered = append(filtered, sample)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -359,13 +359,13 @@ func GetSamplesByComplexity(complexity string) []RealWorldSample {
 func GetSamplesByLanguage(language string) []RealWorldSample {
 	samples := GetRealWorldSamples()
 	var filtered []RealWorldSample
-	
+
 	for _, sample := range samples {
 		if sample.Language == language {
 			filtered = append(filtered, sample)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -373,12 +373,12 @@ func GetSamplesByLanguage(language string) []RealWorldSample {
 func GetSamplesByContext(context string) []RealWorldSample {
 	samples := GetRealWorldSamples()
 	var filtered []RealWorldSample
-	
+
 	for _, sample := range samples {
 		if sample.Context == context {
 			filtered = append(filtered, sample)
 		}
 	}
-	
+
 	return filtered
 }

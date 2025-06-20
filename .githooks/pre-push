@@ -1,0 +1,129 @@
+#!/bin/bash
+# Pre-push hook for GitHub PI Scanner
+# This hook runs comprehensive tests before pushing to ensure CI will pass
+
+set -e
+
+echo "🔍 Running pre-push checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    if [ $1 -eq 0 ]; then
+        echo -e "${GREEN}✓ $2${NC}"
+    else
+        echo -e "${RED}✗ $2${NC}"
+        return 1
+    fi
+}
+
+# Track overall status
+FAILED=0
+
+# 1. Check Go formatting
+echo "Checking Go formatting..."
+if [ -n "$(gofmt -l .)" ]; then
+    echo -e "${RED}✗ Go formatting issues found in:${NC}"
+    gofmt -l .
+    FAILED=1
+else
+    echo -e "${GREEN}✓ Go formatting${NC}"
+fi
+
+# 2. Run go vet
+echo "Running go vet..."
+if go vet ./... 2>&1; then
+    echo -e "${GREEN}✓ Go vet${NC}"
+else
+    echo -e "${RED}✗ Go vet failed${NC}"
+    FAILED=1
+fi
+
+# 3. Check go.mod tidiness
+echo "Checking go.mod tidiness..."
+cp go.mod go.mod.bak
+cp go.sum go.sum.bak
+go mod tidy
+if ! cmp -s go.mod go.mod.bak || ! cmp -s go.sum go.sum.bak; then
+    rm go.mod.bak go.sum.bak
+    echo -e "${RED}✗ go.mod/go.sum not tidy. Run: go mod tidy${NC}"
+    FAILED=1
+else
+    rm go.mod.bak go.sum.bak
+    echo -e "${GREEN}✓ go.mod tidy${NC}"
+fi
+
+# 4. Run tests
+echo "Running tests..."
+if go test ./... -v > test-output.log 2>&1; then
+    echo -e "${GREEN}✓ All tests passed${NC}"
+    rm test-output.log
+else
+    echo -e "${RED}✗ Tests failed. See details:${NC}"
+    grep -E "FAIL|Error:|panic:" test-output.log || tail -50 test-output.log
+    rm test-output.log
+    FAILED=1
+fi
+
+# 5. Run linter if available
+if command -v golangci-lint >/dev/null 2>&1; then
+    echo "Running golangci-lint..."
+    if golangci-lint run --timeout=5m; then
+        echo -e "${GREEN}✓ Linting passed${NC}"
+    else
+        echo -e "${RED}✗ Linting failed${NC}"
+        FAILED=1
+    fi
+else
+    echo -e "${YELLOW}⚠ golangci-lint not installed, skipping${NC}"
+fi
+
+# 6. Check for security issues with gosec if available
+if command -v gosec >/dev/null 2>&1; then
+    echo "Running security scan..."
+    if gosec -fmt text -severity medium -quiet ./... 2>/dev/null; then
+        echo -e "${GREEN}✓ Security scan passed${NC}"
+    else
+        echo -e "${YELLOW}⚠ Security scan found issues (non-blocking)${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠ gosec not installed, skipping security scan${NC}"
+fi
+
+# 7. Check for large files
+echo "Checking for large files..."
+LARGE_FILES=$(find . -type f -size +5M -not -path "./.git/*" -not -path "./vendor/*" -not -path "./bin/*" 2>/dev/null)
+if [ -n "$LARGE_FILES" ]; then
+    echo -e "${YELLOW}⚠ Large files detected (>5MB):${NC}"
+    echo "$LARGE_FILES"
+fi
+
+# 8. Run gitleaks for secret detection
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "Scanning for secrets..."
+    if gitleaks detect --no-banner 2>/dev/null; then
+        echo -e "${GREEN}✓ No secrets detected${NC}"
+    else
+        echo -e "${RED}✗ Potential secrets detected${NC}"
+        FAILED=1
+    fi
+else
+    echo -e "${YELLOW}⚠ gitleaks not installed, skipping secret scan${NC}"
+fi
+
+# Final status
+echo ""
+if [ $FAILED -eq 0 ]; then
+    echo -e "${GREEN}✅ All pre-push checks passed!${NC}"
+else
+    echo -e "${RED}❌ Pre-push checks failed. Please fix the issues before pushing.${NC}"
+    echo -e "${YELLOW}Hint: Run 'make test' and 'make lint' to see detailed errors.${NC}"
+    exit 1
+fi
+
+exit 0

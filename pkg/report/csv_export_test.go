@@ -85,58 +85,58 @@ func TestNewCSVExporter(t *testing.T) {
 
 func TestCSVExporter_Export(t *testing.T) {
 	timestamp := time.Date(2024, 1, 15, 14, 30, 0, 0, time.UTC)
-	
+
 	records := []CSVRecord{
 		{
-			Timestamp:       timestamp,
-			Repository:      "test-repo",
-			Branch:          "main",
-			CommitHash:      "abc123",
-			FilePath:        "src/customer.go",
-			LineNumber:      42,
-			ColumnNumber:    10,
-			PIType:          "TFN",
-			PITypeDisplay:   "Tax File Number",
-			Match:           "123-456-789",
-			MaskedMatch:     "123****89",
-			Validated:       true,
-			IsTestData:      false,
-			ConfidenceScore: 0.95,
-			RiskLevel:       "CRITICAL",
-			RiskScore:       0.9,
-			ImpactScore:     0.95,
-			LikelihoodScore: 0.85,
-			ExposureScore:   0.9,
-			RiskCategory:    "IDENTITY_THEFT",
-			Environment:     "production",
-			APRARelevant:    true,
-			PrivacyActIssue: true,
+			Timestamp:        timestamp,
+			Repository:       "test-repo",
+			Branch:           "main",
+			CommitHash:       "abc123",
+			FilePath:         "src/customer.go",
+			LineNumber:       42,
+			ColumnNumber:     10,
+			PIType:           "TFN",
+			PITypeDisplay:    "Tax File Number",
+			Match:            "123-456-789",
+			MaskedMatch:      "123****89",
+			Validated:        true,
+			IsTestData:       false,
+			ConfidenceScore:  0.95,
+			RiskLevel:        "CRITICAL",
+			RiskScore:        0.9,
+			ImpactScore:      0.95,
+			LikelihoodScore:  0.85,
+			ExposureScore:    0.9,
+			RiskCategory:     "IDENTITY_THEFT",
+			Environment:      "production",
+			APRARelevant:     true,
+			PrivacyActIssue:  true,
 			NotifiableBreach: true,
 		},
 		{
-			Timestamp:       timestamp,
-			Repository:      "test-repo",
-			Branch:          "main",
-			CommitHash:      "abc123",
-			FilePath:        "test/test_data.go",
-			LineNumber:      10,
-			ColumnNumber:    5,
-			PIType:          "MEDICARE",
-			PITypeDisplay:   "Medicare Number",
-			Match:           "2234567890",
-			MaskedMatch:     "22******90",
-			Validated:       false,
-			IsTestData:      true,
-			ConfidenceScore: 0.3,
-			RiskLevel:       "LOW",
-			RiskScore:       0.2,
-			ImpactScore:     0.3,
-			LikelihoodScore: 0.2,
-			ExposureScore:   0.1,
-			RiskCategory:    "OPERATIONAL",
-			Environment:     "test",
-			APRARelevant:    false,
-			PrivacyActIssue: false,
+			Timestamp:        timestamp,
+			Repository:       "test-repo",
+			Branch:           "main",
+			CommitHash:       "abc123",
+			FilePath:         "test/test_data.go",
+			LineNumber:       10,
+			ColumnNumber:     5,
+			PIType:           "MEDICARE",
+			PITypeDisplay:    "Medicare Number",
+			Match:            "2234567890",
+			MaskedMatch:      "22******90",
+			Validated:        false,
+			IsTestData:       true,
+			ConfidenceScore:  0.3,
+			RiskLevel:        "LOW",
+			RiskScore:        0.2,
+			ImpactScore:      0.3,
+			LikelihoodScore:  0.2,
+			ExposureScore:    0.1,
+			RiskCategory:     "OPERATIONAL",
+			Environment:      "test",
+			APRARelevant:     false,
+			PrivacyActIssue:  false,
 			NotifiableBreach: false,
 		},
 	}
@@ -152,14 +152,14 @@ func TestCSVExporter_Export(t *testing.T) {
 			validate: func(t *testing.T, output string) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 				assert.GreaterOrEqual(t, len(lines), 3) // Header + 2 records
-				
+
 				// Check header
 				assert.Contains(t, lines[0], "Timestamp")
 				assert.Contains(t, lines[0], "Repository")
 				assert.Contains(t, lines[0], "Risk Level")
 				assert.NotContains(t, lines[0], "Masked Value")
 				assert.NotContains(t, lines[0], "Code Context")
-				
+
 				// Check first record
 				assert.Contains(t, lines[1], "2024-01-15 14:30:00")
 				assert.Contains(t, lines[1], "test-repo")
@@ -172,10 +172,10 @@ func TestCSVExporter_Export(t *testing.T) {
 			exporter: NewCSVExporter(WithMaskedValues()),
 			validate: func(t *testing.T, output string) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
-				
+
 				// Check header includes masked value
 				assert.Contains(t, lines[0], "Masked Value")
-				
+
 				// Check masked values in records
 				assert.Contains(t, lines[1], "123****89")
 				assert.Contains(t, lines[2], "22******90")
@@ -186,7 +186,7 @@ func TestCSVExporter_Export(t *testing.T) {
 			exporter: NewCSVExporter(WithContext()),
 			validate: func(t *testing.T, output string) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
-				
+
 				// Check header includes context columns
 				assert.Contains(t, lines[0], "Code Context")
 				assert.Contains(t, lines[0], "Proximity Context")
@@ -197,7 +197,7 @@ func TestCSVExporter_Export(t *testing.T) {
 			exporter: NewCSVExporter(WithMetadata()),
 			validate: func(t *testing.T, output string) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
-				
+
 				// Check header includes metadata columns
 				assert.Contains(t, lines[0], "Scan ID")
 				assert.Contains(t, lines[0], "Tool Version")
@@ -208,7 +208,7 @@ func TestCSVExporter_Export(t *testing.T) {
 			exporter: NewCSVExporter(WithDateFormat("2006-01-02")),
 			validate: func(t *testing.T, output string) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
-				
+
 				// Check date format in records
 				assert.Contains(t, lines[1], "2024-01-15")
 				assert.NotContains(t, lines[1], "14:30:00")
@@ -221,9 +221,9 @@ func TestCSVExporter_Export(t *testing.T) {
 			var buf bytes.Buffer
 			err := tt.exporter.Export(&buf, records)
 			require.NoError(t, err)
-			
+
 			tt.validate(t, buf.String())
-			
+
 			// Validate CSV format
 			reader := csv.NewReader(strings.NewReader(buf.String()))
 			records, err := reader.ReadAll()
@@ -264,7 +264,7 @@ func TestCSVExporter_ExportFindings(t *testing.T) {
 	}
 
 	exporter := NewCSVExporter(WithMaskedValues())
-	
+
 	var buf bytes.Buffer
 	err := exporter.ExportFindings(&buf, findings, metadata)
 	require.NoError(t, err)
@@ -273,14 +273,14 @@ func TestCSVExporter_ExportFindings(t *testing.T) {
 	reader := csv.NewReader(&buf)
 	records, err := reader.ReadAll()
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, 3, len(records)) // Header + 2 findings
-	
+
 	// Check headers
 	headers := records[0]
 	assert.Contains(t, headers, "PI Type")
 	assert.Contains(t, headers, "Masked Value")
-	
+
 	// Check first finding
 	firstFinding := records[1]
 	typeIndex := indexOf(headers, "PI Type")
@@ -306,7 +306,7 @@ func TestCSVSummaryExporter_ExportSummary(t *testing.T) {
 	}
 
 	exporter := NewCSVSummaryExporter()
-	
+
 	var buf bytes.Buffer
 	err := exporter.ExportSummary(&buf, summary, metadata)
 	require.NoError(t, err)
@@ -315,13 +315,13 @@ func TestCSVSummaryExporter_ExportSummary(t *testing.T) {
 	reader := csv.NewReader(&buf)
 	records, err := reader.ReadAll()
 	require.NoError(t, err)
-	
+
 	// Verify structure
 	assert.Greater(t, len(records), 10) // Header + multiple summary rows
-	
+
 	// Check headers
 	assert.Equal(t, []string{"Metric", "Value", "Percentage"}, records[0])
-	
+
 	// Check some key metrics
 	foundTotal := false
 	foundCritical := false
@@ -488,7 +488,7 @@ func TestCSVExporter_LargeExport(t *testing.T) {
 
 	exporter := NewCSVExporter()
 	var buf bytes.Buffer
-	
+
 	err := exporter.Export(&buf, records)
 	require.NoError(t, err)
 
@@ -496,7 +496,7 @@ func TestCSVExporter_LargeExport(t *testing.T) {
 	reader := csv.NewReader(&buf)
 	allRecords, err := reader.ReadAll()
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, 1001, len(allRecords)) // Header + 1000 records
 }
 
@@ -504,19 +504,19 @@ func TestCSVExporter_SpecialCharacters(t *testing.T) {
 	// Test handling of special characters in CSV
 	records := []CSVRecord{
 		{
-			Timestamp:     time.Now(),
-			Repository:    `repo with "quotes"`,
-			FilePath:      `path/with,comma.go`,
-			PIType:        "TFN",
-			CodeContext:   "Line with\nnewline",
-			Environment:   `env with "special" chars`,
-			RiskLevel:     "HIGH",
+			Timestamp:   time.Now(),
+			Repository:  `repo with "quotes"`,
+			FilePath:    `path/with,comma.go`,
+			PIType:      "TFN",
+			CodeContext: "Line with\nnewline",
+			Environment: `env with "special" chars`,
+			RiskLevel:   "HIGH",
 		},
 	}
 
 	exporter := NewCSVExporter(WithContext())
 	var buf bytes.Buffer
-	
+
 	err := exporter.Export(&buf, records)
 	require.NoError(t, err)
 
@@ -524,14 +524,14 @@ func TestCSVExporter_SpecialCharacters(t *testing.T) {
 	reader := csv.NewReader(&buf)
 	allRecords, err := reader.ReadAll()
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, 2, len(allRecords)) // Header + 1 record
-	
+
 	// Check that special characters are preserved
 	headers := allRecords[0]
 	repoIndex := indexOf(headers, "Repository")
 	pathIndex := indexOf(headers, "File Path")
-	
+
 	record := allRecords[1]
 	assert.Contains(t, record[repoIndex], "quotes")
 	assert.Contains(t, record[pathIndex], "comma")
@@ -541,7 +541,7 @@ func TestCSVExporter_EmptyExport(t *testing.T) {
 	// Test exporting empty records
 	exporter := NewCSVExporter()
 	var buf bytes.Buffer
-	
+
 	err := exporter.Export(&buf, []CSVRecord{})
 	require.NoError(t, err)
 
@@ -549,7 +549,7 @@ func TestCSVExporter_EmptyExport(t *testing.T) {
 	reader := csv.NewReader(&buf)
 	records, err := reader.ReadAll()
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, 1, len(records)) // Just headers
 	assert.Contains(t, records[0], "Timestamp")
 }
@@ -580,7 +580,7 @@ func BenchmarkCSVExporter_Export(b *testing.B) {
 	}
 
 	exporter := NewCSVExporter(WithMaskedValues(), WithContext())
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
@@ -606,7 +606,7 @@ func BenchmarkCSVExporter_LargeExport(b *testing.B) {
 	}
 
 	exporter := NewCSVExporter()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer

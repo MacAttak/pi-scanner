@@ -19,17 +19,21 @@ UNAME_M := $(shell uname -m)
 export CGO_ENABLED=1
 
 # Targets
-.PHONY: all build test clean deps run help setup
+.PHONY: all build test clean deps run help setup install-hooks pre-commit pre-push ci-local
 
 all: test build ## Run tests and build
 
 help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Setup development environment
+setup: install-hooks ## Setup development environment
 	@echo "Setting up development environment..."
 	@mkdir -p $(BINARY_DIR)
 	@echo "Setup complete!"
+
+install-hooks: ## Install Git hooks for local development
+	@echo "Installing Git hooks..."
+	@./scripts/install-hooks.sh
 
 deps: ## Download and verify dependencies
 	$(GO_MOD) download
@@ -116,5 +120,22 @@ install: build ## Install binary to system
 uninstall: ## Uninstall binary from system
 	@echo "Uninstalling $(BINARY_NAME)..."
 	@sudo rm -f /usr/local/bin/$(BINARY_NAME)
+
+pre-commit: ## Run pre-commit checks
+	@echo "Running pre-commit checks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit run --all-files; \
+	else \
+		echo "pre-commit not installed. Run: make install-hooks"; \
+		exit 1; \
+	fi
+
+pre-push: ## Run pre-push checks
+	@echo "Running pre-push checks..."
+	@./.githooks/pre-push
+
+ci-local: ## Simulate CI pipeline locally
+	@echo "Running local CI simulation..."
+	@./scripts/ci-local.sh
 
 .DEFAULT_GOAL := help

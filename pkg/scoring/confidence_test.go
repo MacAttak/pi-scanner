@@ -11,19 +11,19 @@ import (
 
 func TestNewConfidenceEngine(t *testing.T) {
 	tests := []struct {
-		name     string
-		config   *EngineConfig
-		wantErr  bool
-		errMsg   string
+		name    string
+		config  *EngineConfig
+		wantErr bool
+		errMsg  string
 	}{
 		{
-			name:   "default config success",
-			config: DefaultEngineConfig(),
+			name:    "default config success",
+			config:  DefaultEngineConfig(),
 			wantErr: false,
 		},
 		{
-			name:   "nil config uses default",
-			config: nil,
+			name:    "nil config uses default",
+			config:  nil,
 			wantErr: false,
 		},
 		{
@@ -32,7 +32,7 @@ func TestNewConfidenceEngine(t *testing.T) {
 				MinConfidenceThreshold: -0.1,
 			},
 			wantErr: true,
-			errMsg: "invalid confidence threshold",
+			errMsg:  "invalid confidence threshold",
 		},
 		{
 			name: "invalid config - threshold too high",
@@ -40,7 +40,7 @@ func TestNewConfidenceEngine(t *testing.T) {
 				MinConfidenceThreshold: 1.1,
 			},
 			wantErr: true,
-			errMsg: "invalid confidence threshold",
+			errMsg:  "invalid confidence threshold",
 		},
 	}
 
@@ -67,32 +67,32 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name           string
-		input          ScoreInput
-		expectedRange  []float64 // [min, max] expected confidence range
-		expectedRisk   RiskLevel
-		expectedAudit  bool // should have audit details
+		name          string
+		input         ScoreInput
+		expectedRange []float64 // [min, max] expected confidence range
+		expectedRisk  RiskLevel
+		expectedAudit bool // should have audit details
 	}{
 		{
 			name: "valid TFN with strong context",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeTFN,
-					Match:    "123-456-789",
-					File:     "src/customer.go",
-					Line:     10,
-					Column:   5,
-					Context:  "customerTFN := \"123-456-789\"",
-					RiskLevel: detection.RiskLevelHigh,
+					Type:       detection.PITypeTFN,
+					Match:      "123-456-789",
+					File:       "src/customer.go",
+					Line:       10,
+					Column:     5,
+					Context:    "customerTFN := \"123-456-789\"",
+					RiskLevel:  detection.RiskLevelHigh,
 					Confidence: 0.8,
-					Validated: true,
+					Validated:  true,
 				},
 				Content: "func processCustomer() {\n    customerTFN := \"123-456-789\"\n    // Process customer tax file number\n}",
 				ProximityScore: &ProximityScore{
-					Score:     0.9,
-					Context:   "label",
-					Keywords:  []string{"tfn", "tax", "file", "number"},
-					Distance:  1,
+					Score:    0.9,
+					Context:  "label",
+					Keywords: []string{"tfn", "tax", "file", "number"},
+					Distance: 1,
 				},
 				MLScore: &MLScore{
 					Confidence: 0.95,
@@ -100,9 +100,9 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 					IsValid:    true,
 				},
 				ValidationScore: &ValidationScore{
-					IsValid:     true,
-					Algorithm:   "TFN_CHECKSUM",
-					Confidence:  1.0,
+					IsValid:    true,
+					Algorithm:  "TFN_CHECKSUM",
+					Confidence: 1.0,
 				},
 			},
 			expectedRange: []float64{0.9, 1.0},
@@ -113,27 +113,27 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 			name: "invalid TFN in test file",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeTFN,
-					Match:    "123-456-789",
-					File:     "src/customer_test.go",
-					Line:     15,
-					Column:   10,
-					Context:  "testTFN := \"123-456-789\"",
-					RiskLevel: detection.RiskLevelMedium,
+					Type:       detection.PITypeTFN,
+					Match:      "123-456-789",
+					File:       "src/customer_test.go",
+					Line:       15,
+					Column:     10,
+					Context:    "testTFN := \"123-456-789\"",
+					RiskLevel:  detection.RiskLevelMedium,
 					Confidence: 0.6,
-					Validated: false,
+					Validated:  false,
 				},
 				Content: "func TestCustomer() {\n    testTFN := \"123-456-789\" // Mock TFN for testing\n}",
 				ProximityScore: &ProximityScore{
-					Score:     0.1,
-					Context:   "test",
-					Keywords:  []string{"test", "mock"},
-					Distance:  1,
+					Score:    0.1,
+					Context:  "test",
+					Keywords: []string{"test", "mock"},
+					Distance: 1,
 				},
 				ValidationScore: &ValidationScore{
-					IsValid:     false,
-					Algorithm:   "TFN_CHECKSUM",
-					Confidence:  0.0,
+					IsValid:    false,
+					Algorithm:  "TFN_CHECKSUM",
+					Confidence: 0.0,
 				},
 			},
 			expectedRange: []float64{0.0, 0.39},
@@ -144,22 +144,22 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 			name: "TFN with medicare co-occurrence - high risk",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeTFN,
-					Match:    "123-456-789",
-					File:     "src/patient.go",
-					Line:     20,
-					Column:   8,
-					Context:  "patient.TFN = \"123-456-789\"; patient.Medicare = \"2234567890\"",
-					RiskLevel: detection.RiskLevelHigh,
+					Type:       detection.PITypeTFN,
+					Match:      "123-456-789",
+					File:       "src/patient.go",
+					Line:       20,
+					Column:     8,
+					Context:    "patient.TFN = \"123-456-789\"; patient.Medicare = \"2234567890\"",
+					RiskLevel:  detection.RiskLevelHigh,
 					Confidence: 0.8,
-					Validated: true,
+					Validated:  true,
 				},
 				Content: "type Patient struct {\n    TFN string\n    Medicare string\n}\npatient.TFN = \"123-456-789\"\npatient.Medicare = \"2234567890\"",
 				ProximityScore: &ProximityScore{
-					Score:     0.8,
-					Context:   "production",
-					Keywords:  []string{"patient"},
-					Distance:  2,
+					Score:    0.8,
+					Context:  "production",
+					Keywords: []string{"patient"},
+					Distance: 2,
 				},
 				MLScore: &MLScore{
 					Confidence: 0.92,
@@ -167,9 +167,9 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 					IsValid:    true,
 				},
 				ValidationScore: &ValidationScore{
-					IsValid:     true,
-					Algorithm:   "TFN_CHECKSUM",
-					Confidence:  1.0,
+					IsValid:    true,
+					Algorithm:  "TFN_CHECKSUM",
+					Confidence: 1.0,
 				},
 				CoOccurrences: []CoOccurrence{
 					{
@@ -194,7 +194,7 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 			assert.GreaterOrEqual(t, result.FinalScore, tt.expectedRange[0])
 			assert.LessOrEqual(t, result.FinalScore, tt.expectedRange[1])
 			assert.Equal(t, tt.expectedRisk, result.RiskLevel)
-			
+
 			if tt.expectedAudit {
 				assert.NotEmpty(t, result.AuditTrail)
 				assert.NotEmpty(t, result.Breakdown)
@@ -202,11 +202,11 @@ func TestConfidenceEngine_CalculateScore_AustralianTFN(t *testing.T) {
 				// Allow empty audit trail when expected
 				assert.Empty(t, result.AuditTrail)
 			}
-			
+
 			// Australian regulatory compliance checks
 			assert.True(t, result.RegulatoryCompliance.APRA)
 			assert.True(t, result.RegulatoryCompliance.PrivacyAct)
-			
+
 			// RequiredActions should only be present for higher risk levels
 			if tt.expectedRisk != RiskLevelLow {
 				assert.NotEmpty(t, result.RegulatoryCompliance.RequiredActions)
@@ -229,27 +229,27 @@ func TestConfidenceEngine_CalculateScore_AustralianMedicare(t *testing.T) {
 			name: "valid medicare number",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeMedicare,
-					Match:    "2234567890",
-					File:     "src/healthcare.go",
-					Line:     5,
-					Column:   12,
-					Context:  "medicareNumber := \"2234567890\"",
-					RiskLevel: detection.RiskLevelHigh,
+					Type:       detection.PITypeMedicare,
+					Match:      "2234567890",
+					File:       "src/healthcare.go",
+					Line:       5,
+					Column:     12,
+					Context:    "medicareNumber := \"2234567890\"",
+					RiskLevel:  detection.RiskLevelHigh,
 					Confidence: 0.8,
-					Validated: true,
+					Validated:  true,
 				},
 				Content: "func processHealthcare() {\n    medicareNumber := \"2234567890\"\n}",
 				ProximityScore: &ProximityScore{
-					Score:     0.9,
-					Context:   "label",
-					Keywords:  []string{"medicare", "number"},
-					Distance:  1,
+					Score:    0.9,
+					Context:  "label",
+					Keywords: []string{"medicare", "number"},
+					Distance: 1,
 				},
 				ValidationScore: &ValidationScore{
-					IsValid:     true,
-					Algorithm:   "MEDICARE_CHECKSUM",
-					Confidence:  1.0,
+					IsValid:    true,
+					Algorithm:  "MEDICARE_CHECKSUM",
+					Confidence: 1.0,
 				},
 			},
 			expectedRange: []float64{0.7, 0.89}, // Adjusted based on actual calculation
@@ -259,27 +259,27 @@ func TestConfidenceEngine_CalculateScore_AustralianMedicare(t *testing.T) {
 			name: "medicare in config file - medium risk",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeMedicare,
-					Match:    "2234567890",
-					File:     "config/app.yaml",
-					Line:     8,
-					Column:   15,
-					Context:  "default_medicare: \"2234567890\"",
-					RiskLevel: detection.RiskLevelMedium,
+					Type:       detection.PITypeMedicare,
+					Match:      "2234567890",
+					File:       "config/app.yaml",
+					Line:       8,
+					Column:     15,
+					Context:    "default_medicare: \"2234567890\"",
+					RiskLevel:  detection.RiskLevelMedium,
 					Confidence: 0.6,
-					Validated: true,
+					Validated:  true,
 				},
 				Content: "database:\n  host: localhost\ndefault_medicare: \"2234567890\"",
 				ProximityScore: &ProximityScore{
-					Score:     0.6,
-					Context:   "config",
-					Keywords:  []string{"default", "medicare"},
-					Distance:  1,
+					Score:    0.6,
+					Context:  "config",
+					Keywords: []string{"default", "medicare"},
+					Distance: 1,
 				},
 				ValidationScore: &ValidationScore{
-					IsValid:     true,
-					Algorithm:   "MEDICARE_CHECKSUM",
-					Confidence:  1.0,
+					IsValid:    true,
+					Algorithm:  "MEDICARE_CHECKSUM",
+					Confidence: 1.0,
 				},
 			},
 			expectedRange: []float64{0.4, 0.69},
@@ -314,10 +314,10 @@ func TestConfidenceEngine_CalculateScore_EnvironmentDetection(t *testing.T) {
 			name: "production environment indicator",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeABN,
-					Match:    "12-345-678-901",
-					File:     "src/prod/business.go",
-					Context:  "prod_abn := \"12-345-678-901\"",
+					Type:      detection.PITypeABN,
+					Match:     "12-345-678-901",
+					File:      "src/prod/business.go",
+					Context:   "prod_abn := \"12-345-678-901\"",
 					Validated: true,
 				},
 				Content: "// Production business logic\nfunc processBusiness() {\n    prod_abn := \"12-345-678-901\"\n}",
@@ -338,16 +338,16 @@ func TestConfidenceEngine_CalculateScore_EnvironmentDetection(t *testing.T) {
 			name: "test environment strong indicators",
 			input: ScoreInput{
 				Finding: detection.Finding{
-					Type:     detection.PITypeABN,
-					Match:    "12-345-678-901",
-					File:     "test/fixtures/mock_data.go",
-					Context:  "mockABN := \"12-345-678-901\" // Test data",
+					Type:      detection.PITypeABN,
+					Match:     "12-345-678-901",
+					File:      "test/fixtures/mock_data.go",
+					Context:   "mockABN := \"12-345-678-901\" // Test data",
 					Validated: false,
 				},
 				Content: "// Mock data for testing\nvar mockABN = \"12-345-678-901\" // Test data only",
 				ProximityScore: &ProximityScore{
-					Score:   0.1,
-					Context: "test",
+					Score:    0.1,
+					Context:  "test",
 					Keywords: []string{"mock", "test"},
 				},
 				ValidationScore: &ValidationScore{
@@ -396,12 +396,12 @@ func TestConfidenceEngine_AustralianRegulatoryCompliance(t *testing.T) {
 	result, err := engine.CalculateScore(ctx, criticalInput)
 
 	require.NoError(t, err)
-	
+
 	// Verify regulatory compliance fields
 	assert.True(t, result.RegulatoryCompliance.APRA, "APRA compliance should be considered")
 	assert.True(t, result.RegulatoryCompliance.PrivacyAct, "Privacy Act compliance should be considered")
 	assert.NotEmpty(t, result.RegulatoryCompliance.RequiredActions, "Should have required actions for critical PI")
-	
+
 	// Should include specific Australian banking regulations
 	foundBankingAction := false
 	for _, action := range result.RegulatoryCompliance.RequiredActions {
@@ -442,11 +442,11 @@ func TestConfidenceEngine_AuditTrail(t *testing.T) {
 	result, err := engine.CalculateScore(ctx, input)
 
 	require.NoError(t, err)
-	
+
 	// Verify comprehensive audit trail
 	assert.NotEmpty(t, result.AuditTrail, "Should have audit trail entries")
 	assert.GreaterOrEqual(t, len(result.AuditTrail), 3, "Should have multiple audit entries")
-	
+
 	// Check for required audit entry types
 	auditTypes := make(map[string]bool)
 	for _, entry := range result.AuditTrail {
@@ -454,7 +454,7 @@ func TestConfidenceEngine_AuditTrail(t *testing.T) {
 		assert.NotEmpty(t, entry.Description, "Audit entry should have description")
 		assert.False(t, entry.Timestamp.IsZero(), "Audit entry should have timestamp")
 	}
-	
+
 	expectedComponents := []string{"proximity", "ml_validation", "algorithmic_validation", "aggregation"}
 	for _, component := range expectedComponents {
 		assert.True(t, auditTypes[component], "Should have audit entry for %s", component)

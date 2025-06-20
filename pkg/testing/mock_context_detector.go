@@ -75,7 +75,7 @@ func (mcd *MockContextDetector) isInComment(content string, finding detection.Fi
 	}
 
 	line := lines[finding.Line-1]
-	
+
 	// Check for comment markers
 	if strings.Contains(line, "//") {
 		commentStart := strings.Index(line, "//")
@@ -90,13 +90,13 @@ func (mcd *MockContextDetector) isInComment(content string, finding detection.Fi
 // isTestFile checks if filename indicates a test file
 func (mcd *MockContextDetector) isTestFile(filename string) bool {
 	testPatterns := []string{"_test.go", "test.go", "mock_", "fixture_"}
-	
+
 	for _, pattern := range testPatterns {
 		if strings.Contains(filename, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -118,7 +118,7 @@ func (mcd *MockContextDetector) isMockData(content string, finding detection.Fin
 	}
 
 	context := strings.ToLower(strings.Join(lines[start:end+1], " "))
-	
+
 	mockIndicators := []string{
 		"mock", "test", "example", "sample", "dummy", "placeholder",
 		"for testing", "for unit tests", "test data",

@@ -7,7 +7,7 @@ import (
 
 // ContextAnalyzer provides utilities for analyzing the context around potential PI matches
 type ContextAnalyzer struct {
-	wordPattern     *regexp.Regexp
+	wordPattern       *regexp.Regexp
 	structurePatterns map[StructureType]*regexp.Regexp
 }
 
@@ -92,27 +92,27 @@ func (ca *ContextAnalyzer) GetWordProximity(content, targetWord string, startInd
 
 	// Extract surrounding context (larger window for proximity analysis)
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 100)
-	
+
 	// Find target word in before context
 	beforeWords := ca.extractWords(before)
 	afterWords := ca.extractWords(after)
-	
+
 	targetLower := strings.ToLower(targetWord)
-	
+
 	// Check before words (reverse order for distance calculation)
 	for i := len(beforeWords) - 1; i >= 0; i-- {
 		if strings.ToLower(beforeWords[i]) == targetLower {
 			return len(beforeWords) - i, true
 		}
 	}
-	
+
 	// Check after words
 	for i, word := range afterWords {
 		if strings.ToLower(word) == targetLower {
 			return i + 1, true
 		}
 	}
-	
+
 	return -1, false
 }
 
@@ -121,14 +121,14 @@ func (ca *ContextAnalyzer) CountKeywords(text string, keywords []string) int {
 	if len(text) == 0 || len(keywords) == 0 {
 		return 0
 	}
-	
+
 	textLower := strings.ToLower(text)
 	words := ca.extractWords(textLower)
 	wordSet := make(map[string]bool)
 	for _, word := range words {
 		wordSet[word] = true
 	}
-	
+
 	count := 0
 	for _, keyword := range keywords {
 		keywordLower := strings.ToLower(keyword)
@@ -141,7 +141,7 @@ func (ca *ContextAnalyzer) CountKeywords(text string, keywords []string) int {
 			}
 		}
 	}
-	
+
 	return count
 }
 
@@ -166,25 +166,25 @@ func (ca *ContextAnalyzer) AnalyzeStructure(content string, startIndex, endIndex
 
 	// Extract larger context for structure analysis
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 200)
-	
+
 	// Safely extract the match content
 	var matchContent string
 	if startIndex < len(content) && endIndex <= len(content) && startIndex <= endIndex {
 		matchContent = content[startIndex:endIndex]
 	}
 	context := before + matchContent + after
-	
+
 	// Check structure types in order of priority (most specific first)
 	structureOrder := []StructureType{
-		StructureURL,    // Check URL first as it should override others
-		StructureHTML,   // Check HTML before XML to avoid conflicts
+		StructureURL,  // Check URL first as it should override others
+		StructureHTML, // Check HTML before XML to avoid conflicts
 		StructureXML,
 		StructureJSON,
 		StructureSQL,
 		StructureCode,
-		StructureYAML,   // Check YAML last as it can be too general
+		StructureYAML, // Check YAML last as it can be too general
 	}
-	
+
 	for _, structType := range structureOrder {
 		if pattern, exists := ca.structurePatterns[structType]; exists && pattern.MatchString(context) {
 			nestingLevel := ca.calculateNestingLevel(context, structType)
@@ -196,7 +196,7 @@ func (ca *ContextAnalyzer) AnalyzeStructure(content string, startIndex, endIndex
 			}
 		}
 	}
-	
+
 	return StructureAnalysis{Type: StructurePlainText, NestingLevel: 0}
 }
 
@@ -205,7 +205,7 @@ func (ca *ContextAnalyzer) CalculateContextWindow(content string, startIndex, en
 	if len(content) == 0 {
 		return 0, 0
 	}
-	
+
 	// Ensure indices are valid
 	if startIndex < 0 {
 		startIndex = 0
@@ -216,12 +216,12 @@ func (ca *ContextAnalyzer) CalculateContextWindow(content string, startIndex, en
 	if startIndex > len(content) {
 		startIndex = len(content)
 	}
-	
+
 	// Calculate available space and return it
 	// The baseWindow parameter is used for guidance but doesn't limit the actual window
 	beforeWindow = startIndex
 	afterWindow = len(content) - endIndex
-	
+
 	return beforeWindow, afterWindow
 }
 
@@ -230,7 +230,7 @@ func (ca *ContextAnalyzer) FindNearestKeyword(content string, keywords []string,
 	if len(content) == 0 || len(keywords) == 0 {
 		return "", -1, false
 	}
-	
+
 	// Swap indices if they're reversed
 	if startIndex > endIndex {
 		startIndex, endIndex = endIndex, startIndex
@@ -243,10 +243,10 @@ func (ca *ContextAnalyzer) FindNearestKeyword(content string, keywords []string,
 	if endIndex > len(content) {
 		endIndex = len(content)
 	}
-	
+
 	minDistance := -1
 	nearestKeyword := ""
-	
+
 	for _, kw := range keywords {
 		dist, f := ca.GetWordProximity(content, kw, startIndex, endIndex)
 		if f && (minDistance == -1 || dist < minDistance) {
@@ -254,11 +254,11 @@ func (ca *ContextAnalyzer) FindNearestKeyword(content string, keywords []string,
 			nearestKeyword = kw
 		}
 	}
-	
+
 	if minDistance != -1 {
 		return nearestKeyword, minDistance, true
 	}
-	
+
 	return "", -1, false
 }
 
@@ -267,7 +267,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 	if len(content) == 0 {
 		return SemanticAnalysis{Confidence: 0.5, Indicators: []string{}, PITypes: []string{}}
 	}
-	
+
 	// Swap indices if they're reversed
 	if startIndex > endIndex {
 		startIndex, endIndex = endIndex, startIndex
@@ -280,17 +280,17 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 	if endIndex > len(content) {
 		endIndex = len(content)
 	}
-	
+
 	// Extract context for analysis
 	before, after := ca.ExtractSurroundingText(content, startIndex, endIndex, 100)
 	context := before + after
-	
+
 	indicators := []string{}
 	confidence := 0.5 // Start with neutral confidence
-	
+
 	// Analyze for different semantic indicators
 	lowerContext := strings.ToLower(context)
-	
+
 	// PI indicators (positive)
 	piIndicators := []string{"customer", "user", "client", "person", "individual", "verification", "authentication", "secure", "private", "confidential"}
 	for _, indicator := range piIndicators {
@@ -299,13 +299,13 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			indicators = append(indicators, indicator)
 		}
 	}
-	
+
 	// Check for specific PI type labels
 	if strings.Contains(lowerContext, "ssn") {
 		indicators = append(indicators, "ssn")
 		confidence += 0.2
 	}
-	
+
 	// Test indicators (negative)
 	testIndicators := []string{"test", "mock", "sample", "demo", "example", "fake", "dummy"}
 	for _, indicator := range testIndicators {
@@ -314,7 +314,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			indicators = append(indicators, indicator)
 		}
 	}
-	
+
 	// Database indicators (positive)
 	dbIndicators := []string{"database", "table", "query", "select", "insert", "update", "where"}
 	foundDB := false
@@ -325,7 +325,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			foundDB = true
 		}
 	}
-	
+
 	// Form indicators (positive)
 	formIndicators := []string{"form", "input", "field", "submit", "validation"}
 	foundForm := false
@@ -336,7 +336,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			foundForm = true
 		}
 	}
-	
+
 	// Documentation indicators (negative)
 	docIndicators := []string{"documentation", "comment", "example", "reference", "guide"}
 	for _, indicator := range docIndicators {
@@ -346,7 +346,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			break
 		}
 	}
-	
+
 	// Log indicators (moderate positive)
 	logIndicators := []string{"log", "info", "debug", "error", "warn", "trace"}
 	foundLog := false
@@ -357,10 +357,10 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 			foundLog = true
 		}
 	}
-	
+
 	// Detect likely PI types based on context
 	piTypes := ca.detectPITypes(context)
-	
+
 	// Ensure confidence is within bounds
 	if confidence < 0.0 {
 		confidence = 0.0
@@ -368,7 +368,7 @@ func (ca *ContextAnalyzer) AnalyzeSemanticContext(content string, startIndex, en
 	if confidence > 1.0 {
 		confidence = 1.0
 	}
-	
+
 	return SemanticAnalysis{
 		Confidence: confidence,
 		Indicators: ca.removeDuplicates(indicators),
@@ -384,7 +384,7 @@ func (ca *ContextAnalyzer) extractWords(text string) []string {
 		// Fallback if pattern not compiled
 		return strings.Fields(text)
 	}
-	
+
 	matches := ca.wordPattern.FindAllString(text, -1)
 	words := make([]string, 0, len(matches))
 	for _, match := range matches {
@@ -468,37 +468,37 @@ func (ca *ContextAnalyzer) countCharacter(text string, char rune) int {
 func (ca *ContextAnalyzer) detectPITypes(context string) []string {
 	contextLower := strings.ToLower(context)
 	piTypes := []string{}
-	
+
 	// SSN indicators
 	if strings.Contains(contextLower, "ssn") || strings.Contains(contextLower, "social security") {
 		piTypes = append(piTypes, "SSN")
 	}
-	
+
 	// TFN indicators
 	if strings.Contains(contextLower, "tfn") || strings.Contains(contextLower, "tax file") {
 		piTypes = append(piTypes, "TFN")
 	}
-	
+
 	// Medicare indicators
 	if strings.Contains(contextLower, "medicare") {
 		piTypes = append(piTypes, "Medicare")
 	}
-	
+
 	// Email indicators
 	if strings.Contains(contextLower, "email") || strings.Contains(contextLower, "@") {
 		piTypes = append(piTypes, "Email")
 	}
-	
+
 	// Phone indicators
 	if strings.Contains(contextLower, "phone") || strings.Contains(contextLower, "mobile") || strings.Contains(contextLower, "tel") {
 		piTypes = append(piTypes, "Phone")
 	}
-	
+
 	// Credit card indicators
 	if strings.Contains(contextLower, "credit") || strings.Contains(contextLower, "card") || strings.Contains(contextLower, "cc") {
 		piTypes = append(piTypes, "Credit Card")
 	}
-	
+
 	return piTypes
 }
 
@@ -506,14 +506,14 @@ func (ca *ContextAnalyzer) detectPITypes(context string) []string {
 func (ca *ContextAnalyzer) removeDuplicates(items []string) []string {
 	seen := make(map[string]bool)
 	result := []string{}
-	
+
 	for _, item := range items {
 		if !seen[item] {
 			seen[item] = true
 			result = append(result, item)
 		}
 	}
-	
+
 	return result
 }
 
@@ -525,7 +525,7 @@ func min(a, b int) int {
 	return b
 }
 
-// max returns the maximum of two integers  
+// max returns the maximum of two integers
 func max(a, b int) int {
 	if a > b {
 		return a

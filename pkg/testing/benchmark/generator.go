@@ -25,34 +25,34 @@ func NewTestDataGenerator() *TestDataGenerator {
 // Weights: [1, 4, 3, 7, 5, 8, 6, 9, 10] - official ATO algorithm
 func (g *TestDataGenerator) GenerateValidTFN() string {
 	weights := []int{1, 4, 3, 7, 5, 8, 6, 9, 10}
-	
+
 	// Generate first 8 digits randomly (first digit cannot be 0)
 	digits := make([]int, 9)
 	digits[0] = 1 + g.rand.Intn(9) // First digit 1-9
 	for i := 1; i < 8; i++ {
 		digits[i] = g.rand.Intn(10)
 	}
-	
+
 	// Calculate weighted sum for first 8 digits
 	sum := 0
 	for i := 0; i < 8; i++ {
 		sum += digits[i] * weights[i]
 	}
-	
+
 	// Find the 9th digit that makes sum divisible by 11
 	for d := 0; d <= 9; d++ {
-		if (sum + d*weights[8]) % 11 == 0 {
+		if (sum+d*weights[8])%11 == 0 {
 			digits[8] = d
 			break
 		}
 	}
-	
+
 	// Convert to string
 	tfn := ""
 	for _, d := range digits {
 		tfn += fmt.Sprintf("%d", d)
 	}
-	
+
 	return tfn
 }
 
@@ -69,34 +69,34 @@ func (g *TestDataGenerator) GenerateInvalidTFN() string {
 // Weights: [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19] - official ABR algorithm
 func (g *TestDataGenerator) GenerateValidABN() string {
 	weights := []int{10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19}
-	
+
 	// Generate 10 random digits for positions 2-11
 	digits := make([]int, 11)
 	for i := 1; i < 11; i++ {
 		digits[i] = g.rand.Intn(10)
 	}
-	
+
 	// Calculate sum for positions 2-11 (digits[1] to digits[10])
 	sum := 0
 	for i := 1; i < 11; i++ {
 		sum += digits[i] * weights[i]
 	}
-	
+
 	// Find first digit: subtract 1 from first digit, multiply by weight, add to sum
 	// Result must be divisible by 89
 	for d := 1; d <= 9; d++ {
-		if ((d-1)*weights[0] + sum) % 89 == 0 {
+		if ((d-1)*weights[0]+sum)%89 == 0 {
 			digits[0] = d
 			break
 		}
 	}
-	
+
 	// Convert to string
 	abn := ""
 	for _, d := range digits {
 		abn += fmt.Sprintf("%d", d)
 	}
-	
+
 	return abn
 }
 
@@ -105,32 +105,32 @@ func (g *TestDataGenerator) GenerateValidABN() string {
 // Format: 8 digits + 1 check digit + 1 issue number (optional)
 func (g *TestDataGenerator) GenerateValidMedicare() string {
 	weights := []int{1, 3, 7, 9, 1, 3, 7, 9}
-	
+
 	// First digit must be 2-6 (Medicare requirement)
 	digits := make([]int, 10)
 	digits[0] = 2 + g.rand.Intn(5) // 2, 3, 4, 5, or 6
-	
+
 	// Generate next 7 digits (positions 1-7)
 	for i := 1; i < 8; i++ {
 		digits[i] = g.rand.Intn(10)
 	}
-	
+
 	// Calculate check digit (position 8)
 	sum := 0
 	for i := 0; i < 8; i++ {
 		sum += digits[i] * weights[i]
 	}
 	digits[8] = sum % 10
-	
+
 	// Issue number (position 9) - typically 1-9
 	digits[9] = 1 + g.rand.Intn(9)
-	
+
 	// Convert to string (return 10 digits)
 	medicare := ""
 	for i := 0; i < 10; i++ {
 		medicare += fmt.Sprintf("%d", digits[i])
 	}
-	
+
 	return medicare
 }
 
@@ -153,16 +153,16 @@ func (g *TestDataGenerator) GenerateValidBSB() string {
 		"76", // Various institutions
 		"80", // Cuscal administered
 	}
-	
+
 	// Pick random bank prefix
 	prefix := bankPrefixes[g.rand.Intn(len(bankPrefixes))]
-	
+
 	// State digit (third digit) - 0-9 representing different states/territories
 	stateDigit := g.rand.Intn(10)
-	
+
 	// Random branch code (last 3 digits)
 	branch := fmt.Sprintf("%03d", g.rand.Intn(1000))
-	
+
 	return prefix + fmt.Sprintf("%d", stateDigit) + branch
 }
 
@@ -170,19 +170,19 @@ func (g *TestDataGenerator) GenerateValidBSB() string {
 // Weights: [8, 7, 6, 5, 4, 3, 2, 1] - official ASIC modified modulus 10 algorithm
 func (g *TestDataGenerator) GenerateValidACN() string {
 	weights := []int{8, 7, 6, 5, 4, 3, 2, 1}
-	
+
 	// Generate first 8 digits
 	digits := make([]int, 9)
 	for i := 0; i < 8; i++ {
 		digits[i] = g.rand.Intn(10)
 	}
-	
+
 	// Calculate weighted sum for first 8 digits
 	sum := 0
 	for i := 0; i < 8; i++ {
 		sum += digits[i] * weights[i]
 	}
-	
+
 	// Calculate check digit using modified modulus 10
 	remainder := sum % 10
 	checkDigit := (10 - remainder) % 10
@@ -191,13 +191,13 @@ func (g *TestDataGenerator) GenerateValidACN() string {
 		checkDigit = 0
 	}
 	digits[8] = checkDigit
-	
+
 	// Convert to string
 	acn := ""
 	for _, d := range digits {
 		acn += fmt.Sprintf("%d", d)
 	}
-	
+
 	return acn
 }
 
@@ -227,7 +227,7 @@ func (g *TestDataGenerator) GenerateDriverLicense(state string) string {
 		if g.rand.Intn(2) == 0 {
 			return fmt.Sprintf("%07d", g.rand.Intn(10000000))
 		}
-		letters := string(rune('A' + g.rand.Intn(26))) + string(rune('A' + g.rand.Intn(26)))
+		letters := string(rune('A'+g.rand.Intn(26))) + string(rune('A'+g.rand.Intn(26)))
 		return letters + fmt.Sprintf("%05d", g.rand.Intn(100000))
 	default:
 		// Default: 8 digits
@@ -240,7 +240,7 @@ func (g *TestDataGenerator) FormatTFN(tfn string, style string) string {
 	if len(tfn) != 9 {
 		return tfn
 	}
-	
+
 	switch style {
 	case "dashes":
 		return tfn[:3] + "-" + tfn[3:6] + "-" + tfn[6:]
@@ -258,7 +258,7 @@ func (g *TestDataGenerator) FormatABN(abn string, style string) string {
 	if len(abn) != 11 {
 		return abn
 	}
-	
+
 	switch style {
 	case "spaces":
 		return abn[:2] + " " + abn[2:5] + " " + abn[5:8] + " " + abn[8:]
@@ -301,7 +301,7 @@ func (g *TestDataGenerator) GenerateVersionNumber() string {
 	minor := g.rand.Intn(100)
 	patch := g.rand.Intn(1000)
 	build := g.rand.Intn(10000)
-	
+
 	return fmt.Sprintf("%d.%d.%d.%d", major, minor, patch, build)
 }
 
@@ -335,7 +335,7 @@ func (g *TestDataGenerator) WrapInContext(value string, piType detection.PIType,
 
 func (g *TestDataGenerator) wrapInAssignment(value string, piType detection.PIType, language string) string {
 	varName := g.getVarName(piType)
-	
+
 	switch language {
 	case "go":
 		return fmt.Sprintf(`%s := "%s"`, varName, value)
@@ -352,7 +352,7 @@ func (g *TestDataGenerator) wrapInAssignment(value string, piType detection.PITy
 
 func (g *TestDataGenerator) wrapInFunction(value string, piType detection.PIType, language string) string {
 	funcName := g.getFuncName(piType)
-	
+
 	switch language {
 	case "go":
 		return fmt.Sprintf(`func %s() string { return "%s" }`, funcName, value)
@@ -367,7 +367,7 @@ func (g *TestDataGenerator) wrapInFunction(value string, piType detection.PIType
 
 func (g *TestDataGenerator) wrapInStruct(value string, piType detection.PIType, language string) string {
 	fieldName := g.getFieldName(piType)
-	
+
 	switch language {
 	case "go":
 		return fmt.Sprintf(`user := User{\n    %s: "%s",\n}`, fieldName, value)
@@ -424,7 +424,7 @@ func (g *TestDataGenerator) wrapInLog(value string, piType detection.PIType, lan
 
 func (g *TestDataGenerator) wrapInConfig(value string, piType detection.PIType, language string) string {
 	key := strings.ToLower(string(piType))
-	
+
 	switch language {
 	case "yaml":
 		return fmt.Sprintf(`%s: "%s"`, key, value)
@@ -437,7 +437,7 @@ func (g *TestDataGenerator) wrapInConfig(value string, piType detection.PIType, 
 
 func (g *TestDataGenerator) wrapInEnvironment(value string, piType detection.PIType, language string) string {
 	envVar := fmt.Sprintf("USER_%s", strings.ToUpper(string(piType)))
-	
+
 	switch language {
 	case "go":
 		return fmt.Sprintf(`os.Getenv("%s") // "%s"`, envVar, value)
@@ -452,7 +452,7 @@ func (g *TestDataGenerator) wrapInEnvironment(value string, piType detection.PIT
 func (g *TestDataGenerator) WrapInQuery(value string, piType detection.PIType) string {
 	table := "users"
 	column := strings.ToLower(string(piType))
-	
+
 	return fmt.Sprintf(`SELECT * FROM %s WHERE %s = '%s'`, table, column, value)
 }
 
@@ -464,7 +464,7 @@ func (g *TestDataGenerator) getVarName(piType detection.PIType) string {
 		detection.PITypeBSB:      {"bsb", "bankCode", "branchCode"},
 		detection.PITypeACN:      {"acn", "companyNumber", "businessACN"},
 	}
-	
+
 	if names, ok := varNames[piType]; ok {
 		return names[g.rand.Intn(len(names))]
 	}
@@ -479,7 +479,7 @@ func (g *TestDataGenerator) getFieldName(piType detection.PIType) string {
 		detection.PITypeBSB:      {"BSB", "BankCode", "BranchCode"},
 		detection.PITypeACN:      {"ACN", "CompanyNumber", "AustralianCompanyNumber"},
 	}
-	
+
 	if names, ok := fieldNames[piType]; ok {
 		return names[g.rand.Intn(len(names))]
 	}

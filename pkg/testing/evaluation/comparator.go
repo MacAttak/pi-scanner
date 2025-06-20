@@ -29,11 +29,11 @@ func (dc *DetectorComparator) Compare() (map[string]*EvaluationResult, error) {
 
 	for name, detector := range dc.detectors {
 		fmt.Printf("Evaluating detector: %s\n", name)
-		
+
 		startTime := time.Now()
 		metrics, err := dc.evaluateDetector(detector)
 		executionTime := time.Since(startTime)
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate detector %s: %v", name, err)
 		}
@@ -57,7 +57,7 @@ func (dc *DetectorComparator) Compare() (map[string]*EvaluationResult, error) {
 // evaluateDetector runs a single detector against all test cases
 func (dc *DetectorComparator) evaluateDetector(detector detection.Detector) (*EvaluationMetrics, error) {
 	metrics := &EvaluationMetrics{}
-	
+
 	for _, testCase := range dc.dataset.AllCases() {
 		// Run detection
 		findings, err := detector.Detect(
@@ -106,7 +106,7 @@ func (dc *DetectorComparator) EvaluateByContext(detectorName string) (map[string
 	}
 
 	results := make(map[string]*EvaluationMetrics)
-	
+
 	// Group test cases by context
 	contextGroups := make(map[string][]benchmark.TestCase)
 	for _, testCase := range dc.dataset.AllCases() {
@@ -116,7 +116,7 @@ func (dc *DetectorComparator) EvaluateByContext(detectorName string) (map[string
 	// Evaluate each context separately
 	for ctxName, testCases := range contextGroups {
 		metrics := &EvaluationMetrics{}
-		
+
 		for _, testCase := range testCases {
 			findings, err := detector.Detect(
 				context.Background(),
@@ -140,7 +140,7 @@ func (dc *DetectorComparator) EvaluateByContext(detectorName string) (map[string
 				metrics.FalseNegatives++
 			}
 		}
-		
+
 		results[ctxName] = metrics
 	}
 
@@ -155,7 +155,7 @@ func (dc *DetectorComparator) EvaluateByPIType(detectorName string) (map[string]
 	}
 
 	results := make(map[string]*EvaluationMetrics)
-	
+
 	// Group test cases by PI type
 	typeGroups := make(map[detection.PIType][]benchmark.TestCase)
 	for _, testCase := range dc.dataset.AllCases() {
@@ -165,7 +165,7 @@ func (dc *DetectorComparator) EvaluateByPIType(detectorName string) (map[string]
 	// Evaluate each PI type separately
 	for piType, testCases := range typeGroups {
 		metrics := &EvaluationMetrics{}
-		
+
 		for _, testCase := range testCases {
 			findings, err := detector.Detect(
 				context.Background(),
@@ -189,7 +189,7 @@ func (dc *DetectorComparator) EvaluateByPIType(detectorName string) (map[string]
 				metrics.FalseNegatives++
 			}
 		}
-		
+
 		results[string(piType)] = metrics
 	}
 
@@ -243,20 +243,20 @@ func (dc *DetectorComparator) GenerateDetailedReport() (*DetailedReport, error) 
 
 // DetailedReport represents a comprehensive evaluation report
 type DetailedReport struct {
-	Timestamp           time.Time                                     `json:"timestamp"`
-	DatasetStats        benchmark.DatasetStats                       `json:"dataset_stats"`
-	Overall             map[string]*EvaluationResult                 `json:"overall"`
-	ByContext           map[string]map[string]*EvaluationMetrics     `json:"by_context"`
-	ByPIType            map[string]map[string]*EvaluationMetrics     `json:"by_pi_type"`
-	Comparison          *ComparisonReport                             `json:"comparison"`
-	QualityAssessments  map[string]*QualityAssessment                `json:"quality_assessments"`
+	Timestamp          time.Time                                `json:"timestamp"`
+	DatasetStats       benchmark.DatasetStats                   `json:"dataset_stats"`
+	Overall            map[string]*EvaluationResult             `json:"overall"`
+	ByContext          map[string]map[string]*EvaluationMetrics `json:"by_context"`
+	ByPIType           map[string]map[string]*EvaluationMetrics `json:"by_pi_type"`
+	Comparison         *ComparisonReport                        `json:"comparison"`
+	QualityAssessments map[string]*QualityAssessment            `json:"quality_assessments"`
 }
 
 // Summary returns a human-readable summary of the report
 func (dr *DetailedReport) Summary() string {
 	summary := fmt.Sprintf("PI Detection Quality Assessment Report\n")
 	summary += fmt.Sprintf("Generated: %s\n\n", dr.Timestamp.Format("2006-01-02 15:04:05"))
-	
+
 	summary += fmt.Sprintf("Dataset Statistics:\n")
 	summary += fmt.Sprintf("- Total test cases: %d\n", dr.DatasetStats.TotalCases)
 	summary += fmt.Sprintf("- True positives: %d\n", dr.DatasetStats.TruePositives)

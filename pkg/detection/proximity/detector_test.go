@@ -197,8 +197,8 @@ func TestProximityDetector_AnalyzeContext(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := detector.AnalyzeContext(tc.content, tc.match, tc.startIndex, tc.endIndex)
-			
-			assert.InDelta(t, tc.expectedScore, result.Score, 0.1, 
+
+			assert.InDelta(t, tc.expectedScore, result.Score, 0.1,
 				"Expected score %f, got %f for case: %s", tc.expectedScore, result.Score, tc.name)
 			assert.Contains(t, result.Reason, tc.expectedReason,
 				"Expected reason to contain '%s', got '%s'", tc.expectedReason, result.Reason)
@@ -407,9 +407,9 @@ func TestProximityDetector_IdentifyPIContext(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := detector.IdentifyPIContext(tc.content, tc.match, tc.startIndex, tc.endIndex)
 			assert.Equal(t, tc.expectedContext, result.Type, "Case: %s", tc.name)
-			
+
 			for _, keyword := range tc.expectedKeywords {
-				assert.Contains(t, result.Keywords, keyword, 
+				assert.Contains(t, result.Keywords, keyword,
 					"Expected keyword '%s' in %v for case: %s", keyword, result.Keywords, tc.name)
 			}
 		})
@@ -493,10 +493,10 @@ func TestProximityDetector_IntegrationWithDetection(t *testing.T) {
 	detector := NewProximityDetector()
 
 	testCases := []struct {
-		name            string
-		content         string
-		filename        string
-		piType          detection.PIType
+		name             string
+		content          string
+		filename         string
+		piType           detection.PIType
 		expectedFindings int
 		expectedScores   []float64
 	}{
@@ -529,13 +529,13 @@ func TestProximityDetector_IntegrationWithDetection(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			findings := []ProximityResult{}
-			
+
 			// Simulate finding PI matches in content
 			// This would normally be done by the main detector
 			// For testing, we'll manually create findings
-			
+
 			if tc.name == "Test file with test data" {
-				findings = append(findings, 
+				findings = append(findings,
 					detector.AnalyzeContext(tc.content, "123-45-6789", 12, 23),
 					detector.AnalyzeContext(tc.content, "123456789", 40, 49),
 				)
@@ -550,9 +550,9 @@ func TestProximityDetector_IntegrationWithDetection(t *testing.T) {
 					detector.AnalyzeContext(tc.content, "987-65-4321", 40, 51),
 				)
 			}
-			
+
 			require.Len(t, findings, tc.expectedFindings)
-			
+
 			for i, expectedScore := range tc.expectedScores {
 				assert.InDelta(t, expectedScore, findings[i].Score, 0.1,
 					"Finding %d score mismatch for case: %s", i, tc.name)

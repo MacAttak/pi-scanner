@@ -11,14 +11,14 @@ import (
 func TestACNFullDetection(t *testing.T) {
 	detector := detection.NewDetector()
 	ctx := context.Background()
-	
+
 	// Test with full ACN context
 	code := `company.ACN = "123456789"`
 	t.Logf("Testing: %s", code)
-	
+
 	findings, err := detector.Detect(ctx, []byte(code), "test.go")
 	require.NoError(t, err)
-	
+
 	t.Logf("Total findings: %d", len(findings))
 	for i, f := range findings {
 		t.Logf("Finding %d:", i)
@@ -28,12 +28,12 @@ func TestACNFullDetection(t *testing.T) {
 		t.Logf("  Context: %s", f.Context)
 		t.Logf("  Confidence: %.2f", f.Confidence)
 	}
-	
+
 	// Check what types were found
 	foundTypes := make(map[detection.PIType]bool)
 	for _, f := range findings {
 		foundTypes[f.Type] = true
 	}
-	
+
 	t.Logf("\nFound PI Types: %v", foundTypes)
 }

@@ -10,70 +10,70 @@ import (
 // FactorEngine calculates individual scoring factors for confidence assessment
 type FactorEngine struct {
 	config *FactorConfig
-	
+
 	// Pre-compiled patterns for performance
-	testPatterns         []*regexp.Regexp
-	prodPatterns         []*regexp.Regexp
-	mockPatterns         []*regexp.Regexp
+	testPatterns          []*regexp.Regexp
+	prodPatterns          []*regexp.Regexp
+	mockPatterns          []*regexp.Regexp
 	documentationPatterns []*regexp.Regexp
 }
 
 // FactorConfig holds configuration for factor calculations
 type FactorConfig struct {
 	// Component weights for score calculation
-	ProximityWeight   float64 `json:"proximity_weight"`
+	ProximityWeight  float64 `json:"proximity_weight"`
 	MLWeight         float64 `json:"ml_weight"`
 	ValidationWeight float64 `json:"validation_weight"`
-	
+
 	// Environment penalties/bonuses
 	EnvironmentPenalties map[string]float64 `json:"environment_penalties"`
 	EnvironmentBonuses   map[string]float64 `json:"environment_bonuses"`
-	
+
 	// Co-occurrence multipliers based on Australian PI risk combinations
 	CoOccurrenceMultipliers map[string]map[string]float64 `json:"co_occurrence_multipliers"`
-	
+
 	// PI type weights aligned with Australian banking regulations
 	PITypeWeights map[detection.PIType]float64 `json:"pi_type_weights"`
-	
+
 	// Distance decay factor for co-occurrences
-	DistanceDecayFactor float64 `json:"distance_decay_factor"`
+	DistanceDecayFactor  float64 `json:"distance_decay_factor"`
 	MaxCoOccurrenceBoost float64 `json:"max_co_occurrence_boost"`
 }
 
 // DefaultFactorConfig returns the default factor configuration optimized for Australian PI detection
 func DefaultFactorConfig() *FactorConfig {
 	return &FactorConfig{
-		ProximityWeight:   0.4,
+		ProximityWeight:  0.4,
 		MLWeight:         0.3,
 		ValidationWeight: 0.3,
-		
+
 		EnvironmentPenalties: map[string]float64{
-			"test":          0.2,  // Heavy penalty for test environments
-			"mock":          0.1,  // Very heavy penalty for mock data
-			"sample":        0.2,  // Heavy penalty for sample data
-			"demo":          0.2,  // Heavy penalty for demo data
-			"fixture":       0.1,  // Very heavy penalty for fixture data
-			"example":       0.3,  // Moderate penalty for examples
-			"documentation": 0.5,  // Moderate penalty for docs
-			"debug":         0.7,  // Light penalty for debug code
+			"test":          0.2, // Heavy penalty for test environments
+			"mock":          0.1, // Very heavy penalty for mock data
+			"sample":        0.2, // Heavy penalty for sample data
+			"demo":          0.2, // Heavy penalty for demo data
+			"fixture":       0.1, // Very heavy penalty for fixture data
+			"example":       0.3, // Moderate penalty for examples
+			"documentation": 0.5, // Moderate penalty for docs
+			"debug":         0.7, // Light penalty for debug code
 		},
-		
+
 		EnvironmentBonuses: map[string]float64{
-			"production": 1.2,  // Bonus for production environments
-			"prod":       1.2,  // Bonus for prod environments
-			"live":       1.2,  // Bonus for live environments
-			"release":    1.1,  // Small bonus for release code
+			"production": 1.2, // Bonus for production environments
+			"prod":       1.2, // Bonus for prod environments
+			"live":       1.2, // Bonus for live environments
+			"release":    1.1, // Small bonus for release code
 		},
-		
+
 		// Australian PI co-occurrence risk matrix
 		CoOccurrenceMultipliers: map[string]map[string]float64{
 			string(detection.PITypeTFN): {
 				string(detection.PITypeMedicare): 1.4, // TFN + Medicare = high identity risk
-				string(detection.PITypeName):    1.3, // TFN + Name = high identity risk
-				string(detection.PITypeAddress): 1.3, // TFN + Address = high identity risk
-				string(detection.PITypePhone):   1.2, // TFN + Phone = moderate identity risk
-				string(detection.PITypeEmail):   1.1, // TFN + Email = slight identity risk
-				string(detection.PITypeABN):     1.2, // TFN + ABN = business identity risk
+				string(detection.PITypeName):     1.3, // TFN + Name = high identity risk
+				string(detection.PITypeAddress):  1.3, // TFN + Address = high identity risk
+				string(detection.PITypePhone):    1.2, // TFN + Phone = moderate identity risk
+				string(detection.PITypeEmail):    1.1, // TFN + Email = slight identity risk
+				string(detection.PITypeABN):      1.2, // TFN + ABN = business identity risk
 			},
 			string(detection.PITypeMedicare): {
 				string(detection.PITypeName):    1.2, // Medicare + Name = healthcare identity
@@ -96,37 +96,37 @@ func DefaultFactorConfig() *FactorConfig {
 				string(detection.PITypePhone):   1.2, // CC + Phone = cardholder contact
 			},
 		},
-		
+
 		// PI type weights based on Australian regulatory requirements
 		PITypeWeights: map[detection.PIType]float64{
-			detection.PITypeTFN:          1.0,  // Maximum weight - most sensitive under Australian law
-			detection.PITypeMedicare:     0.95, // Very high - healthcare data protection
-			detection.PITypeCreditCard:   0.9,  // High - financial data protection
-			detection.PITypePassport:     0.9,  // High - identity document
-			detection.PITypeABN:          0.8,  // Moderate-high - business identification
+			detection.PITypeTFN:           1.0,  // Maximum weight - most sensitive under Australian law
+			detection.PITypeMedicare:      0.95, // Very high - healthcare data protection
+			detection.PITypeCreditCard:    0.9,  // High - financial data protection
+			detection.PITypePassport:      0.9,  // High - identity document
+			detection.PITypeABN:           0.8,  // Moderate-high - business identification
 			detection.PITypeDriverLicense: 0.8,  // Moderate-high - identity document
-			detection.PITypeBSB:          0.7,  // Moderate - banking code
-			detection.PITypeAccount:      0.7,  // Moderate - account number
-			detection.PITypeName:         0.6,  // Moderate - personal identifier
-			detection.PITypeAddress:      0.6,  // Moderate - personal identifier
-			detection.PITypePhone:        0.5,  // Lower - contact information
-			detection.PITypeEmail:        0.4,  // Lower - contact information
-			detection.PITypeIP:           0.2,  // Lowest - technical identifier
+			detection.PITypeBSB:           0.7,  // Moderate - banking code
+			detection.PITypeAccount:       0.7,  // Moderate - account number
+			detection.PITypeName:          0.6,  // Moderate - personal identifier
+			detection.PITypeAddress:       0.6,  // Moderate - personal identifier
+			detection.PITypePhone:         0.5,  // Lower - contact information
+			detection.PITypeEmail:         0.4,  // Lower - contact information
+			detection.PITypeIP:            0.2,  // Lowest - technical identifier
 		},
-		
-		DistanceDecayFactor:   0.9,  // Exponential decay for distance
-		MaxCoOccurrenceBoost: 1.6,  // Cap boost to prevent runaway scores
+
+		DistanceDecayFactor:  0.9, // Exponential decay for distance
+		MaxCoOccurrenceBoost: 1.6, // Cap boost to prevent runaway scores
 	}
 }
 
 // FactorScores holds the calculated scores for all factors
 type FactorScores struct {
 	ProximityScore    float64 `json:"proximity_score"`
-	MLScore          float64 `json:"ml_score"`
-	ValidationScore  float64 `json:"validation_score"`
-	EnvironmentScore float64 `json:"environment_score"`
+	MLScore           float64 `json:"ml_score"`
+	ValidationScore   float64 `json:"validation_score"`
+	EnvironmentScore  float64 `json:"environment_score"`
 	CoOccurrenceScore float64 `json:"co_occurrence_score"`
-	PITypeWeight     float64 `json:"pi_type_weight"`
+	PITypeWeight      float64 `json:"pi_type_weight"`
 }
 
 // NewFactorEngine creates a new factor engine with the given configuration
@@ -134,14 +134,14 @@ func NewFactorEngine(config *FactorConfig) (*FactorEngine, error) {
 	if config == nil {
 		config = DefaultFactorConfig()
 	}
-	
+
 	engine := &FactorEngine{
 		config: config,
 	}
-	
+
 	// Compile patterns for performance
 	engine.compilePatterns()
-	
+
 	return engine, nil
 }
 
@@ -165,12 +165,12 @@ func (e *FactorEngine) compilePatterns() {
 		`/fixtures/`,
 		`/mocks/`,
 	}
-	
+
 	e.testPatterns = make([]*regexp.Regexp, len(testPatterns))
 	for i, pattern := range testPatterns {
 		e.testPatterns[i] = regexp.MustCompile(pattern)
 	}
-	
+
 	// Production environment patterns
 	prodPatterns := []string{
 		`(?i)\bprod\b`,
@@ -183,12 +183,12 @@ func (e *FactorEngine) compilePatterns() {
 		`(?i)prod_`,
 		`(?i)production_`,
 	}
-	
+
 	e.prodPatterns = make([]*regexp.Regexp, len(prodPatterns))
 	for i, pattern := range prodPatterns {
 		e.prodPatterns[i] = regexp.MustCompile(pattern)
 	}
-	
+
 	// Mock/fixture patterns
 	mockPatterns := []string{
 		`(?i)\bfixture\b`,
@@ -199,12 +199,12 @@ func (e *FactorEngine) compilePatterns() {
 		`\.fixture\.`,
 		`\.mock\.`,
 	}
-	
+
 	e.mockPatterns = make([]*regexp.Regexp, len(mockPatterns))
 	for i, pattern := range mockPatterns {
 		e.mockPatterns[i] = regexp.MustCompile(pattern)
 	}
-	
+
 	// Documentation patterns
 	docPatterns := []string{
 		`(?i)\bdocs?\b`,
@@ -220,7 +220,7 @@ func (e *FactorEngine) compilePatterns() {
 		`#.*example`,
 		`<!--.*example`,
 	}
-	
+
 	e.documentationPatterns = make([]*regexp.Regexp, len(docPatterns))
 	for i, pattern := range docPatterns {
 		e.documentationPatterns[i] = regexp.MustCompile(pattern)
@@ -232,9 +232,9 @@ func (e *FactorEngine) CalculateProximityFactor(proximityData *ProximityScore) f
 	if proximityData == nil {
 		return 0.5 // neutral default when no proximity data available
 	}
-	
+
 	baseScore := proximityData.Score
-	
+
 	// Apply context-based penalties
 	contextPenalties := map[string]float64{
 		"test":          0.2,
@@ -245,11 +245,11 @@ func (e *FactorEngine) CalculateProximityFactor(proximityData *ProximityScore) f
 		"documentation": 0.5,
 		"debug":         0.7,
 	}
-	
+
 	if penalty, exists := contextPenalties[proximityData.Context]; exists {
 		baseScore *= penalty
 	}
-	
+
 	// Ensure score is within bounds
 	if baseScore < 0.0 {
 		baseScore = 0.0
@@ -257,7 +257,7 @@ func (e *FactorEngine) CalculateProximityFactor(proximityData *ProximityScore) f
 	if baseScore > 1.0 {
 		baseScore = 1.0
 	}
-	
+
 	return baseScore
 }
 
@@ -266,14 +266,14 @@ func (e *FactorEngine) CalculateMLFactor(mlData *MLScore) float64 {
 	if mlData == nil {
 		return 0.5 // neutral default when no ML data available
 	}
-	
+
 	baseScore := float64(mlData.Confidence)
-	
+
 	// Heavy penalty for invalid ML predictions
 	if !mlData.IsValid {
 		baseScore *= 0.2
 	}
-	
+
 	// Ensure score is within bounds
 	if baseScore < 0.0 {
 		baseScore = 0.0
@@ -281,7 +281,7 @@ func (e *FactorEngine) CalculateMLFactor(mlData *MLScore) float64 {
 	if baseScore > 1.0 {
 		baseScore = 1.0
 	}
-	
+
 	return baseScore
 }
 
@@ -290,21 +290,21 @@ func (e *FactorEngine) CalculateValidationFactor(validationData *ValidationScore
 	if validationData == nil {
 		return 0.0 // no validation data means we can't validate
 	}
-	
+
 	// Validation is binary for algorithmic checks (TFN, ABN, Medicare, BSB)
 	if validationData.IsValid {
 		return validationData.Confidence
 	}
-	
+
 	return 0.0
 }
 
 // CalculateEnvironmentFactor calculates the environment-based score factor
 func (e *FactorEngine) CalculateEnvironmentFactor(filename, content string) float64 {
 	baseScore := 1.0 // neutral baseline
-	
+
 	indicators := e.DetectEnvironmentIndicators(filename, content)
-	
+
 	// Apply penalties and bonuses based on detected indicators
 	for _, indicator := range indicators {
 		if penalty, exists := e.config.EnvironmentPenalties[indicator]; exists {
@@ -313,7 +313,7 @@ func (e *FactorEngine) CalculateEnvironmentFactor(filename, content string) floa
 			baseScore *= bonus
 		}
 	}
-	
+
 	// Ensure score is within reasonable bounds
 	if baseScore < 0.0 {
 		baseScore = 0.0
@@ -321,7 +321,7 @@ func (e *FactorEngine) CalculateEnvironmentFactor(filename, content string) floa
 	if baseScore > 2.0 { // Allow some boost but cap it
 		baseScore = 2.0
 	}
-	
+
 	return baseScore
 }
 
@@ -330,15 +330,15 @@ func (e *FactorEngine) CalculateCoOccurrenceFactor(piType detection.PIType, coOc
 	if len(coOccurrences) == 0 {
 		return 1.0 // neutral when no co-occurrences
 	}
-	
+
 	baseMultiplier := 1.0
-	
+
 	// Get multipliers for this PI type
 	typeMultipliers, exists := e.config.CoOccurrenceMultipliers[string(piType)]
 	if !exists {
 		return 1.0 // no multipliers defined for this type
 	}
-	
+
 	// Calculate compound multiplier based on co-occurrences
 	for _, coOcc := range coOccurrences {
 		if multiplier, exists := typeMultipliers[string(coOcc.PIType)]; exists {
@@ -349,17 +349,17 @@ func (e *FactorEngine) CalculateCoOccurrenceFactor(piType detection.PIType, coOc
 					distanceDecay *= e.config.DistanceDecayFactor
 				}
 			}
-			
+
 			adjustedMultiplier := 1.0 + (multiplier-1.0)*distanceDecay
 			baseMultiplier *= adjustedMultiplier
 		}
 	}
-	
+
 	// Cap the boost to prevent runaway scores
 	if baseMultiplier > e.config.MaxCoOccurrenceBoost {
 		baseMultiplier = e.config.MaxCoOccurrenceBoost
 	}
-	
+
 	return baseMultiplier
 }
 
@@ -368,7 +368,7 @@ func (e *FactorEngine) CalculatePITypeWeight(piType detection.PIType) float64 {
 	if weight, exists := e.config.PITypeWeights[piType]; exists {
 		return weight
 	}
-	
+
 	// Default weight for unknown PI types
 	return 0.5
 }
@@ -377,10 +377,10 @@ func (e *FactorEngine) CalculatePITypeWeight(piType detection.PIType) float64 {
 func (e *FactorEngine) DetectEnvironmentIndicators(filename, content string) []string {
 	indicators := make([]string, 0)
 	seen := make(map[string]bool)
-	
+
 	// Check filename and content against compiled patterns
 	fullText := filename + " " + content
-	
+
 	// Test patterns
 	for _, pattern := range e.testPatterns {
 		if pattern.MatchString(fullText) {
@@ -391,7 +391,7 @@ func (e *FactorEngine) DetectEnvironmentIndicators(filename, content string) []s
 			break
 		}
 	}
-	
+
 	// Production patterns
 	for _, pattern := range e.prodPatterns {
 		if pattern.MatchString(fullText) {
@@ -402,7 +402,7 @@ func (e *FactorEngine) DetectEnvironmentIndicators(filename, content string) []s
 			break
 		}
 	}
-	
+
 	// Mock/fixture patterns
 	for _, pattern := range e.mockPatterns {
 		if pattern.MatchString(fullText) {
@@ -417,7 +417,7 @@ func (e *FactorEngine) DetectEnvironmentIndicators(filename, content string) []s
 			}
 		}
 	}
-	
+
 	// Documentation patterns
 	for _, pattern := range e.documentationPatterns {
 		if pattern.MatchString(fullText) {
@@ -428,33 +428,33 @@ func (e *FactorEngine) DetectEnvironmentIndicators(filename, content string) []s
 			break
 		}
 	}
-	
+
 	// Additional content-based keywords
 	contentLower := strings.ToLower(content)
 	keywords := map[string]string{
-		"sample":   "sample",
-		"demo":     "demo",
-		"dummy":    "dummy",
-		"stub":     "stub",
-		"debug":    "debug",
-		"dev":      "development",
-		"staging":  "staging",
+		"sample":  "sample",
+		"demo":    "demo",
+		"dummy":   "dummy",
+		"stub":    "stub",
+		"debug":   "debug",
+		"dev":     "development",
+		"staging": "staging",
 	}
-	
+
 	for keyword, indicator := range keywords {
 		if strings.Contains(contentLower, keyword) && !seen[indicator] {
 			indicators = append(indicators, indicator)
 			seen[indicator] = true
 		}
 	}
-	
+
 	return indicators
 }
 
 // GetFactorWeights returns the configured factor weights
 func (e *FactorEngine) GetFactorWeights() map[string]float64 {
 	return map[string]float64{
-		"proximity":   e.config.ProximityWeight,
+		"proximity":  e.config.ProximityWeight,
 		"ml":         e.config.MLWeight,
 		"validation": e.config.ValidationWeight,
 	}

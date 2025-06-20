@@ -19,7 +19,7 @@ func TestComprehensivePIDetectionQuality(t *testing.T) {
 	// Generate comprehensive test dataset
 	dataset := benchmark.GenerateComprehensiveTestDataset()
 	stats := dataset.Stats()
-	
+
 	t.Logf("📊 Dataset Statistics:")
 	t.Logf("   Total Cases: %d", stats.TotalCases)
 	t.Logf("   True Positives: %d", stats.TruePositives)
@@ -87,19 +87,19 @@ func validateComprehensiveResults(t *testing.T, results map[string]*evaluation.E
 	minF1 := 0.70
 
 	t.Log("\n🎯 Target Performance Validation:")
-	
+
 	for detectorName, result := range results {
 		metrics := result.Metrics
 		precision := metrics.Precision()
 		recall := metrics.Recall()
 		f1 := metrics.F1Score()
-		
+
 		t.Logf("\n%s Performance:", detectorName)
-		t.Logf("  Precision: %.1f%% (target: %.1f%%, min: %.1f%%)", 
+		t.Logf("  Precision: %.1f%% (target: %.1f%%, min: %.1f%%)",
 			precision*100, targetPrecision*100, minPrecision*100)
-		t.Logf("  Recall:    %.1f%% (target: %.1f%%, min: %.1f%%)", 
+		t.Logf("  Recall:    %.1f%% (target: %.1f%%, min: %.1f%%)",
 			recall*100, targetRecall*100, minRecall*100)
-		t.Logf("  F1-Score:  %.1f%% (target: %.1f%%, min: %.1f%%)", 
+		t.Logf("  F1-Score:  %.1f%% (target: %.1f%%, min: %.1f%%)",
 			f1*100, targetF1*100, minF1*100)
 
 		// Check against minimum thresholds
@@ -126,12 +126,12 @@ func validateComprehensiveResults(t *testing.T, results map[string]*evaluation.E
 	// Validate specific improvements
 	patternResult := results["Pattern-Only"]
 	contextResult := results["Pattern+Context"]
-	
+
 	if patternResult != nil && contextResult != nil {
 		precisionImprovement := contextResult.Metrics.Precision() - patternResult.Metrics.Precision()
 		t.Logf("\n✅ Context Validation Impact:")
 		t.Logf("  Precision Improvement: %+.1f%%", precisionImprovement*100)
-		
+
 		// Context should improve precision
 		assert.Greater(t, contextResult.Metrics.Precision(), patternResult.Metrics.Precision(),
 			"Context validation should improve precision")
@@ -141,7 +141,7 @@ func validateComprehensiveResults(t *testing.T, results map[string]*evaluation.E
 // TestPITypeValidation tests validation accuracy for each PI type
 func TestPITypeValidation(t *testing.T) {
 	t.Log("🔍 Testing PI Type Validation Accuracy")
-	
+
 	generator := benchmark.NewTestDataGenerator()
 	detector := detection.NewDetector()
 	ctx := context.Background()
@@ -154,12 +154,12 @@ func TestPITypeValidation(t *testing.T) {
 			"123456782",
 			"876543217",
 		}
-		
+
 		for _, tfn := range validTFNs {
 			code := fmt.Sprintf(`tfn := "%s"`, tfn)
 			findings, err := detector.Detect(ctx, []byte(code), "test.go")
 			require.NoError(t, err)
-			
+
 			found := false
 			for _, f := range findings {
 				if f.Type == detection.PITypeTFN {
@@ -176,12 +176,12 @@ func TestPITypeValidation(t *testing.T) {
 			"123456789", // Sequential
 			"111111111", // Repeated
 		}
-		
+
 		for _, tfn := range invalidTFNs {
 			code := fmt.Sprintf(`tfn := "%s"`, tfn)
 			findings, err := detector.Detect(ctx, []byte(code), "test.go")
 			require.NoError(t, err)
-			
+
 			// Should detect pattern but validation should fail
 			for _, f := range findings {
 				if f.Type == detection.PITypeTFN && f.Match == tfn {
@@ -200,12 +200,12 @@ func TestPITypeValidation(t *testing.T) {
 			generator.GenerateValidABN(),
 			"51824753556", // Commonwealth Bank
 		}
-		
+
 		for _, abn := range validABNs {
 			code := fmt.Sprintf(`company.ABN = "%s"`, abn)
 			findings, err := detector.Detect(ctx, []byte(code), "test.go")
 			require.NoError(t, err)
-			
+
 			found := false
 			for _, f := range findings {
 				if f.Type == detection.PITypeABN {
@@ -225,13 +225,13 @@ func TestPITypeValidation(t *testing.T) {
 			code := fmt.Sprintf(`patient.Medicare = "%s"`, medicare)
 			findings, err := detector.Detect(ctx, []byte(code), "test.go")
 			require.NoError(t, err)
-			
+
 			found := false
 			for _, f := range findings {
 				if f.Type == detection.PITypeMedicare {
 					found = true
 					// Medicare can be 10 or 11 digits
-					assert.True(t, len(f.Match) >= 10 && len(f.Match) <= 11, 
+					assert.True(t, len(f.Match) >= 10 && len(f.Match) <= 11,
 						"Medicare number should be 10-11 digits")
 				}
 			}
@@ -243,7 +243,7 @@ func TestPITypeValidation(t *testing.T) {
 // TestContextFiltering tests that context filtering works correctly
 func TestContextFiltering(t *testing.T) {
 	t.Log("🎯 Testing Context Filtering Effectiveness")
-	
+
 	generator := benchmark.NewTestDataGenerator()
 	baseDetector := detection.NewDetector()
 	contextDetector := NewMockContextDetector(baseDetector)
@@ -252,33 +252,33 @@ func TestContextFiltering(t *testing.T) {
 	tfn := generator.GenerateValidTFN()
 
 	testCases := []struct {
-		name           string
-		code           string
-		filename       string
+		name             string
+		code             string
+		filename         string
 		shouldBeFiltered bool
 	}{
 		{
-			name:           "Production Code",
-			code:           fmt.Sprintf(`user.TFN = "%s"`, tfn),
-			filename:       "user.go",
+			name:             "Production Code",
+			code:             fmt.Sprintf(`user.TFN = "%s"`, tfn),
+			filename:         "user.go",
 			shouldBeFiltered: false,
 		},
 		{
-			name:           "Test File",
-			code:           fmt.Sprintf(`func TestTFN() { tfn := "%s" }`, tfn),
-			filename:       "user_test.go",
+			name:             "Test File",
+			code:             fmt.Sprintf(`func TestTFN() { tfn := "%s" }`, tfn),
+			filename:         "user_test.go",
 			shouldBeFiltered: true,
 		},
 		{
-			name:           "Comment",
-			code:           fmt.Sprintf(`// Example TFN: %s`, tfn),
-			filename:       "doc.go",
+			name:             "Comment",
+			code:             fmt.Sprintf(`// Example TFN: %s`, tfn),
+			filename:         "doc.go",
 			shouldBeFiltered: true,
 		},
 		{
-			name:           "Mock Data",
-			code:           fmt.Sprintf(`const MOCK_TFN = "%s"`, tfn),
-			filename:       "mock.go",
+			name:             "Mock Data",
+			code:             fmt.Sprintf(`const MOCK_TFN = "%s"`, tfn),
+			filename:         "mock.go",
 			shouldBeFiltered: true,
 		},
 	}
@@ -308,10 +308,10 @@ func BenchmarkComprehensiveDetection(b *testing.B) {
 	dataset := benchmark.GenerateComprehensiveTestDataset()
 	detector := detection.NewDetector()
 	ctx := context.Background()
-	
+
 	allCases := dataset.AllCases()
 	b.Logf("Benchmarking with %d test cases", len(allCases))
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, testCase := range allCases {
@@ -321,6 +321,6 @@ func BenchmarkComprehensiveDetection(b *testing.B) {
 			}
 		}
 	}
-	
+
 	b.ReportMetric(float64(len(allCases)), "cases/op")
 }

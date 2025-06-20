@@ -38,23 +38,23 @@ func TestRepositoryManager_CleanupOnInterrupt(t *testing.T) {
 	githubManager.gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			// Create repository structure
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), []byte("Test repo"), 0644)
 			if err != nil {
 				return err
 			}
-			
+
 			// Track created directories
 			mutex.Lock()
 			createdDirs = append(createdDirs, targetDir)
 			mutex.Unlock()
-			
+
 			// Simulate long clone operation
 			select {
 			case <-time.After(2 * time.Second):
@@ -68,11 +68,11 @@ func TestRepositoryManager_CleanupOnInterrupt(t *testing.T) {
 
 	// Create context that can be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Set up signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	
+
 	// Start goroutine to simulate interrupt
 	go func() {
 		time.Sleep(500 * time.Millisecond)
@@ -82,7 +82,7 @@ func TestRepositoryManager_CleanupOnInterrupt(t *testing.T) {
 
 	// Attempt to clone repository
 	_, err := manager.CloneAndTrack(ctx, "owner/repo")
-	
+
 	// Should handle cancellation gracefully
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, context.Canceled)
@@ -117,18 +117,18 @@ func TestRepositoryManager_MultipleRepositories_CleanupAll(t *testing.T) {
 	githubManager.gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			content := []byte("Repository " + filepath.Base(targetDir))
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), content, 0644)
 			if err != nil {
 				return err
 			}
-			
+
 			createdDirs = append(createdDirs, targetDir)
 		}
 		return nil
@@ -184,17 +184,17 @@ func TestRepositoryManager_PartialCleanupFailure(t *testing.T) {
 	githubManager.gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), []byte("Test"), 0644)
 			if err != nil {
 				return err
 			}
-			
+
 			createdDirs = append(createdDirs, targetDir)
 		}
 		return nil
@@ -212,7 +212,7 @@ func TestRepositoryManager_PartialCleanupFailure(t *testing.T) {
 	// Make one directory read-only to simulate cleanup failure
 	err = os.Chmod(repo1.LocalPath, 0444)
 	require.NoError(t, err)
-	
+
 	// Try to cleanup all - should report errors but continue
 	err = manager.CleanupAll()
 	// Should have error but not fail completely
@@ -242,13 +242,13 @@ func TestRepositoryManager_ConcurrentOperations(t *testing.T) {
 		if len(args) > 0 && args[0] == "clone" {
 			// Add delay to test concurrency
 			time.Sleep(cloneDelay)
-			
+
 			targetDir := args[len(args)-1]
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			content := []byte("Concurrent test " + filepath.Base(targetDir))
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), content, 0644)
 			if err != nil {
@@ -306,10 +306,10 @@ func TestRepositoryManager_ConcurrentOperations(t *testing.T) {
 func TestGitHubManager_RealRepository_SkipIfNoAuth(t *testing.T) {
 	// This test tries to clone a real public repository
 	// Skip if GitHub CLI is not available or authenticated
-	
+
 	manager := NewGitHubManager(DefaultGitHubConfig())
 	ctx := context.Background()
-	
+
 	// Check authentication first
 	err := manager.CheckAuthentication(ctx)
 	if err != nil {
@@ -343,7 +343,7 @@ func TestGitHubManager_LargeRepositoryHandling(t *testing.T) {
 	config := DefaultGitHubConfig()
 	config.UseGitHubCLI = false
 	config.MaxRepositorySize = 1024 // 1KB limit for testing
-	config.MaxFileCount = 5        // 5 files limit
+	config.MaxFileCount = 5         // 5 files limit
 	manager := NewGitHubManager(config)
 
 	// Mock git command to create "large" repository
@@ -355,19 +355,19 @@ func TestGitHubManager_LargeRepositoryHandling(t *testing.T) {
 	manager.(*gitHubManager).gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			// Create multiple files that exceed limits
 			for i := 0; i < 10; i++ {
 				content := make([]byte, 200) // 200 bytes each
 				for j := range content {
 					content[j] = byte('A' + (i % 26))
 				}
-				
+
 				filename := fmt.Sprintf("file%d.txt", i)
 				err = os.WriteFile(filepath.Join(targetDir, filename), content, 0644)
 				if err != nil {
@@ -406,18 +406,18 @@ func TestRepositoryManager_GracefulShutdown(t *testing.T) {
 	githubManager.gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			// Create basic structure
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			err = os.WriteFile(filepath.Join(targetDir, "README.md"), []byte("Test"), 0644)
 			if err != nil {
 				return err
 			}
-			
+
 			// Simulate long operation that respects context cancellation
 			select {
 			case <-time.After(5 * time.Second):
@@ -431,10 +431,10 @@ func TestRepositoryManager_GracefulShutdown(t *testing.T) {
 
 	// Start clone operation
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	done := make(chan struct{})
 	var cloneErr error
-	
+
 	go func() {
 		defer close(done)
 		_, cloneErr = manager.CloneAndTrack(ctx, "owner/repo")
@@ -459,7 +459,6 @@ func TestRepositoryManager_GracefulShutdown(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-
 // Benchmark tests
 func BenchmarkRepositoryManager_CloneAndCleanup(b *testing.B) {
 	config := DefaultGitHubConfig()
@@ -476,13 +475,13 @@ func BenchmarkRepositoryManager_CloneAndCleanup(b *testing.B) {
 	githubManager.gitCommand = func(ctx context.Context, args ...string) error {
 		if len(args) > 0 && args[0] == "clone" {
 			targetDir := args[len(args)-1]
-			
+
 			// Create minimal repository structure
 			err := os.MkdirAll(filepath.Join(targetDir, ".git"), 0755)
 			if err != nil {
 				return err
 			}
-			
+
 			// Create several files
 			for i := 0; i < 10; i++ {
 				content := fmt.Sprintf("File %d content", i)
@@ -502,13 +501,13 @@ func BenchmarkRepositoryManager_CloneAndCleanup(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		repoURL := fmt.Sprintf("owner/repo%d", i)
-		
+
 		// Clone
 		repoInfo, err := manager.CloneAndTrack(ctx, repoURL)
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Cleanup immediately
 		err = manager.github.CleanupRepository(repoInfo.LocalPath)
 		if err != nil {

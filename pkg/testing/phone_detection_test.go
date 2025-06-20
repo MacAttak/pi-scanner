@@ -13,7 +13,7 @@ import (
 func TestPhoneDetection(t *testing.T) {
 	detector := detection.NewDetector()
 	ctx := context.Background()
-	
+
 	testCases := []struct {
 		name     string
 		code     string
@@ -50,12 +50,12 @@ func TestPhoneDetection(t *testing.T) {
 			expected: true,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			findings, err := detector.Detect(ctx, []byte(tc.code), "test.go")
 			require.NoError(t, err)
-			
+
 			found := false
 			for _, f := range findings {
 				if f.Type == detection.PITypePhone {
@@ -63,7 +63,7 @@ func TestPhoneDetection(t *testing.T) {
 					t.Logf("Found phone: %s", f.Match)
 				}
 			}
-			
+
 			if tc.expected {
 				assert.True(t, found, "Should detect phone number")
 			} else {
@@ -76,7 +76,7 @@ func TestPhoneDetection(t *testing.T) {
 func TestPhonePatternDebug(t *testing.T) {
 	// Test the actual regex pattern
 	_ = `\b(?:\+?61|0)[2-9]\d{8}\b|\(\d{2}\)\s*\d{4}\s*\d{4}`
-	
+
 	testNumbers := []string{
 		"0412345678",
 		"0412 345 678",
@@ -86,7 +86,7 @@ func TestPhonePatternDebug(t *testing.T) {
 		"1300123456",
 		"1800123456",
 	}
-	
+
 	for _, num := range testNumbers {
 		code := fmt.Sprintf(`phone := "%s"`, num)
 		t.Logf("Testing: %s", code)

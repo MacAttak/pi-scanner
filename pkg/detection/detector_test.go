@@ -156,10 +156,10 @@ func TestDetector_Detect(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			detector := NewDetector()
 			findings, err := detector.Detect(context.Background(), []byte(tt.content), "test.go")
-			
+
 			require.NoError(t, err)
 			assert.Len(t, findings, len(tt.expectedPIs), tt.description)
-			
+
 			// Check each expected PI was found
 			for i, expectedPI := range tt.expectedPIs {
 				if i < len(findings) {
@@ -173,39 +173,39 @@ func TestDetector_Detect(t *testing.T) {
 
 func TestDetector_DetectWithContext(t *testing.T) {
 	tests := []struct {
-		name             string
-		content          string
-		filename         string
-		expectedRiskMod  float32
-		description      string
+		name            string
+		content         string
+		filename        string
+		expectedRiskMod float32
+		description     string
 	}{
 		{
-			name:             "reduce risk for test files",
-			content:          `tfn := "123456789"`,
-			filename:         "customer_test.go",
-			expectedRiskMod:  0.1,
-			description:      "Should reduce risk for test files",
+			name:            "reduce risk for test files",
+			content:         `tfn := "123456789"`,
+			filename:        "customer_test.go",
+			expectedRiskMod: 0.1,
+			description:     "Should reduce risk for test files",
 		},
 		{
-			name:             "reduce risk for mock files",
-			content:          `mockTFN := "123456789"`,
-			filename:         "mock_data.go",
-			expectedRiskMod:  0.1,
-			description:      "Should reduce risk for mock files",
+			name:            "reduce risk for mock files",
+			content:         `mockTFN := "123456789"`,
+			filename:        "mock_data.go",
+			expectedRiskMod: 0.1,
+			description:     "Should reduce risk for mock files",
 		},
 		{
-			name:             "normal risk for production files",
-			content:          `customerTFN := "123456789"`,
-			filename:         "customer.go",
-			expectedRiskMod:  1.0,
-			description:      "Should maintain normal risk for production files",
+			name:            "normal risk for production files",
+			content:         `customerTFN := "123456789"`,
+			filename:        "customer.go",
+			expectedRiskMod: 1.0,
+			description:     "Should maintain normal risk for production files",
 		},
 		{
-			name:             "reduce risk for test directories",
-			content:          `tfn := "123456789"`,
-			filename:         "test/fixtures/data.go",
-			expectedRiskMod:  0.1,
-			description:      "Should reduce risk for files in test directories",
+			name:            "reduce risk for test directories",
+			content:         `tfn := "123456789"`,
+			filename:        "test/fixtures/data.go",
+			expectedRiskMod: 0.1,
+			description:     "Should reduce risk for files in test directories",
 		},
 	}
 
@@ -213,10 +213,10 @@ func TestDetector_DetectWithContext(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			detector := NewDetector()
 			findings, err := detector.Detect(context.Background(), []byte(tt.content), tt.filename)
-			
+
 			require.NoError(t, err)
 			require.NotEmpty(t, findings)
-			
+
 			// Check risk modification based on context
 			for _, finding := range findings {
 				assert.Equal(t, tt.expectedRiskMod, finding.ContextModifier, tt.description)
@@ -262,10 +262,10 @@ func BenchmarkDetector_Detect(b *testing.B) {
 			ABN: "51824753556",
 		}
 	`
-	
+
 	detector := NewDetector()
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = detector.Detect(ctx, []byte(content), "bench.go")
@@ -279,10 +279,10 @@ func BenchmarkDetector_LargeFile(b *testing.B) {
 		content += `const data = "Some regular content without PI information that should be skipped quickly"`
 	}
 	content += `tfn := "123456789"` // One PI in large file
-	
+
 	detector := NewDetector()
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = detector.Detect(ctx, []byte(content), "large.go")
@@ -291,60 +291,60 @@ func BenchmarkDetector_LargeFile(b *testing.B) {
 
 func TestDetector_DetectWithValidation(t *testing.T) {
 	tests := []struct {
-		name             string
-		content          string
-		expectedValid    bool
+		name               string
+		content            string
+		expectedValid      bool
 		expectedConfidence float32
-		description      string
+		description        string
 	}{
 		{
-			name:             "valid TFN with checksum",
-			content:          `tfn := "123456782"`, // Valid TFN
-			expectedValid:    true,
+			name:               "valid TFN with checksum",
+			content:            `tfn := "123456782"`, // Valid TFN
+			expectedValid:      true,
 			expectedConfidence: 0.95,
-			description:      "Should increase confidence for valid TFN",
+			description:        "Should increase confidence for valid TFN",
 		},
 		{
-			name:             "invalid TFN checksum",
-			content:          `tfn := "123456789"`, // Invalid checksum
-			expectedValid:    false,
+			name:               "invalid TFN checksum",
+			content:            `tfn := "123456789"`, // Invalid checksum
+			expectedValid:      false,
 			expectedConfidence: 0.5,
-			description:      "Should decrease confidence for invalid TFN",
+			description:        "Should decrease confidence for invalid TFN",
 		},
 		{
-			name:             "valid ABN - Telstra",
-			content:          `abn := "33051775556"`,
-			expectedValid:    true,
+			name:               "valid ABN - Telstra",
+			content:            `abn := "33051775556"`,
+			expectedValid:      true,
 			expectedConfidence: 0.95,
-			description:      "Should validate real ABN",
+			description:        "Should validate real ABN",
 		},
 		{
-			name:             "invalid ABN checksum",
-			content:          `abn := "12345678901"`,
-			expectedValid:    false,
+			name:               "invalid ABN checksum",
+			content:            `abn := "12345678901"`,
+			expectedValid:      false,
 			expectedConfidence: 0.5,
-			description:      "Should detect invalid ABN",
+			description:        "Should detect invalid ABN",
 		},
 		{
-			name:             "valid Medicare",
-			content:          `medicare := "2123456701"`,
-			expectedValid:    true,
+			name:               "valid Medicare",
+			content:            `medicare := "2123456701"`,
+			expectedValid:      true,
 			expectedConfidence: 0.95,
-			description:      "Should validate Medicare with correct checksum",
+			description:        "Should validate Medicare with correct checksum",
 		},
 		{
-			name:             "valid BSB",
-			content:          `bsb := "062-000"`,
-			expectedValid:    true,
+			name:               "valid BSB",
+			content:            `bsb := "062-000"`,
+			expectedValid:      true,
 			expectedConfidence: 0.95,
-			description:      "Should validate BSB with valid state code",
+			description:        "Should validate BSB with valid state code",
 		},
 		{
-			name:             "invalid BSB state",
-			content:          `bsb := "068-000"`, // Invalid state digit 8
-			expectedValid:    false,
+			name:               "invalid BSB state",
+			content:            `bsb := "068-000"`, // Invalid state digit 8
+			expectedValid:      false,
 			expectedConfidence: 0.5,
-			description:      "Should reject BSB with invalid state",
+			description:        "Should reject BSB with invalid state",
 		},
 	}
 

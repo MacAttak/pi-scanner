@@ -55,26 +55,26 @@ type Finding struct {
 }
 
 type ScanStats struct {
-	TotalFiles      int                `json:"total_files"`
-	ScannedFiles    int                `json:"scanned_files"`
-	SkippedFiles    int                `json:"skipped_files"`
-	TotalSize       int64              `json:"total_size"`
-	FindingsByType  map[string]int     `json:"findings_by_type"`
-	FindingsByRisk  map[string]int     `json:"findings_by_risk"`
-	ProcessingTime  int64              `json:"processing_time"`
+	TotalFiles     int            `json:"total_files"`
+	ScannedFiles   int            `json:"scanned_files"`
+	SkippedFiles   int            `json:"skipped_files"`
+	TotalSize      int64          `json:"total_size"`
+	FindingsByType map[string]int `json:"findings_by_type"`
+	FindingsByRisk map[string]int `json:"findings_by_risk"`
+	ProcessingTime int64          `json:"processing_time"`
 }
 
 // TestRepository represents a test case for repository scanning
 type TestRepository struct {
-	Name                 string
-	URL                  string
-	Description          string
-	ExpectedMinFiles     int
-	ExpectedMaxDuration  time.Duration
-	ExpectedPITypes      []string
-	ExpectedMinFindings  int
-	ExpectedMaxFindings  int
-	SkipIfNoAuth         bool
+	Name                string
+	URL                 string
+	Description         string
+	ExpectedMinFiles    int
+	ExpectedMaxDuration time.Duration
+	ExpectedPITypes     []string
+	ExpectedMinFindings int
+	ExpectedMaxFindings int
+	SkipIfNoAuth        bool
 }
 
 // Australian government and organization repositories for testing
@@ -200,10 +200,10 @@ func TestPIScannerE2E_PerformanceBenchmarks(t *testing.T) {
 	buildScanner(t)
 
 	performanceTests := []struct {
-		name           string
-		repo           string
-		maxDuration    time.Duration
-		minThroughput  float64 // files per second
+		name          string
+		repo          string
+		maxDuration   time.Duration
+		minThroughput float64 // files per second
 	}{
 		{
 			name:          "Small Repository Performance",
@@ -235,7 +235,7 @@ func TestPIScannerE2E_PerformanceBenchmarks(t *testing.T) {
 			duration := time.Since(start)
 
 			// Verify performance expectations
-			assert.Less(t, duration, test.maxDuration, 
+			assert.Less(t, duration, test.maxDuration,
 				"Scan should complete within expected time")
 
 			if result.Stats.ScannedFiles > 0 {
@@ -245,7 +245,7 @@ func TestPIScannerE2E_PerformanceBenchmarks(t *testing.T) {
 			}
 
 			t.Logf("Performance Results: %d files in %v (%.2f files/sec)",
-				result.Stats.ScannedFiles, duration, 
+				result.Stats.ScannedFiles, duration,
 				float64(result.Stats.ScannedFiles)/duration.Seconds())
 		})
 	}
@@ -260,22 +260,22 @@ func TestPIScannerE2E_AustralianPIDetection(t *testing.T) {
 
 	// Test with repositories that are likely to contain Australian PI examples
 	testCases := []struct {
-		name         string
-		repo         string
+		name          string
+		repo          string
 		expectedTypes []string
-		description  string
+		description   string
 	}{
 		{
-			name: "GitHub Docs - Australian Examples",
-			repo: "github/docs",
+			name:          "GitHub Docs - Australian Examples",
+			repo:          "github/docs",
 			expectedTypes: []string{"TFN", "ABN", "BSB", "MEDICARE"},
-			description: "Documentation often contains example Australian PI",
+			description:   "Documentation often contains example Australian PI",
 		},
 		{
-			name: "Educational Content",
-			repo: "freeCodeCamp/freeCodeCamp",
+			name:          "Educational Content",
+			repo:          "freeCodeCamp/freeCodeCamp",
 			expectedTypes: []string{"NAME", "EMAIL", "PHONE"},
-			description: "Educational platforms with diverse examples",
+			description:   "Educational platforms with diverse examples",
 		},
 	}
 
@@ -294,7 +294,7 @@ func TestPIScannerE2E_AustralianPIDetection(t *testing.T) {
 
 			foundAustralianPI := false
 			australianTypes := []string{"TFN", "ABN", "MEDICARE", "BSB", "ACN", "DRIVER_LICENSE"}
-			
+
 			for _, auType := range australianTypes {
 				if detectedTypes[auType] {
 					foundAustralianPI = true
@@ -316,7 +316,7 @@ func TestPIScannerE2E_AustralianPIDetection(t *testing.T) {
 
 			if len(riskLevels) > 0 {
 				t.Logf("Risk distribution: %+v", riskLevels)
-				assert.Contains(t, []string{"LOW", "MEDIUM", "HIGH"}, 
+				assert.Contains(t, []string{"LOW", "MEDIUM", "HIGH"},
 					getMostCommonRisk(riskLevels), "Should have valid risk levels")
 			}
 		})
@@ -522,14 +522,14 @@ func BenchmarkE2E_SmallRepository(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("bench-%d.json", time.Now().UnixNano()))
-		
+
 		cmd := exec.Command("../pi-scanner", "scan", "--repo", "octocat/Hello-World", "--output", outputFile)
 		_, err := cmd.CombinedOutput()
-		
+
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		os.Remove(outputFile)
 	}
 }
@@ -543,14 +543,14 @@ func BenchmarkE2E_MediumRepository(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("bench-%d.json", time.Now().UnixNano()))
-		
+
 		cmd := exec.Command("../pi-scanner", "scan", "--repo", "govau/design-system-components", "--output", outputFile)
 		_, err := cmd.CombinedOutput()
-		
+
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		os.Remove(outputFile)
 	}
 }

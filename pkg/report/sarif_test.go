@@ -16,7 +16,7 @@ import (
 
 func TestNewSARIFExporter(t *testing.T) {
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "https://github.com/MacAttak/pi-scanner")
-	
+
 	assert.NotNil(t, exporter)
 	assert.Equal(t, "PI Scanner", exporter.toolName)
 	assert.Equal(t, "1.0.0", exporter.toolVersion)
@@ -27,7 +27,7 @@ func TestNewSARIFExporter(t *testing.T) {
 func TestSARIFExporter_SetBaseURI(t *testing.T) {
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
 	exporter.SetBaseURI("/home/user/repo")
-	
+
 	assert.Equal(t, "/home/user/repo", exporter.baseURI)
 }
 
@@ -63,7 +63,7 @@ func TestSARIFExporter_Export(t *testing.T) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "https://github.com/MacAttak/pi-scanner")
-	
+
 	var buf bytes.Buffer
 	err := exporter.Export(&buf, findings, metadata)
 	require.NoError(t, err)
@@ -79,20 +79,20 @@ func TestSARIFExporter_Export(t *testing.T) {
 	assert.Len(t, report.Runs, 1)
 
 	run := report.Runs[0]
-	
+
 	// Check tool information
 	assert.Equal(t, "PI Scanner", run.Tool.Driver.Name)
 	assert.Equal(t, "1.0.0", run.Tool.Driver.Version)
 	assert.NotEmpty(t, run.Tool.Driver.Rules)
-	
+
 	// Check invocation
 	assert.Len(t, run.Invocations, 1)
 	assert.Equal(t, "2024-01-15T14:30:00Z", run.Invocations[0].StartTimeUTC)
 	assert.True(t, run.Invocations[0].ExecutionSuccessful)
-	
+
 	// Check results
 	assert.Len(t, run.Results, 2)
-	
+
 	// First result (TFN)
 	result1 := run.Results[0]
 	assert.Equal(t, "PI001", result1.RuleID)
@@ -105,7 +105,7 @@ func TestSARIFExporter_Export(t *testing.T) {
 	assert.Equal(t, 10, result1.Locations[0].PhysicalLocation.Region.StartColumn)
 	assert.NotNil(t, result1.Locations[0].PhysicalLocation.Region.Snippet)
 	assert.Contains(t, result1.Locations[0].PhysicalLocation.Region.Snippet.Text, "customerTFN")
-	
+
 	// Check properties
 	props, ok := result1.Properties["validated"].(bool)
 	assert.True(t, ok)
@@ -164,7 +164,7 @@ func TestSARIFExporter_ExportWithRiskAssessment(t *testing.T) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "https://github.com/MacAttak/pi-scanner")
-	
+
 	var buf bytes.Buffer
 	err := exporter.ExportWithRiskAssessment(&buf, findings, metadata)
 	require.NoError(t, err)
@@ -176,33 +176,33 @@ func TestSARIFExporter_ExportWithRiskAssessment(t *testing.T) {
 
 	// Check enhanced result
 	result := report.Runs[0].Results[0]
-	
+
 	// Check risk assessment in properties
 	riskAssessment, ok := result.Properties["riskAssessment"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, 0.9, riskAssessment["overallRisk"])
 	assert.Equal(t, "CRITICAL", riskAssessment["riskLevel"])
 	assert.Equal(t, "IDENTITY_THEFT", riskAssessment["riskCategory"])
-	
+
 	// Check compliance
 	compliance, ok := result.Properties["compliance"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.True(t, compliance["apraReporting"].(bool))
 	assert.True(t, compliance["privacyActBreach"].(bool))
 	assert.True(t, compliance["notifiableDataBreach"].(bool))
-	
+
 	// Check fixes were added
 	assert.Len(t, result.Fixes, 1)
 	fix := result.Fixes[0]
 	assert.Contains(t, fix.Description.Text, "Remove hardcoded TFN")
 	assert.Len(t, fix.ArtifactChanges, 1)
 	assert.Equal(t, "src/customer.go", fix.ArtifactChanges[0].ArtifactLocation.URI)
-	
+
 	// Check additional properties
 	assert.Equal(t, 0.95, result.Properties["confidenceScore"])
 	assert.Equal(t, "production", result.Properties["environment"])
 	assert.Equal(t, "Near 'customer' keyword", result.Properties["proximityInfo"])
-	
+
 	// Check rank was set
 	assert.Equal(t, 90.0, result.Rank)
 }
@@ -210,9 +210,9 @@ func TestSARIFExporter_ExportWithRiskAssessment(t *testing.T) {
 func TestSARIFExporter_CreateRules(t *testing.T) {
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
 	rules := exporter.createRules()
-	
+
 	assert.Len(t, rules, 12) // 12 PI types
-	
+
 	// Check TFN rule
 	tfnRule := rules[0]
 	assert.Equal(t, "PI001", tfnRule.ID)
@@ -222,7 +222,7 @@ func TestSARIFExporter_CreateRules(t *testing.T) {
 	assert.True(t, tfnRule.DefaultConfiguration.Enabled)
 	assert.Equal(t, "error", tfnRule.DefaultConfiguration.Level)
 	assert.Equal(t, 100.0, tfnRule.DefaultConfiguration.Rank)
-	
+
 	// Check tags
 	tags, ok := tfnRule.Properties["tags"].([]string)
 	assert.True(t, ok)
@@ -268,7 +268,7 @@ func TestSARIFExporter_NormalizeURI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			exporter := NewSARIFExporter("Test", "1.0", "")
 			exporter.SetBaseURI(tt.baseURI)
-			
+
 			result := exporter.normalizeURI(tt.filePath)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -277,7 +277,7 @@ func TestSARIFExporter_NormalizeURI(t *testing.T) {
 
 func TestSARIFExporter_GetRuleID(t *testing.T) {
 	exporter := NewSARIFExporter("Test", "1.0", "")
-	
+
 	tests := []struct {
 		piType   detection.PIType
 		expected string
@@ -307,7 +307,7 @@ func TestSARIFExporter_GetRuleID(t *testing.T) {
 
 func TestSARIFExporter_MapRiskLevelToSARIF(t *testing.T) {
 	exporter := NewSARIFExporter("Test", "1.0", "")
-	
+
 	tests := []struct {
 		riskLevel scoring.RiskLevel
 		expected  string
@@ -368,14 +368,14 @@ func TestSARIFReport_ValidJSON(t *testing.T) {
 	// Marshal to JSON
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	require.NoError(t, err)
-	
+
 	// Verify it contains expected elements
 	jsonStr := string(jsonData)
 	assert.Contains(t, jsonStr, `"version": "2.1.0"`)
 	assert.Contains(t, jsonStr, `"$schema": "https://json.schemastore.org/sarif-2.1.0.json"`)
 	assert.Contains(t, jsonStr, `"name": "Test Tool"`)
 	assert.Contains(t, jsonStr, `"ruleId": "TEST001"`)
-	
+
 	// Verify it can be unmarshaled
 	var parsed SARIFReport
 	err = json.Unmarshal(jsonData, &parsed)
@@ -385,7 +385,7 @@ func TestSARIFReport_ValidJSON(t *testing.T) {
 
 func TestSARIFExporter_EmptyFindings(t *testing.T) {
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
-	
+
 	var buf bytes.Buffer
 	err := exporter.Export(&buf, []detection.Finding{}, ExportMetadata{
 		Timestamp: time.Now(),
@@ -396,7 +396,7 @@ func TestSARIFExporter_EmptyFindings(t *testing.T) {
 	var report SARIFReport
 	err = json.Unmarshal(buf.Bytes(), &report)
 	require.NoError(t, err)
-	
+
 	assert.Len(t, report.Runs, 1)
 	assert.Empty(t, report.Runs[0].Results)
 }
@@ -415,7 +415,7 @@ func TestSARIFExporter_LargeReport(t *testing.T) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
-	
+
 	var buf bytes.Buffer
 	err := exporter.Export(&buf, findings, ExportMetadata{
 		Timestamp: time.Now(),
@@ -426,13 +426,13 @@ func TestSARIFExporter_LargeReport(t *testing.T) {
 	var report SARIFReport
 	err = json.Unmarshal(buf.Bytes(), &report)
 	require.NoError(t, err)
-	
+
 	assert.Len(t, report.Runs[0].Results, 100)
 }
 
 func TestSARIFExporter_CreateFingerprint(t *testing.T) {
 	exporter := NewSARIFExporter("Test", "1.0", "")
-	
+
 	finding1 := detection.Finding{
 		Type:   detection.PITypeTFN,
 		Match:  "123-456-789",
@@ -440,17 +440,17 @@ func TestSARIFExporter_CreateFingerprint(t *testing.T) {
 		Line:   42,
 		Column: 10,
 	}
-	
+
 	finding2 := finding1
 	finding2.Line = 43 // Different line
-	
+
 	fp1 := exporter.createFingerprint(finding1)
 	fp2 := exporter.createFingerprint(finding2)
-	
+
 	assert.NotEmpty(t, fp1)
 	assert.NotEmpty(t, fp2)
 	assert.NotEqual(t, fp1, fp2) // Different fingerprints for different lines
-	
+
 	// Same finding should produce same fingerprint
 	fp3 := exporter.createFingerprint(finding1)
 	assert.Equal(t, fp1, fp3)
@@ -479,7 +479,7 @@ func TestSARIFExporter_PropertiesAndTags(t *testing.T) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
-	
+
 	var buf bytes.Buffer
 	err := exporter.Export(&buf, findings, metadata)
 	require.NoError(t, err)
@@ -495,12 +495,12 @@ func TestSARIFExporter_PropertiesAndTags(t *testing.T) {
 	assert.True(t, ok)
 	assert.Contains(t, tags, "security")
 	assert.Contains(t, tags, "australia")
-	
+
 	// Check run properties
 	runProps := report.Runs[0].Properties
 	assert.Equal(t, "scan-123", runProps["scanID"])
 	assert.NotNil(t, runProps["scanDuration"])
-	
+
 	// Check invocation properties
 	invProps := report.Runs[0].Invocations[0].Properties
 	assert.Equal(t, "test-repo", invProps["repository"])
@@ -531,7 +531,7 @@ func ExampleSARIFExporter_Export() {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "https://github.com/MacAttak/pi-scanner")
-	
+
 	var buf bytes.Buffer
 	if err := exporter.Export(&buf, findings, metadata); err != nil {
 		panic(err)
@@ -565,7 +565,7 @@ func BenchmarkSARIFExporter_Export(b *testing.B) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
@@ -602,7 +602,7 @@ func BenchmarkSARIFExporter_ExportWithRiskAssessment(b *testing.B) {
 	}
 
 	exporter := NewSARIFExporter("PI Scanner", "1.0.0", "")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer

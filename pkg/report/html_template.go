@@ -15,71 +15,71 @@ var templatesFS embed.FS
 // HTMLTemplateData represents the data structure for HTML report generation
 type HTMLTemplateData struct {
 	// Report metadata
-	ReportID        string    `json:"report_id"`
-	GeneratedAt     time.Time `json:"generated_at"`
-	ScanDuration    string    `json:"scan_duration"`
-	ToolVersion     string    `json:"tool_version"`
-	
+	ReportID     string    `json:"report_id"`
+	GeneratedAt  time.Time `json:"generated_at"`
+	ScanDuration string    `json:"scan_duration"`
+	ToolVersion  string    `json:"tool_version"`
+
 	// Repository information
-	Repository      RepositoryInfo `json:"repository"`
-	
+	Repository RepositoryInfo `json:"repository"`
+
 	// Scan summary
-	Summary         ScanSummary    `json:"summary"`
-	
+	Summary ScanSummary `json:"summary"`
+
 	// Findings by risk level
-	CriticalFindings []Finding     `json:"critical_findings"`
-	HighFindings     []Finding     `json:"high_findings"`
-	MediumFindings   []Finding     `json:"medium_findings"`
-	LowFindings      []Finding     `json:"low_findings"`
-	
+	CriticalFindings []Finding `json:"critical_findings"`
+	HighFindings     []Finding `json:"high_findings"`
+	MediumFindings   []Finding `json:"medium_findings"`
+	LowFindings      []Finding `json:"low_findings"`
+
 	// Statistics and charts data
-	Statistics      Statistics     `json:"statistics"`
-	
+	Statistics Statistics `json:"statistics"`
+
 	// Compliance information
-	Compliance      ComplianceInfo `json:"compliance"`
+	Compliance ComplianceInfo `json:"compliance"`
 }
 
 // RepositoryInfo contains repository details
 type RepositoryInfo struct {
-	Name            string    `json:"name"`
-	URL             string    `json:"url"`
-	Branch          string    `json:"branch"`
-	CommitHash      string    `json:"commit_hash"`
-	LastCommitDate  time.Time `json:"last_commit_date"`
-	FilesScanned    int       `json:"files_scanned"`
-	LinesScanned    int       `json:"lines_scanned"`
+	Name           string    `json:"name"`
+	URL            string    `json:"url"`
+	Branch         string    `json:"branch"`
+	CommitHash     string    `json:"commit_hash"`
+	LastCommitDate time.Time `json:"last_commit_date"`
+	FilesScanned   int       `json:"files_scanned"`
+	LinesScanned   int       `json:"lines_scanned"`
 }
 
 // ScanSummary provides high-level scan results
 type ScanSummary struct {
-	TotalFindings   int       `json:"total_findings"`
-	CriticalCount   int       `json:"critical_count"`
-	HighCount       int       `json:"high_count"`
-	MediumCount     int       `json:"medium_count"`
-	LowCount        int       `json:"low_count"`
-	UniqueTypes     []string  `json:"unique_types"`
-	TopRisks        []string  `json:"top_risks"`
-	TestDataCount   int       `json:"test_data_count"`
-	ValidatedCount  int       `json:"validated_count"`
+	TotalFindings  int      `json:"total_findings"`
+	CriticalCount  int      `json:"critical_count"`
+	HighCount      int      `json:"high_count"`
+	MediumCount    int      `json:"medium_count"`
+	LowCount       int      `json:"low_count"`
+	UniqueTypes    []string `json:"unique_types"`
+	TopRisks       []string `json:"top_risks"`
+	TestDataCount  int      `json:"test_data_count"`
+	ValidatedCount int      `json:"validated_count"`
 }
 
 // Finding represents a single PI detection finding
 type Finding struct {
-	ID              string            `json:"id"`
-	Type            string            `json:"type"`
-	TypeDisplay     string            `json:"type_display"`
-	RiskLevel       string            `json:"risk_level"`
-	ConfidenceScore float64           `json:"confidence_score"`
-	File            string            `json:"file"`
-	Line            int               `json:"line"`
-	Column          int               `json:"column"`
-	Match           string            `json:"match"`
-	MaskedMatch     string            `json:"masked_match"`
-	Context         string            `json:"context"`
-	Validated       bool              `json:"validated"`
-	IsTestData      bool              `json:"is_test_data"`
+	ID              string             `json:"id"`
+	Type            string             `json:"type"`
+	TypeDisplay     string             `json:"type_display"`
+	RiskLevel       string             `json:"risk_level"`
+	ConfidenceScore float64            `json:"confidence_score"`
+	File            string             `json:"file"`
+	Line            int                `json:"line"`
+	Column          int                `json:"column"`
+	Match           string             `json:"match"`
+	MaskedMatch     string             `json:"masked_match"`
+	Context         string             `json:"context"`
+	Validated       bool               `json:"validated"`
+	IsTestData      bool               `json:"is_test_data"`
 	RiskAssessment  RiskAssessmentInfo `json:"risk_assessment"`
-	Mitigations     []Mitigation      `json:"mitigations"`
+	Mitigations     []Mitigation       `json:"mitigations"`
 }
 
 // RiskAssessmentInfo contains risk scoring details
@@ -105,36 +105,36 @@ type Mitigation struct {
 type Statistics struct {
 	// PI type distribution
 	TypeDistribution map[string]int `json:"type_distribution"`
-	
+
 	// Risk level distribution
 	RiskDistribution map[string]int `json:"risk_distribution"`
-	
+
 	// File type distribution
 	FileTypeDistribution map[string]int `json:"file_type_distribution"`
-	
+
 	// Top affected files
 	TopAffectedFiles []FileStats `json:"top_affected_files"`
-	
+
 	// Validation statistics
 	ValidationStats ValidationStats `json:"validation_stats"`
-	
+
 	// Environment statistics
 	EnvironmentStats EnvironmentStats `json:"environment_stats"`
 }
 
 // FileStats represents statistics for a single file
 type FileStats struct {
-	Path          string `json:"path"`
-	FindingsCount int    `json:"findings_count"`
+	Path          string  `json:"path"`
+	FindingsCount int     `json:"findings_count"`
 	RiskScore     float64 `json:"risk_score"`
 }
 
 // ValidationStats contains validation statistics
 type ValidationStats struct {
-	TotalChecked    int     `json:"total_checked"`
-	ValidCount      int     `json:"valid_count"`
-	InvalidCount    int     `json:"invalid_count"`
-	ValidationRate  float64 `json:"validation_rate"`
+	TotalChecked   int     `json:"total_checked"`
+	ValidCount     int     `json:"valid_count"`
+	InvalidCount   int     `json:"invalid_count"`
+	ValidationRate float64 `json:"validation_rate"`
 }
 
 // EnvironmentStats contains environment-based statistics
@@ -147,11 +147,11 @@ type EnvironmentStats struct {
 
 // ComplianceInfo contains regulatory compliance information
 type ComplianceInfo struct {
-	APRACompliant        bool     `json:"apra_compliant"`
-	PrivacyActCompliant  bool     `json:"privacy_act_compliant"`
-	NotifiableBreaches   int      `json:"notifiable_breaches"`
-	RequiredNotifications []string `json:"required_notifications"`
-	ComplianceActions    []ComplianceAction `json:"compliance_actions"`
+	APRACompliant         bool               `json:"apra_compliant"`
+	PrivacyActCompliant   bool               `json:"privacy_act_compliant"`
+	NotifiableBreaches    int                `json:"notifiable_breaches"`
+	RequiredNotifications []string           `json:"required_notifications"`
+	ComplianceActions     []ComplianceAction `json:"compliance_actions"`
 }
 
 // ComplianceAction represents a required compliance action
@@ -211,16 +211,16 @@ func GetTemplateFuncMap() template.FuncMap {
 		},
 		"piTypeIcon": func(piType string) string {
 			icons := map[string]string{
-				"TFN":          "🆔",
-				"MEDICARE":     "🏥",
-				"ABN":          "🏢",
-				"BSB":          "🏦",
-				"CREDIT_CARD":  "💳",
-				"EMAIL":        "📧",
-				"PHONE":        "📱",
-				"NAME":         "👤",
-				"ADDRESS":      "🏠",
-				"PASSPORT":     "📔",
+				"TFN":            "🆔",
+				"MEDICARE":       "🏥",
+				"ABN":            "🏢",
+				"BSB":            "🏦",
+				"CREDIT_CARD":    "💳",
+				"EMAIL":          "📧",
+				"PHONE":          "📱",
+				"NAME":           "👤",
+				"ADDRESS":        "🏠",
+				"PASSPORT":       "📔",
 				"DRIVER_LICENSE": "🚗",
 			}
 			if icon, exists := icons[piType]; exists {
@@ -241,39 +241,39 @@ func GetTemplateFuncMap() template.FuncMap {
 // GetHTMLTemplate returns the parsed HTML template
 func GetHTMLTemplate() (*template.Template, error) {
 	funcMap := GetTemplateFuncMap()
-	
+
 	tmplContent, err := templatesFS.ReadFile("templates/report.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template: %w", err)
 	}
-	
+
 	tmpl, err := template.New("report").Funcs(funcMap).Parse(string(tmplContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
-	
+
 	// Parse CSS
 	cssContent, err := templatesFS.ReadFile("templates/styles.css")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CSS: %w", err)
 	}
-	
+
 	_, err = tmpl.New("styles").Parse(string(cssContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse CSS: %w", err)
 	}
-	
+
 	// Parse JS
 	jsContent, err := templatesFS.ReadFile("templates/scripts.js")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read JS: %w", err)
 	}
-	
+
 	_, err = tmpl.New("scripts").Parse(string(jsContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JS: %w", err)
 	}
-	
+
 	return tmpl, nil
 }
 
@@ -282,7 +282,7 @@ func maskSensitiveData(value string, piType string) string {
 	if len(value) == 0 {
 		return value
 	}
-	
+
 	switch piType {
 	case "TFN":
 		// Show first 3 and last 2 digits
@@ -311,11 +311,11 @@ func maskSensitiveData(value string, piType string) string {
 			return value[:4] + "****" + value[len(value)-2:]
 		}
 	}
-	
+
 	// Default masking - show first and last character
 	if len(value) > 2 {
 		return value[:1] + strings.Repeat("*", len(value)-2) + value[len(value)-1:]
 	}
-	
+
 	return strings.Repeat("*", len(value))
 }
