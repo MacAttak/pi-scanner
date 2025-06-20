@@ -32,11 +32,6 @@ func hardcodedDefaults() *Config {
 			ExcludePaths:      defaultExcludePaths(),
 			MaxFileSize:       10 * 1024 * 1024, // 10MB
 			ProximityDistance: 10,
-			MLValidation: MLConfig{
-				Enabled:             false,
-				ConfidenceThreshold: 0.7,
-				BatchSize:           32,
-			},
 			Validators: ValidatorConfig{
 				TFN: ValidatorSettings{
 					Enabled:       true,
@@ -154,9 +149,6 @@ func ExampleConfig() (*Config, error) {
 	
 	// Add some example customizations
 	config.Scanner.Workers = 8
-	config.Scanner.MLValidation.Enabled = true
-	config.Scanner.MLValidation.ModelPath = "models/deberta"
-	config.Scanner.MLValidation.TokenizerPath = "models/tokenizer"
 	
 	config.Report.Formats = []string{"html", "csv", "sarif"}
 	

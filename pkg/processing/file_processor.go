@@ -65,7 +65,6 @@ type ProcessorConfig struct {
 	MaxFileSize     int64
 	EnablePatterns  bool
 	EnableGitleaks  bool
-	EnableML        bool
 }
 
 // DefaultProcessorConfig returns sensible defaults
@@ -76,7 +75,6 @@ func DefaultProcessorConfig() ProcessorConfig {
 		MaxFileSize:     10 * 1024 * 1024, // 10MB
 		EnablePatterns:  true,
 		EnableGitleaks:  true,
-		EnableML:        false, // Disabled by default until ML is implemented
 	}
 }
 

@@ -26,18 +26,8 @@ type ScannerConfig struct {
 	ExcludePaths      []string          `yaml:"exclude_paths"`
 	MaxFileSize       int64             `yaml:"max_file_size"`
 	Timeout           time.Duration     `yaml:"timeout"`
-	MLValidation      MLConfig          `yaml:"ml_validation"`
 	Validators        ValidatorConfig   `yaml:"validators"`
 	ProximityDistance int               `yaml:"proximity_distance"`
-}
-
-// MLConfig contains ML model settings
-type MLConfig struct {
-	Enabled          bool    `yaml:"enabled"`
-	ModelPath        string  `yaml:"model_path"`
-	TokenizerPath    string  `yaml:"tokenizer_path"`
-	ConfidenceThreshold float64 `yaml:"confidence_threshold"`
-	BatchSize        int     `yaml:"batch_size"`
 }
 
 // ValidatorConfig contains validator settings
@@ -245,14 +235,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Scanner.ProximityDistance == 0 {
 		c.Scanner.ProximityDistance = 10
-	}
-
-	// ML defaults
-	if c.Scanner.MLValidation.ConfidenceThreshold == 0 {
-		c.Scanner.MLValidation.ConfidenceThreshold = 0.7
-	}
-	if c.Scanner.MLValidation.BatchSize == 0 {
-		c.Scanner.MLValidation.BatchSize = 32
 	}
 
 	// Risk defaults

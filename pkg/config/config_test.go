@@ -21,9 +21,6 @@ version: "1.0"
 scanner:
   workers: 8
   max_file_size: 5242880
-  ml_validation:
-    enabled: true
-    model_path: "/path/to/model"
 risk:
   thresholds:
     critical: 0.9
@@ -43,8 +40,7 @@ risk:
 	assert.Equal(t, "1.0", config.Version)
 	assert.Equal(t, 8, config.Scanner.Workers)
 	assert.Equal(t, int64(5242880), config.Scanner.MaxFileSize)
-	assert.True(t, config.Scanner.MLValidation.Enabled)
-	assert.Equal(t, "/path/to/model", config.Scanner.MLValidation.ModelPath)
+	// ML validation removed
 	assert.Equal(t, 0.9, config.Risk.Thresholds.Critical)
 	assert.Equal(t, 0.7, config.Risk.Thresholds.High)
 }
@@ -214,9 +210,7 @@ func TestConfig_applyDefaults(t *testing.T) {
 	assert.Equal(t, int64(10*1024*1024), config.Scanner.MaxFileSize)
 	assert.Equal(t, 10, config.Scanner.ProximityDistance)
 
-	// Check ML defaults
-	assert.Equal(t, 0.7, config.Scanner.MLValidation.ConfidenceThreshold)
-	assert.Equal(t, 32, config.Scanner.MLValidation.BatchSize)
+	// ML validation removed
 
 	// Check risk defaults
 	assert.Equal(t, 0.8, config.Risk.Thresholds.Critical)
@@ -316,7 +310,7 @@ func TestExampleConfig(t *testing.T) {
 
 	// Verify example customizations
 	assert.Equal(t, 8, config.Scanner.Workers)
-	assert.True(t, config.Scanner.MLValidation.Enabled)
+	// ML validation removed
 	assert.Contains(t, config.Report.Formats, "sarif")
 	assert.Equal(t, "${GITHUB_TOKEN}", config.Github.Token)
 }

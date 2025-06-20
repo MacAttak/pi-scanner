@@ -31,7 +31,7 @@ func newRootCmd() *cobra.Command {
 in code repositories with a focus on Australian regulatory compliance.
 
 It uses a multi-stage detection pipeline combining pattern matching,
-machine learning validation, and algorithmic verification to achieve
+context validation, and algorithmic verification to achieve
 high accuracy with minimal false positives.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()

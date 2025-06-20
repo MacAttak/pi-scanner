@@ -195,8 +195,8 @@ Feature: ML-based PI validation
 ```
 
 #### Testing Strategy
-- [ ] Unit tests for tokenizer
-- [ ] Integration tests for ONNX runtime
+- [ ] Unit tests for context validation
+- [ ] Integration tests for validation pipeline
 - [ ] Performance benchmarks for inference
 - [ ] Fallback tests when ML unavailable
 

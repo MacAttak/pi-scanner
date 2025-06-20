@@ -5,7 +5,7 @@ A high-performance scanner for detecting Australian Personal Information (PI) in
 ## Features
 
 - **Australian PI Detection**: Specialized detection for TFN, ABN, Medicare numbers, BSB codes, ACN, and driver licenses
-- **Multi-Stage Detection Pipeline**: Pattern matching, Gitleaks integration, and ML-based validation
+- **Context-Aware Detection**: Pattern matching with intelligent context validation and confidence scoring
 - **High Performance**: Concurrent processing with worker pools
 - **Enterprise Ready**: Batch processing, comprehensive reporting, and CI/CD integration
 - **Compliance Focused**: Designed for Australian Privacy Act and Notifiable Data Breach compliance
@@ -20,45 +20,30 @@ export GITHUB_TOKEN="your-github-token"
 
 # Run with Docker
 docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  ghcr.io/your-org/pi-scanner:latest \
+  ghcr.io/macattak/pi-scanner:latest \
   scan --repo octocat/Hello-World
 ```
 
 ### Installation
 
-#### Prerequisites
-
-The PI Scanner requires ONNX Runtime for ML-based validation:
-
-**macOS:**
-```bash
-brew install libomp onnxruntime
-```
-
-**Linux:**
-```bash
-# Download and install ONNX Runtime
-wget https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz
-tar -xvf onnxruntime-linux-x64-1.22.0.tgz
-sudo cp onnxruntime-linux-x64-1.22.0/lib/* /usr/local/lib/
-sudo ldconfig
-```
-
-**Windows:**
-Download ONNX Runtime from [GitHub Releases](https://github.com/microsoft/onnxruntime/releases) and add to PATH.
-
 #### Building from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/github-pi-scanner.git
-cd github-pi-scanner
+git clone https://github.com/MacAttak/pi-scanner.git
+cd pi-scanner
+
+# Setup development environment
+make setup
 
 # Build the binary
-go build -o pi-scanner ./cmd/pi-scanner
+make build
 
-# Or install directly
-go install github.com/your-org/github-pi-scanner/cmd/pi-scanner@latest
+# Or use Go directly
+go build -o bin/pi-scanner ./cmd/pi-scanner
+
+# Install to system PATH
+make install
 ```
 
 ## Usage
@@ -121,9 +106,9 @@ detection:
   gitleaks:
     enabled: true
     config_path: "gitleaks.toml"
-  ml:
+  context:
     enabled: true
-    model_path: "~/.pi-scanner/models/deberta-pi-classifier.onnx"
+    proximity_distance: 10
 
 # Performance settings
 performance:
@@ -247,11 +232,10 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ## Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/github-pi-scanner/issues)
-- **Security**: Please report security vulnerabilities to security@your-org.com
+- **Issues**: [GitHub Issues](https://github.com/MacAttak/pi-scanner/issues)
+- **Security**: Please report security vulnerabilities via GitHub Security tab
 
 ## Acknowledgments
 
-- ONNX Runtime by Microsoft
 - Gitleaks by Zachary Rice
 - Australian Government for PI validation algorithms

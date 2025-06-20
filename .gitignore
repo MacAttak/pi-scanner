@@ -38,14 +38,12 @@ Thumbs.db
 # Security scan reports
 gosec-report.json
 trivy-results.sarif
+security-audit-*/
 
 # Test artifacts
 test-results/
 *.log
 
-# ML models (will be downloaded)
-models/
-*.onnx
 
 # Temporary files
 tmp/

@@ -5,7 +5,7 @@
 A CLI-first, multi-layer PI scanner purpose-built for Commonwealth Bank
 source repositories. It combines Gitleaks and regex for broad PI
 exposure detection, advances accuracy and context validation with ML/NLP
-models (e.g., DeBERTa PII), and incorporates algorithmic verification
+context validation, and incorporates algorithmic verification
 for Australian-specific identifiers (TFN, Medicare, etc.). Results are
 context-scored for business and regulatory risk using AU banking
 policies, flagging critical combinations (e.g., name + address + bank
@@ -89,7 +89,7 @@ risk analysis before scaling to CI/CD integration.
     - **Stage 1:** Gitleaks + custom regex for PI type detection (broad
       net, configurable).
 
-    - **Stage 2:** ML/NLP model (e.g., DeBERTa PII) for
+    - **Stage 2:** Context validation using code-aware analysis for
       semantic/contextual validation, reducing false positives.
 
     - **Stage 3:** Algorithmic validation for Australian-specific
@@ -179,7 +179,7 @@ risk analysis before scaling to CI/CD integration.
 
 2.  **Step 2: Multi-Layer Detection and Scoring**
 
-    - Scanner applies Gitleaks/regex, pipes matches to ML model for
+    - Scanner applies Gitleaks/regex, pipes matches to context validator for
       semantic validation, and applies AU-specific validation.
 
     - Results are contextually scored:
@@ -366,7 +366,7 @@ CBA’s repositories are under rigorous, regulation-grade PI surveillance.
 
 **Phase 2: ML/NLP & Contextual Scoring (Week 2)**
 
-- Key Deliverables: ML/NLP integration (e.g., DeBERTa PII); risk logic
+- Key Deliverables: Context validation integration; risk logic
   and score mapping; initial suppression/tuning config
 
 - Dependencies: Access to ML models, CBA regulatory rules

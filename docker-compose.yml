@@ -5,8 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        ONNX_VERSION: "1.22.0"
     image: pi-scanner:latest
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
@@ -14,7 +12,6 @@ services:
     volumes:
       - ./output:/home/scanner/output
       - ./config:/home/scanner/config
-      - pi-scanner-models:/home/scanner/.pi-scanner/models
     command: scan --repo github/docs --output /home/scanner/output/scan-results.json
 
   # Development container with shell access
@@ -22,8 +19,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        ONNX_VERSION: "1.22.0"
     image: pi-scanner:latest
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
@@ -31,7 +26,6 @@ services:
     volumes:
       - ./output:/home/scanner/output
       - ./config:/home/scanner/config
-      - pi-scanner-models:/home/scanner/.pi-scanner/models
       - .:/workspace:ro  # Mount source code for reference
     entrypoint: /bin/bash
     stdin_open: true
@@ -43,11 +37,9 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder
-      args:
-        ONNX_VERSION: "1.22.0"
     image: pi-scanner:test
     environment:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     volumes:
       - ./coverage:/coverage
     working_dir: /build
@@ -58,8 +50,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        ONNX_VERSION: "1.22.0"
     image: pi-scanner:latest
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
@@ -68,9 +58,4 @@ services:
       - ./output:/home/scanner/output
       - ./config:/home/scanner/config
       - ./repo-lists:/home/scanner/repo-lists
-      - pi-scanner-models:/home/scanner/.pi-scanner/models
     command: scan --repo-list /home/scanner/repo-lists/australian-repos.txt --output /home/scanner/output/batch-results.json
-
-volumes:
-  pi-scanner-models:
-    driver: local

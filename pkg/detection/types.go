@@ -12,6 +12,7 @@ const (
 	PITypeTFN          PIType = "TFN"
 	PITypeMedicare     PIType = "MEDICARE"
 	PITypeABN          PIType = "ABN"
+	PITypeACN          PIType = "ACN"
 	PITypeBSB          PIType = "BSB"
 	PITypeEmail        PIType = "EMAIL"
 	PITypePhone        PIType = "PHONE"
@@ -136,13 +137,18 @@ type Config struct {
 	CustomPatterns  []string `yaml:"custom_patterns"`
 	
 	// Validation
-	EnableValidation bool    `yaml:"enable_validation"`
-	ValidateChecksums bool   `yaml:"validate_checksums"`
+	EnableValidation      bool    `yaml:"enable_validation"`
+	ValidateChecksums     bool    `yaml:"validate_checksums"`
+	EnableContextValidation bool  `yaml:"enable_context_validation"`
 	
 	// Context analysis
 	TestPathPatterns []string `yaml:"test_path_patterns"`
 	MockPathPatterns []string `yaml:"mock_path_patterns"`
 	ExcludePaths     []string `yaml:"exclude_paths"`
+	
+	// Confidence thresholds
+	MinConfidenceThreshold  float32            `yaml:"min_confidence_threshold"`
+	ContextConfidenceBoost  float32            `yaml:"context_confidence_boost"`
 	
 	// Risk scoring
 	RiskWeights      map[PIType]int `yaml:"risk_weights"`
@@ -157,18 +163,52 @@ type Config struct {
 // DefaultConfig returns the default detection configuration
 func DefaultConfig() *Config {
 	return &Config{
-		EnableRegex:      true,
-		EnableGitleaks:   true,
-		EnableValidation: true,
-		ValidateChecksums: true,
+		EnableRegex:           true,
+		EnableGitleaks:        true,
+		EnableValidation:      true,
+		ValidateChecksums:     true,
+		EnableContextValidation: true,
 		
 		TestPathPatterns: []string{
+			// Go test patterns
 			"*_test.go",
 			"*/test/*",
 			"*/tests/*",
 			"*/testdata/*",
 			"**/fixtures/*",
 			"*/spec/*",
+			
+			// Java test patterns
+			"*Test.java",
+			"*Tests.java",
+			"*/src/test/*",
+			"*/test/java/*",
+			"*/test/resources/*",
+			
+			// Scala test patterns
+			"*Test.scala",
+			"*Tests.scala", 
+			"*Spec.scala",
+			"*Suite.scala",
+			"*/src/test/*",
+			"*/test/scala/*",
+			
+			// Python test patterns
+			"test_*.py",
+			"*_test.py",
+			"*/tests/*",
+			"*/test/*",
+			"test*.py",
+			"conftest.py",
+			
+			// JavaScript/TypeScript test patterns
+			"*.test.js",
+			"*.test.ts",
+			"*.spec.js", 
+			"*.spec.ts",
+			"*/__tests__/*",
+			"*/test/*",
+			"*/tests/*",
 		},
 		
 		MockPathPatterns: []string{
@@ -186,12 +226,17 @@ func DefaultConfig() *Config {
 			"*.min.css",
 		},
 		
+		// Confidence settings
+		MinConfidenceThreshold: 0.6,
+		ContextConfidenceBoost: 0.2,
+		
 		RiskWeights: map[PIType]int{
 			PITypeTFN:        100,
 			PITypeMedicare:   90,
 			PITypeCreditCard: 90,
 			PITypePassport:   80,
 			PITypeABN:        60,
+			PITypeACN:        60,
 			PITypeBSB:        50,
 			PITypeAccount:    50,
 			PITypeName:       40,

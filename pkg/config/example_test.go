@@ -17,12 +17,10 @@ func ExampleLoadConfig() {
 	}
 
 	fmt.Printf("Workers: %d\n", cfg.Scanner.Workers)
-	fmt.Printf("ML Enabled: %v\n", cfg.Scanner.MLValidation.Enabled)
 	fmt.Printf("Risk Threshold (Critical): %.1f\n", cfg.Risk.Thresholds.Critical)
 
 	// Output:
 	// Workers: 4
-	// ML Enabled: false
 	// Risk Threshold (Critical): 0.8
 }
 
@@ -75,9 +73,6 @@ func ExampleMergeConfig() {
 	override := &config.Config{
 		Scanner: config.ScannerConfig{
 			Workers: 8,
-			MLValidation: config.MLConfig{
-				Enabled: true,
-			},
 		},
 	}
 
@@ -85,11 +80,9 @@ func ExampleMergeConfig() {
 	merged := config.MergeConfig(base, override)
 
 	fmt.Printf("Workers: %d\n", merged.Scanner.Workers)
-	fmt.Printf("ML Enabled: %v\n", merged.Scanner.MLValidation.Enabled)
 	fmt.Printf("File Types Count: %d\n", len(merged.Scanner.FileTypes))
 
 	// Output:
 	// Workers: 8
-	// ML Enabled: false
 	// File Types Count: 34
 }

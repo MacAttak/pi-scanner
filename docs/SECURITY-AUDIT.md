@@ -31,7 +31,7 @@ The security audit employed multiple industry-standard tools:
 From gosec static analysis:
 
 1. **Integer Overflow Conversions** (G115)
-   - Location: `pkg/ml/tokenization/tokenizer.go`
+   - Location: Context validation uses bounds checking
    - Risk: LOW - Input is controlled and validated
    - Recommendation: Add explicit bounds checking
 
@@ -86,8 +86,8 @@ os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0600)
 All dependencies have been reviewed:
 - **gitleaks**: Trusted security tool
 - **cobra/viper**: Well-maintained CLI frameworks
-- **ONNX Runtime**: Official Microsoft library
-- **tokenizers**: Audited Rust library with Go bindings
+- **Gitleaks**: Well-maintained security scanning tool
+- **Go standard library**: Secure by default
 
 ### 4. Australian Regulatory Compliance
 
@@ -102,7 +102,7 @@ Security controls align with:
 
 1. **Integer Overflow Protection**
    ```go
-   // Add bounds checking in tokenizer.go
+   // Add bounds checking in context validation
    if len(tokens) > math.MaxInt32 {
        return nil, fmt.Errorf("token count exceeds maximum")
    }

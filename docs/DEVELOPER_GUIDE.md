@@ -5,7 +5,6 @@
 - [Setting Up Development Environment](#setting-up-development-environment)
 - [Building the Application](#building-the-application)
 - [Running Tests](#running-tests)
-- [ML/AI Components](#mlai-components)
 - [Docker Development](#docker-development)
 - [Troubleshooting](#troubleshooting)
 
@@ -26,8 +25,6 @@
 # Install required dependencies
 brew install go
 brew install git
-brew install libomp
-brew install onnxruntime
 ```
 
 #### Linux (Ubuntu/Debian)
@@ -41,25 +38,20 @@ sudo snap install go --classic
 # Install Git
 sudo apt install git
 
-# Download ONNX Runtime
-wget https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz
-tar -xvf onnxruntime-linux-x64-1.22.0.tgz
-sudo cp onnxruntime-linux-x64-1.22.0/lib/* /usr/local/lib/
-sudo ldconfig
+# No additional runtime dependencies needed
 ```
 
 #### Windows
 1. Install Go from https://go.dev/dl/
 2. Install Git from https://git-scm.com/download/win
-3. Download ONNX Runtime from https://github.com/microsoft/onnxruntime/releases
-4. Extract and add the DLL location to your PATH
+3. Ready to go - no additional dependencies
 
 ## Setting Up Development Environment
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/github-pi-scanner.git
-cd github-pi-scanner
+git clone https://github.com/MacAttak/pi-scanner.git
+cd pi-scanner
 ```
 
 ### 2. Install Go Dependencies
@@ -88,43 +80,55 @@ gh auth login
 
 ## Building the Application
 
+### Using Make (Recommended)
+```bash
+# Setup development environment
+make setup
+
+# Build the binary
+make build
+
+# Install to system PATH
+make install
+```
+
 ### Standard Build
 ```bash
 # Build the binary
-go build -o pi-scanner ./cmd/pi-scanner
+go build -o bin/pi-scanner ./cmd/pi-scanner
 
 # Build with optimizations
-go build -ldflags="-s -w" -o pi-scanner ./cmd/pi-scanner
+go build -ldflags="-s -w" -o bin/pi-scanner ./cmd/pi-scanner
 ```
 
 ### Cross-Platform Build
 ```bash
-# Build for Linux
-GOOS=linux GOARCH=amd64 go build -o pi-scanner-linux ./cmd/pi-scanner
+# Build for all platforms using Make
+make build-all
 
-# Build for Windows
-GOOS=windows GOARCH=amd64 go build -o pi-scanner.exe ./cmd/pi-scanner
-
-# Build for macOS (Intel)
-GOOS=darwin GOARCH=amd64 go build -o pi-scanner-darwin-amd64 ./cmd/pi-scanner
-
-# Build for macOS (Apple Silicon)
-GOOS=darwin GOARCH=arm64 go build -o pi-scanner-darwin-arm64 ./cmd/pi-scanner
+# Or build manually for specific platforms
+GOOS=linux GOARCH=amd64 go build -o bin/pi-scanner-linux ./cmd/pi-scanner
+GOOS=windows GOARCH=amd64 go build -o bin/pi-scanner.exe ./cmd/pi-scanner
+GOOS=darwin GOARCH=amd64 go build -o bin/pi-scanner-darwin-amd64 ./cmd/pi-scanner
+GOOS=darwin GOARCH=arm64 go build -o bin/pi-scanner-darwin-arm64 ./cmd/pi-scanner
 ```
 
 ## Running Tests
 
 ### Unit Tests
 ```bash
-# Run all tests
-go test ./...
+# Run all tests using Make
+make test
 
 # Run tests with coverage
-go test -cover ./...
+make test-coverage
 
-# Run tests with detailed coverage report
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out -o coverage.html
+# Run tests with race detector
+make test-race
+
+# Or use Go directly
+go test ./...
+go test -cover ./...
 ```
 
 ### Integration Tests
@@ -151,94 +155,28 @@ go test -bench=. ./...
 go test -bench=BenchmarkPatternDetection ./pkg/detection/...
 ```
 
-## ML/AI Components
-
-### ML/AI Dependencies
-
-#### ONNX Runtime Setup
-
-The ML inference component uses ONNX Runtime for running DeBERTa models. The library paths are automatically detected, but you can also set them manually:
-
-```bash
-# macOS
-export ONNX_RUNTIME_PATH="/opt/homebrew/lib/libonnxruntime.dylib"
-
-# Linux
-export ONNX_RUNTIME_PATH="/usr/local/lib/libonnxruntime.so"
-
-# Windows
-set ONNX_RUNTIME_PATH="C:\onnxruntime\lib\onnxruntime.dll"
-```
-
-#### HuggingFace Tokenizers
-
-The ML component uses the `daulet/tokenizers` Go bindings for HuggingFace tokenizers:
-
-1. **Build Requirements**:
-   ```bash
-   # The library requires libtokenizers.a
-   # Option 1: Use prebuilt binaries from releases
-   wget https://github.com/daulet/tokenizers/releases/download/v1.20.2/libtokenizers.a
-   
-   # Option 2: Build from source
-   git clone https://github.com/daulet/tokenizers
-   cd tokenizers
-   make build
-   ```
-
-2. **Linking Configuration**:
-   ```bash
-   # Add to your environment
-   export CGO_LDFLAGS="-L/path/to/libtokenizers/directory"
-   
-   # Or use with go run
-   go run -ldflags="-extldflags '-L/path/to/libtokenizers/directory'" .
-   ```
-
-3. **Supported Models**:
-   - All HuggingFace models with `tokenizer.json`
-   - DeBERTa v3 models for PI validation
-   - BERT, RoBERTa, and other transformer models
-
-### Downloading ML Models
-
-Models will be automatically downloaded on first use, but you can pre-download them:
-
-```bash
-# Download DeBERTa model for PI validation
-./scripts/download-models.sh
-```
-
-### ML Development
-
-To work on ML components:
-1. Ensure ONNX Runtime is properly installed
-2. Models are stored in `~/.pi-scanner/models/`
-3. Use the mock runtime for unit tests: `go test ./pkg/ml/inference -short`
 
 ## Docker Development
 
 ### Building Docker Image
 ```bash
-# Build the Docker image
-docker build -t pi-scanner:latest .
+# Build using Make
+make docker-build
 
-# Build with specific ONNX Runtime version
-docker build --build-arg ONNX_VERSION=1.22.0 -t pi-scanner:latest .
+# Or build directly
+docker build -t pi-scanner:latest .
 ```
 
 ### Running with Docker
 ```bash
-# Run scan with Docker
+# Run using Make
+make docker-run ARGS="scan --repo github/docs"
+
+# Or run directly
 docker run --rm \
   -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  -v $(pwd)/output:/output \
+  -v $(pwd)/output:/home/scanner/output \
   pi-scanner:latest scan --repo github/docs
-
-# Interactive shell
-docker run --rm -it \
-  -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  pi-scanner:latest /bin/bash
 ```
 
 ### Docker Compose for Development
@@ -257,36 +195,25 @@ services:
 
 ## Troubleshooting
 
-### ONNX Runtime Issues
-
-#### Library Not Found
-```
-Error: failed to initialize ONNX runtime environment: Error loading ONNX shared library
-```
-
-**Solution:**
-- macOS: `brew install onnxruntime`
-- Linux: Download from GitHub releases and install to `/usr/local/lib`
-- Windows: Add ONNX Runtime DLL to PATH
-
-#### Version Mismatch
-```
-Error: ONNX Runtime version mismatch
-```
-
-**Solution:**
-Ensure you have ONNX Runtime 1.22.0 installed to match the Go bindings.
-
 ### Build Issues
 
-#### CGO Errors
-```
-# Ensure CGO is enabled
-export CGO_ENABLED=1
+#### Go Module Issues
+```bash
+# Clean module cache
+go clean -modcache
 
-# Set proper compiler flags for macOS
-export CGO_CFLAGS="-I/opt/homebrew/include"
-export CGO_LDFLAGS="-L/opt/homebrew/lib"
+# Re-download dependencies
+go mod download
+go mod verify
+```
+
+#### Binary Not Found
+```bash
+# Ensure binary directory exists
+mkdir -p bin
+
+# Build with full path
+make build
 ```
 
 ### GitHub API Rate Limits
@@ -325,16 +252,16 @@ git checkout -b feature/your-feature-name
 ### 3. Run Quality Checks
 ```bash
 # Format code
-go fmt ./...
+make fmt
 
 # Run linter
-golangci-lint run
+make lint
 
 # Run tests
-go test ./...
+make test
 
 # Check coverage
-go test -cover ./...
+make test-coverage
 ```
 
 ### 4. Commit Changes
@@ -352,9 +279,9 @@ git push origin feature/your-feature-name
 ## Additional Resources
 
 - [Go Documentation](https://go.dev/doc/)
-- [ONNX Runtime Documentation](https://onnxruntime.ai/docs/)
 - [GitHub API Documentation](https://docs.github.com/en/rest)
 - [Australian PI Standards](https://www.oaic.gov.au/)
+- [Gitleaks Documentation](https://github.com/gitleaks/gitleaks)
 
 ## Contributing
 

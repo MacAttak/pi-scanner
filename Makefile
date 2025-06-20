@@ -9,7 +9,7 @@ GO_CLEAN=$(GO_CMD) clean
 GO_GET=$(GO_CMD) get
 GO_MOD=$(GO_CMD) mod
 BINARY_DIR=bin
-LDFLAGS=-ldflags="-s -w -extldflags '-L./lib'"
+LDFLAGS=-ldflags="-s -w"
 
 # Platform detection
 UNAME_S := $(shell uname -s)
@@ -17,13 +17,6 @@ UNAME_M := $(shell uname -m)
 
 # Set CGO flags
 export CGO_ENABLED=1
-export CGO_LDFLAGS=-L${PWD}/lib
-export CGO_CFLAGS=-I${PWD}/lib/tokenizers-src
-
-# For runtime linking on macOS
-export DYLD_LIBRARY_PATH:=${PWD}/lib:$(DYLD_LIBRARY_PATH)
-# For Linux  
-export LD_LIBRARY_PATH:=${PWD}/lib:$(LD_LIBRARY_PATH)
 
 # Targets
 .PHONY: all build test clean deps run help setup
@@ -36,12 +29,6 @@ help: ## Display this help message
 setup: ## Setup development environment
 	@echo "Setting up development environment..."
 	@mkdir -p $(BINARY_DIR)
-	@mkdir -p lib
-	@echo "Note: tokenizers library must be built from source for v1.20.2"
-	@echo "Please build the tokenizers library manually:"
-	@echo "  1. cd lib/tokenizers-src"
-	@echo "  2. make build"
-	@echo "  3. cd ../.. && cp lib/tokenizers-src/libtokenizers.a lib/"
 	@echo "Setup complete!"
 
 deps: ## Download and verify dependencies
@@ -72,10 +59,6 @@ test: ## Run all tests
 test-short: ## Run tests in short mode (no integration tests)
 	@echo "Running tests in short mode..."
 	$(GO_TEST) -short -v ./...
-
-test-no-ml: ## Run tests excluding ML packages
-	@echo "Running tests (excluding ML)..."
-	$(GO_TEST) -v $$(go list ./... | grep -v '/ml')
 
 test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."

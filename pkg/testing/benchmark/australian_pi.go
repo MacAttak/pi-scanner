@@ -5,10 +5,15 @@ import (
 )
 
 // GenerateAustralianPITestCases creates a comprehensive set of test cases for Australian PI detection
+// DEPRECATED: Use GenerateComprehensiveTestDataset() for 200+ test cases
 func GenerateAustralianPITestCases() *BenchmarkDataset {
+	// For backward compatibility, return a subset of the comprehensive dataset
+	// comprehensive := GenerateComprehensiveTestDataset()
+	
+	// Create a smaller dataset with representative samples
 	dataset := &BenchmarkDataset{}
 
-	// TRUE POSITIVES - Actual PI in production code
+	// Sample TRUE POSITIVES - Actual PI in production code
 	dataset.TruePositives = []TestCase{
 		{
 			ID:         "au-tfn-001",

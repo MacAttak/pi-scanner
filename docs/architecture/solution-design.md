@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The GitHub PI Scanner is a CLI-first tool designed to detect and risk-score personally identifiable information (PII) in Commonwealth Bank code repositories. It employs a three-stage detection pipeline combining pattern matching, machine learning validation, and algorithmic verification to achieve >95% accuracy with <5% false positives.
+The GitHub PI Scanner is a CLI-first tool designed to detect and risk-score personally identifiable information (PII) in Commonwealth Bank code repositories. It employs a three-stage detection pipeline combining pattern matching, context validation, and algorithmic verification to achieve >95% accuracy with <5% false positives.
 
 The solution prioritizes:
 - **High accuracy** through multi-layer validation
@@ -33,8 +33,8 @@ The solution prioritizes:
 │                                                                  │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
 │  │   Stage 1    │    │   Stage 2    │    │   Stage 3    │     │
-│  │Pattern Match │───▶│ML Validation │───▶│  AU Verify   │     │
-│  │ (Gitleaks+   │    │  (DeBERTa)   │    │ (Checksums)  │     │
+│  │Pattern Match │───▶│Context Valid │───▶│  AU Verify   │     │
+│  │ (Gitleaks+   │    │(Code-Aware)  │    │ (Checksums)  │     │
 │  │   Regex)     │    │              │    │              │     │
 │  └──────────────┘    └──────────────┘    └──────────────┘     │
 │                                                                  │
@@ -122,27 +122,28 @@ keywords = ["medicare", "health card"]
 
 **Performance**: Parallel file processing with worker pool
 
-#### Stage 2: ML Validation
+#### Stage 2: Context Validation
 
-**Model**: DeBERTa-v3-xsmall (22M parameters)
-**Deployment**: ONNX Runtime for CPU inference
+**Approach**: Code-aware context analysis
+**Implementation**: Pure Go without external dependencies
 
 **Implementation**:
 ```go
-type MLValidator struct {
-    model      *onnxruntime.Session
-    tokenizer  *transformers.Tokenizer
-    threshold  float32 // 0.85 default
+type ContextValidator struct {
+    codePatterns    *CodePatternAnalyzer
+    proximityEngine *ProximityAnalyzer  
+    syntaxAnalyzer  *SyntaxContextAnalyzer
 }
 
-func (v *MLValidator) Validate(context string, match string) (confidence float32, piType string) {
-    // Tokenize context window around match
-    // Run inference
-    // Return confidence and detected PI type
+func (v *ContextValidator) Validate(finding Finding, fileContent string) ValidationResult {
+    // Check if in test/mock context
+    // Analyze code proximity patterns
+    // Verify syntax context (comments, strings)
+    // Return confidence and validation result
 }
 ```
 
-**Context Window**: ±50 tokens around detected pattern
+**Context Window**: ±10 lines around detected pattern
 
 #### Stage 3: Australian Validation
 
@@ -343,7 +344,7 @@ While not the initial focus, the architecture supports:
 - Simple risk scoring
 
 ### Phase 2: ML Integration (Week 2)
-- DeBERTa model integration
+- Context validation integration
 - Context extraction
 - Confidence scoring
 - Test data detection

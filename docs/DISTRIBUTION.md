@@ -8,23 +8,14 @@ This document outlines the distribution strategy for the PI Scanner artifacts, i
 
 ### 1. Binary Releases
 
-#### Native Build with ML Support
-- **Target**: macOS ARM64 (current build platform)
-- **Package**: `pi-scanner-darwin-arm64-ml.tar.gz`
-- **Includes**:
-  - Pre-compiled binary with embedded tokenizers
-  - libtokenizers.a static library
-  - Default configuration file
-  - README with usage instructions
-- **Size**: ~12.9 MB compressed
-
-#### Cross-Platform Builds (No ML)
+#### Cross-Platform Builds
 - **Targets**:
   - macOS Intel: `pi-scanner-darwin-amd64.tar.gz` (~3.8 MB)
   - Linux x64: `pi-scanner-linux-amd64.tar.gz` (~3.7 MB)
   - Linux ARM64: `pi-scanner-linux-arm64.tar.gz` (~3.4 MB)
   - Windows x64: `pi-scanner-windows-amd64.zip` (~3.9 MB)
-- **Note**: These builds use CGO_ENABLED=0 for maximum portability but lack ML validation
+- **Features**: Pure Go builds with full context validation capabilities
+- **Note**: Built with CGO_ENABLED=0 for maximum portability
 
 ### 2. Docker Images
 
@@ -36,8 +27,8 @@ docker pull ghcr.io/MacAttak/pi-scanner:1.0.0
 ```
 
 #### Features:
-- Built on Ubuntu 22.04 base for compatibility
-- Includes all dependencies (tokenizers, ONNX Runtime)
+- Built on Alpine Linux for minimal size
+- Pure Go implementation with no external dependencies
 - Non-root user execution for security
 - Volume mounts for reports and configuration
 
@@ -46,7 +37,7 @@ docker pull ghcr.io/MacAttak/pi-scanner:1.0.0
 #### GitHub Release
 - Source code archive (automatically created by GitHub)
 - Includes all source files, tests, and documentation
-- Does not include pre-built tokenizers library
+- Ready to build with standard Go toolchain
 
 ## Distribution Channels
 
