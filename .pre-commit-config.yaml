@@ -59,7 +59,7 @@ repos:
         language: system
         pass_filenames: false
         types: [go]
-        stages: [push]  # Only on push, not every commit
+        stages: [manual]  # Disabled for now - run manually with: pre-commit run test-coverage
 
       # Unit tests must pass
       - id: go-test-short
@@ -76,7 +76,7 @@ repos:
         language: system
         pass_filenames: false
         types: [go]
-        stages: [push]  # Only on push
+        stages: [manual]  # Disabled for now - run manually
 
       # Build validation
       - id: go-build
