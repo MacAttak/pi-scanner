@@ -127,9 +127,11 @@ func (pm *PatternMatcher) compilePatterns() {
 	pm.formFieldPattern = regexp.MustCompile(`(?i)` + strings.Join([]string{
 		`<input[^>]*>`,                  // HTML input tags
 		`<textarea[^>]*>.*?</textarea>`, // HTML textarea
-		`<select[^>]*>.*?</select>`,     // HTML select
+		`<select[^>]*>`,                 // HTML select (opening tag)
+		`<option[^>]*>`,                 // HTML option tags
 		`&\w+=[^&\s]*`,                  // Form data key=value with & prefix
 		`\?\w+=[^&\s]*`,                 // Query string parameters
+		`\w+=[^&\s%]*%[0-9A-Fa-f]{2}`,   // URL encoded parameters
 		`^\s*\{.*"\w+"\s*:\s*"[^"]*"`,   // JSON object (more specific pattern)
 	}, "|"))
 
@@ -159,13 +161,14 @@ func (pm *PatternMatcher) compilePatterns() {
 
 	// Configuration patterns
 	pm.configPattern = regexp.MustCompile(strings.Join([]string{
-		`^\s*[a-z_][a-z0-9_]*\s*=\s*[^=]`,                           // Key=value assignments (lowercase keys)
-		`(?i)\w+\.\w+(\.\w+)*\s*=\s*[^=\[]`,                         // Properties format like app.config.value= (not array access)
-		`^\s*[a-z_][a-z0-9_]*\s*:\s*[^:]`,                           // YAML style key: value (lowercase keys only)
-		`(?i)export\s+\w+\s*=`,                                      // Environment variable exports
-		`(?i)\[\w+\]`,                                               // INI section headers
-		`(?i)(default|fallback|initial|config|setting)_[a-z_]+\s*=`, // Default/fallback/config values (lowercase)
-		`(?i)\w+_(tfn|ssn|medicare|abn|bsb)_\w+\s*=`,                // Config patterns with PI type names
+		`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*[^=]`,                 // Key=value assignments (any case)
+		`(?i)\w+\.\w+(\.\w+)*\s*=\s*[^=\[]`,                     // Properties format like app.config.value= (not array access)
+		`^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:\s*[^:]`,                 // YAML style key: value (any case)
+		`(?i)export\s+\w+\s*=`,                                  // Environment variable exports
+		`(?i)\[\w+\]`,                                           // INI section headers
+		`(?i)(default|fallback|initial|config|setting)_\w+\s*=`, // Default/fallback/config values (any case)
+		`(?i)\w+_(tfn|ssn|medicare|abn|bsb)_\w+\s*=`,            // Config patterns with PI type names
+		`\{[^}]*"[^"]+"\s*:\s*"[^"]+"\s*\}`,                     // JSON object pattern
 	}, "|"))
 
 	// Variable patterns

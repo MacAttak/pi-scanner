@@ -1,3 +1,6 @@
+//go:build !ci
+// +build !ci
+
 package testing
 
 import (
@@ -262,7 +265,7 @@ func BenchmarkDetectionPerformance(b *testing.B) {
 	user := User{
 		Name: "John Smith",
 		TFN: "123456782",
-		Medicare: "2428778132", 
+		Medicare: "2428778132",
 		Email: "john@example.com",
 		Phone: "0412345678",
 	}

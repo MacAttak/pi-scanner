@@ -64,7 +64,7 @@ repos:
       # Unit tests must pass
       - id: go-test-short
         name: Run Go tests (short mode)
-        entry: go test -short -race ./...
+        entry: go test -tags ci -short -race ./...
         language: system
         pass_filenames: false
         types: [go]

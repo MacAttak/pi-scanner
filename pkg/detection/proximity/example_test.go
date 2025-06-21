@@ -29,7 +29,7 @@ func ExampleProximityDetector() {
 
 	// Output:
 	// Test data - Score: 0.10, Is Test: true, Reason: test data indicator
-	// Real PI - Score: 0.66, Is Test: false, Reason: PI context label detected
+	// Real PI - Score: 0.90, Is Test: false, Reason: PI context label detected
 	// Form field - Score: 0.80, Context: form, Reason: form field context
 }
 

@@ -1,6 +1,6 @@
 {
   "repository": null,
-  "scan_started": "2025-06-21T10:30:23.408136+10:00",
+  "scan_started": "2025-06-21T13:43:46.201436+10:00",
   "scan_finished": "0001-01-01T00:00:00Z",
   "duration": 0,
   "files_scanned": 0,
@@ -14,5 +14,5 @@
     "findings_by_risk": {},
     "processing_time": 0
   },
-  "error": "Failed to clone repository: failed to clone repository: git command failed: exit status 128 (output: Cloning into '/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750465823767849000/repo'...\nremote: Repository not found.\nfatal: repository 'https://github.com/test/repo.git/' not found\n)"
+  "error": "Failed to clone repository: failed to clone repository: git command failed: exit status 128 (output: Cloning into '/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1750477426635141000/repo'...\nremote: Repository not found.\nfatal: repository 'https://github.com/test/repo.git/' not found\n)"
 }

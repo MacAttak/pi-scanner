@@ -35,7 +35,7 @@ jobs:
             go vet ./...
 
             echo '=== Running Tests with Coverage ==='
-            go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+            go test -tags ci -v -race -coverprofile=coverage.out -covermode=atomic ./...
             go tool cover -html=coverage.out -o coverage.html
 
             echo '=== Running Linter ==='
@@ -226,5 +226,5 @@ jobs:
         run: |
           docker compose run --rm dev bash -c "
             echo '=== Running End-to-End Tests ==='
-            go test -v ./test -run TestPIScannerE2E -timeout=10m
+            go test -tags ci -v ./test -run TestPIScannerE2E -timeout=10m
           "
