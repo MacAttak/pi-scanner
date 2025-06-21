@@ -41,7 +41,7 @@ jobs:
             go tool cover -html=coverage.out -o coverage.html
 
             echo '=== Running Linter ==='
-            golangci-lint run --timeout=5m
+            GOROOT=/usr/local/go golangci-lint run --timeout=5m
 
             echo '=== Test Results Summary ==='
             echo 'All tests passed!'
