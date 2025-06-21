@@ -56,7 +56,8 @@ RUN mkdir -p /go/bin /go/src /go/pkg
 
 # Copy go mod files for dependency caching
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go clean -cache -modcache -testcache -fuzzcache && \
+    go mod download
 
 # Set git safe directory (for mounted volumes)
 RUN git config --global --add safe.directory /workspace

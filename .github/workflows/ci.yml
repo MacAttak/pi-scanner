@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build development environment
-        run: docker compose build dev
+        run: docker compose build --no-cache dev
 
       - name: Run comprehensive test suite
         env:
@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build development environment
-        run: docker compose build dev
+        run: docker compose build --no-cache dev
 
       - name: Run security scans
         continue-on-error: true
@@ -129,7 +129,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build development environment
-        run: docker compose build dev
+        run: docker compose build --no-cache dev
 
       - name: Build binary for ${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
@@ -163,7 +163,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build development environment
-        run: docker compose build dev
+        run: docker compose build --no-cache dev
 
       - name: Run benchmarks
         run: |
@@ -216,7 +216,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build development environment
-        run: docker compose build dev
+        run: docker compose build --no-cache dev
 
       - name: Run E2E tests
         env:
