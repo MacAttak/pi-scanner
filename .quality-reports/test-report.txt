@@ -1,0 +1,358 @@
+ok  	github.com/MacAttak/pi-scanner/cmd/pi-scanner	2.559s	coverage: 37.9% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/config	0.392s	coverage: 91.5% of statements
+	github.com/MacAttak/pi-scanner/pkg/context		coverage: 0.0% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/detection	2.678s	coverage: 70.2% of statements
+Test data - Score: 0.10, Is Test: true, Reason: test data indicator
+Real PI - Score: 0.90, Is Test: false, Reason: PI context label detected
+Form field - Score: 0.80, Context: form, Reason: form field context
+--- FAIL: TestPatternMatcher_FormFieldPatterns (0.00s)
+    --- FAIL: TestPatternMatcher_FormFieldPatterns/HTML_select (0.00s)
+        patterns_test.go:256:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/proximity/patterns_test.go:256
+            	Error:      	Not equal:
+            	            	expected: true
+            	            	actual  : false
+            	Test:       	TestPatternMatcher_FormFieldPatterns/HTML_select
+            	Messages:   	Case: HTML select
+    --- FAIL: TestPatternMatcher_FormFieldPatterns/URL_encoded (0.00s)
+        patterns_test.go:256:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/proximity/patterns_test.go:256
+            	Error:      	Not equal:
+            	            	expected: true
+            	            	actual  : false
+            	Test:       	TestPatternMatcher_FormFieldPatterns/URL_encoded
+            	Messages:   	Case: URL encoded
+--- FAIL: TestPatternMatcher_ConfigurationPatterns (0.00s)
+    --- FAIL: TestPatternMatcher_ConfigurationPatterns/JSON_config (0.00s)
+        patterns_test.go:387:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/proximity/patterns_test.go:387
+            	Error:      	Not equal:
+            	            	expected: true
+            	            	actual  : false
+            	Test:       	TestPatternMatcher_ConfigurationPatterns/JSON_config
+            	Messages:   	Case: JSON config
+    --- FAIL: TestPatternMatcher_ConfigurationPatterns/Uppercase (0.00s)
+        patterns_test.go:387:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/proximity/patterns_test.go:387
+            	Error:      	Not equal:
+            	            	expected: true
+            	            	actual  : false
+            	Test:       	TestPatternMatcher_ConfigurationPatterns/Uppercase
+            	Messages:   	Case: Uppercase
+    --- FAIL: TestPatternMatcher_ConfigurationPatterns/Mixed_case (0.00s)
+        patterns_test.go:387:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/proximity/patterns_test.go:387
+            	Error:      	Not equal:
+            	            	expected: true
+            	            	actual  : false
+            	Test:       	TestPatternMatcher_ConfigurationPatterns/Mixed_case
+            	Messages:   	Case: Mixed case
+--- FAIL: ExampleProximityDetector (0.00s)
+got:
+Test data - Score: 0.10, Is Test: true, Reason: test data indicator
+Real PI - Score: 0.90, Is Test: false, Reason: PI context label detected
+Form field - Score: 0.80, Context: form, Reason: form field context
+want:
+Test data - Score: 0.10, Is Test: true, Reason: test data indicator
+Real PI - Score: 0.66, Is Test: false, Reason: PI context label detected
+Form field - Score: 0.80, Context: form, Reason: form field context
+FAIL
+coverage: 76.7% of statements
+FAIL	github.com/MacAttak/pi-scanner/pkg/detection/proximity	1.357s
+ok  	github.com/MacAttak/pi-scanner/pkg/discovery	1.167s	coverage: 75.6% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/processing	3.751s	coverage: 75.0% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/report	1.765s	coverage: 89.3% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/repository	4.516s	coverage: 58.6% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/scoring	2.229s	coverage: 85.4% of statements
+--- FAIL: TestComprehensiveBusinessValidation (0.00s)
+    --- FAIL: TestComprehensiveBusinessValidation/Overall_Quality_Metrics (0.00s)
+        comprehensive_business_test.go:29:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:29
+            	Error:      	"0.31802965088474416" is not greater than or equal to "0.8"
+            	Test:       	TestComprehensiveBusinessValidation/Overall_Quality_Metrics
+            	Messages:   	Overall score should be at least 80% for enterprise deployment
+        comprehensive_business_test.go:32:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:32
+            	Error:      	"0.24390243902439024" is not greater than or equal to "0.85"
+            	Test:       	TestComprehensiveBusinessValidation/Overall_Quality_Metrics
+            	Messages:   	Accuracy should be at least 85% for production use
+        comprehensive_business_test.go:35:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:35
+            	Error:      	"0.5882352941176471" is not greater than or equal to "0.8"
+            	Test:       	TestComprehensiveBusinessValidation/Overall_Quality_Metrics
+            	Messages:   	Precision should be at least 80% to minimize false positives
+        comprehensive_business_test.go:38:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:38
+            	Error:      	"0.29411764705882354" is not greater than or equal to "0.75"
+            	Test:       	TestComprehensiveBusinessValidation/Overall_Quality_Metrics
+            	Messages:   	Recall should be at least 75% to catch most PI
+        comprehensive_business_test.go:41:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:41
+            	Error:      	"0.3921568627450981" is not greater than or equal to "0.77"
+            	Test:       	TestComprehensiveBusinessValidation/Overall_Quality_Metrics
+            	Messages:   	F1 score should balance precision and recall effectively
+    --- FAIL: TestComprehensiveBusinessValidation/Language-Specific_Performance (0.00s)
+        comprehensive_business_test.go:61:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:61
+            	Error:      	"0" is not greater than or equal to "0.8"
+            	Test:       	TestComprehensiveBusinessValidation/Language-Specific_Performance
+            	Messages:   	Java detection should have F1 score >= 80%
+        comprehensive_business_test.go:67:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:67
+            	Error:      	"0" is not greater than or equal to "0.75"
+            	Test:       	TestComprehensiveBusinessValidation/Language-Specific_Performance
+            	Messages:   	Python detection should have F1 score >= 75%
+        comprehensive_business_test.go:73:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:73
+            	Error:      	"0.25" is not greater than or equal to "0.75"
+            	Test:       	TestComprehensiveBusinessValidation/Language-Specific_Performance
+            	Messages:   	Scala detection should have F1 score >= 75%
+    --- FAIL: TestComprehensiveBusinessValidation/PI_Type_Detection_Rates (0.00s)
+        comprehensive_business_test.go:83:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:83
+            	Error:      	"0.3333333333333333" is not greater than or equal to "0.9"
+            	Test:       	TestComprehensiveBusinessValidation/PI_Type_Detection_Rates
+            	Messages:   	Critical PI type TFN should have detection rate >= 90%!(NOVERB)
+        comprehensive_business_test.go:83:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:83
+            	Error:      	"0.14285714285714285" is not greater than or equal to "0.9"
+            	Test:       	TestComprehensiveBusinessValidation/PI_Type_Detection_Rates
+            	Messages:   	Critical PI type MEDICARE should have detection rate >= 90%!(NOVERB)
+        comprehensive_business_test.go:92:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:92
+            	Error:      	"0.42857142857142855" is not greater than or equal to "0.8"
+            	Test:       	TestComprehensiveBusinessValidation/PI_Type_Detection_Rates
+            	Messages:   	High-risk PI type BSB should have detection rate >= 80%!(NOVERB)
+    --- FAIL: TestComprehensiveBusinessValidation/Complexity_Handling (0.00s)
+        comprehensive_business_test.go:107:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:107
+            	Error:      	"0.6" is not greater than or equal to "0.8"
+            	Test:       	TestComprehensiveBusinessValidation/Complexity_Handling
+            	Messages:   	Medium complexity code should have accuracy >= 80%
+        comprehensive_business_test.go:113:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:113
+            	Error:      	"0.038461538461538464" is not greater than or equal to "0.7"
+            	Test:       	TestComprehensiveBusinessValidation/Complexity_Handling
+            	Messages:   	Complex code should have accuracy >= 70%
+    comprehensive_business_test.go:136: Business Validation Results:
+    comprehensive_business_test.go:137:   Overall Score: 31.80%
+    comprehensive_business_test.go:138:   Accuracy: 24.39%
+    comprehensive_business_test.go:139:   Precision: 58.82%
+    comprehensive_business_test.go:140:   Recall: 29.41%
+    comprehensive_business_test.go:141:   F1 Score: 39.22%
+    comprehensive_business_test.go:142:   Context Accuracy: 100.00%
+    comprehensive_business_test.go:143:   Performance: 3605.2 files/sec
+    comprehensive_business_test.go:144:   Risk Level: CRITICAL
+    comprehensive_business_test.go:147: Language Results:
+    comprehensive_business_test.go:149:   yaml: Precision=0.00%, Recall=0.00%, F1=0.00%
+    comprehensive_business_test.go:149:   text: Precision=100.00%, Recall=90.00%, F1=94.74%
+    comprehensive_business_test.go:149:   java: Precision=0.00%, Recall=0.00%, F1=0.00%
+    comprehensive_business_test.go:149:   scala: Precision=50.00%, Recall=16.67%, F1=25.00%
+    comprehensive_business_test.go:149:   python: Precision=0.00%, Recall=0.00%, F1=0.00%
+    comprehensive_business_test.go:153: PI Type Results:
+    comprehensive_business_test.go:155:   PHONE: Detection=33.33%, Precision=100.00%, Confidence=0.80
+    comprehensive_business_test.go:155:   IP_ADDRESS: Detection=0.00%, Precision=0.00%, Confidence=0.00
+    comprehensive_business_test.go:155:   ABN: Detection=100.00%, Precision=100.00%, Confidence=0.95
+    comprehensive_business_test.go:155:   TFN: Detection=33.33%, Precision=100.00%, Confidence=0.95
+    comprehensive_business_test.go:155:   BSB: Detection=42.86%, Precision=42.86%, Confidence=0.95
+    comprehensive_business_test.go:155:   NAME: Detection=10.00%, Precision=12.50%, Confidence=0.80
+    comprehensive_business_test.go:155:   MEDICARE: Detection=14.29%, Precision=100.00%, Confidence=0.95
+    comprehensive_business_test.go:155:   EMAIL: Detection=50.00%, Precision=50.00%, Confidence=0.80
+    comprehensive_business_test.go:160: Recommendations:
+    comprehensive_business_test.go:162:   1. Overall detection accuracy below 80% - review detection patterns
+    comprehensive_business_test.go:162:   2. High false positive rate - enhance context filtering
+    comprehensive_business_test.go:162:   3. Missing PI detections - review pattern completeness
+    comprehensive_business_test.go:167: Full Business Validation Report:
+
+        # Business Validation Report
+
+        **Test:** Comprehensive Business Validation
+        **Timestamp:** 2025-06-21 10:21:32
+        **Overall Score:** 31.80%
+
+        ## Key Metrics
+        - **Accuracy:** 24.39%
+        - **Precision:** 58.82%
+        - **Recall:** 29.41%
+        - **F1 Score:** 39.22%
+        - **Context Accuracy:** 100.00%
+
+        ## Performance
+        - **Files/Second:** 3605.2
+        - **Bytes/Second:** 3637073
+        - **Average Processing Time:** 277.375µs
+
+        ## Risk Assessment
+        - **Risk Level:** CRITICAL
+        - **Critical Findings:** 10
+        - **High Risk Findings:** 1
+
+        ## Recommendations
+        1. Overall detection accuracy below 80% - review detection patterns
+        2. High false positive rate - enhance context filtering
+        3. Missing PI detections - review pattern completeness
+--- FAIL: TestBusinessMetricsDetectionAccuracy (0.00s)
+    --- FAIL: TestBusinessMetricsDetectionAccuracy/Government_Service_Integration (0.00s)
+        comprehensive_business_test.go:235:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:235
+            	Error:      	"0" is not greater than "0"
+            	Test:       	TestBusinessMetricsDetectionAccuracy/Government_Service_Integration
+            	Messages:   	Should detect PI in government service
+        comprehensive_business_test.go:241:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:241
+            	Error:      	"0" is not greater than or equal to "0.8"
+            	Test:       	TestBusinessMetricsDetectionAccuracy/Government_Service_Integration
+            	Messages:   	Government service samples should have >= 80% detection rate
+    --- FAIL: TestBusinessMetricsDetectionAccuracy/Healthcare_System (0.00s)
+        comprehensive_business_test.go:283:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/comprehensive_business_test.go:283
+            	Error:      	Should be true
+            	Test:       	TestBusinessMetricsDetectionAccuracy/Healthcare_System
+            	Messages:   	Should detect Medicare numbers in healthcare system
+Evaluating detector: Pattern+Context
+  P:75.4% R:71.0% F1:73.1% (TP:49 FP:16 TN:32 FN:20)
+Evaluating detector: Pattern-Only
+  P:67.6% R:72.5% F1:69.9% (TP:50 FP:24 TN:24 FN:19)
+Evaluating detector: Pattern-Only
+  P:67.6% R:72.5% F1:69.9% (TP:50 FP:24 TN:24 FN:19)
+Evaluating detector: Pattern+Context
+  P:75.4% R:71.0% F1:73.1% (TP:49 FP:16 TN:32 FN:20)
+Evaluating detector: Pattern-Only
+  P:53.3% R:100.0% F1:69.6% (TP:8 FP:7 TN:3 FN:0)
+Evaluating detector: Pattern+Context
+  P:62.5% R:62.5% F1:62.5% (TP:5 FP:3 TN:7 FN:3)
+Evaluating detector: Pattern-Only
+  P:53.3% R:100.0% F1:69.6% (TP:8 FP:7 TN:3 FN:0)
+Evaluating detector: Pattern+Context
+  P:62.5% R:62.5% F1:62.5% (TP:5 FP:3 TN:7 FN:3)
+--- FAIL: TestPIDetectionQuality (0.00s)
+    quality_test.go:16: 🧪 Running PI Detection Quality Assessment
+    quality_test.go:20: 📊 Dataset: 18 test cases (6 true positives, 6 true negatives, 3 edge cases)
+    quality_test.go:66: Gitleaks detector not available: failed to read gitleaks config: open configs/gitleaks.toml: no such file or directory
+    quality_test.go:48: 📋 Quality Assessment Results:
+    quality_test.go:49: PI Detection Quality Assessment Report
+        Generated: 2025-06-21 10:21:32
+
+        Dataset Statistics:
+        - Total test cases: 18
+        - True positives: 6
+        - True negatives: 6
+        - Edge cases: 3
+
+        Comparison of 2 detector configurations:
+
+        Pattern-Only: P:53.3% R:100.0% F1:69.6% (TP:8 FP:7 TN:3 FN:0)
+        Pattern+Context: P:62.5% R:62.5% F1:62.5% (TP:5 FP:3 TN:7 FN:3)
+
+        Best Performance:
+        - Precision: 62.5% (Pattern+Context)
+        - Recall:    100.0% (Pattern-Only)
+        - F1-Score:  69.6% (Pattern-Only)
+
+        Quality Grades:
+        - Pattern-Only: Grade C (70.8%)
+        - Pattern+Context: Grade D (62.5%)
+
+    quality_test.go:97: 🎯 Precision Comparison:
+    quality_test.go:98:   Pattern-Only:    53.3%
+    quality_test.go:99:   Pattern+Context: 62.5%
+    quality_test.go:103: ✅ Context validation improved precision by 9.2%
+    quality_test.go:113: 🎯 Recall Comparison:
+    quality_test.go:114:   Pattern-Only:    100.0%
+    quality_test.go:115:   Pattern+Context: 62.5%
+    quality_test.go:120: ⚠️  Context validation significantly reduced recall
+    quality_test.go:133: 🎯 Pattern-Only Performance:
+    quality_test.go:134:   Precision: 53.3% (min: 70.0%)
+    quality_test.go:135:   Recall:    100.0% (min: 75.0%)
+    quality_test.go:136:   F1-Score:  69.6% (min: 70.0%)
+    quality_test.go:142:   ❌ Precision below threshold
+    quality_test.go:146:   ✅ Recall meets threshold
+    quality_test.go:154:   ❌ F1-Score below threshold
+    quality_test.go:133: 🎯 Pattern+Context Performance:
+    quality_test.go:134:   Precision: 62.5% (min: 70.0%)
+    quality_test.go:135:   Recall:    62.5% (min: 75.0%)
+    quality_test.go:136:   F1-Score:  62.5% (min: 70.0%)
+    quality_test.go:142:   ❌ Precision below threshold
+    quality_test.go:148:   ❌ Recall below threshold
+    quality_test.go:154:   ❌ F1-Score below threshold
+    quality_test.go:159:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:159
+        	            				/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:55
+        	Error:      	"0.625" is not greater than or equal to "0.7"
+        	Test:       	TestPIDetectionQuality
+        	Messages:   	Context validation should achieve minimum precision
+    quality_test.go:161:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:161
+        	            				/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:55
+        	Error:      	"0.625" is not greater than or equal to "0.7"
+        	Test:       	TestPIDetectionQuality
+        	Messages:   	Context validation should achieve minimum F1-Score
+    quality_test.go:172: 📊 Performance by Context:
+    quality_test.go:177:   production: P=83.3% R=71.4% (TP:5 FP:1 TN:2 FN:2)
+    quality_test.go:190:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:190
+        	            				/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:58
+        	Error:      	"0.7142857142857143" is not greater than or equal to "0.8"
+        	Test:       	TestPIDetectionQuality
+        	Messages:   	Production context should maintain high recall
+    quality_test.go:177:   comment: P=0.0% R=0.0% (TP:0 FP:0 TN:2 FN:0)
+    quality_test.go:184:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:184
+        	            				/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:58
+        	Error:      	"0" is not greater than or equal to "0.8"
+        	Test:       	TestPIDetectionQuality
+        	Messages:   	Test and comment contexts should have high precision
+    quality_test.go:177:   test: P=0.0% R=0.0% (TP:0 FP:0 TN:2 FN:0)
+    quality_test.go:184:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:184
+        	            				/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/quality_test.go:58
+        	Error:      	"0" is not greater than or equal to "0.8"
+        	Test:       	TestPIDetectionQuality
+        	Messages:   	Test and comment contexts should have high precision
+    quality_test.go:177:   validation: P=0.0% R=0.0% (TP:0 FP:1 TN:0 FN:0)
+    quality_test.go:177:   mock: P=0.0% R=0.0% (TP:0 FP:0 TN:1 FN:0)
+    quality_test.go:177:   logging: P=0.0% R=0.0% (TP:0 FP:0 TN:0 FN:1)
+    quality_test.go:177:   query: P=0.0% R=0.0% (TP:0 FP:1 TN:0 FN:0)
+--- FAIL: TestPhoneRegexPatterns (0.00s)
+    regex_debug_test.go:31: Input: 0412345678 - Expected: true - Found: true - Matches: [0412345678]
+    regex_debug_test.go:31: Input: 0412 345 678 - Expected: true - Found: true - Matches: [0412 345 678]
+    regex_debug_test.go:31: Input: +61412345678 - Expected: true - Found: true - Matches: [61412345678]
+    regex_debug_test.go:31: Input: +61 412 345 678 - Expected: true - Found: true - Matches: [61 412 345 678]
+    regex_debug_test.go:31: Input: (02) 9999 9999 - Expected: true - Found: false - Matches: []
+    regex_debug_test.go:35: Pattern mismatch for (02) 9999 9999
+    regex_debug_test.go:31: Input: 1300123456 - Expected: true - Found: true - Matches: [1300123456]
+    regex_debug_test.go:31: Input: 1800123456 - Expected: true - Found: true - Matches: [1800123456]
+    regex_debug_test.go:31: Input: 1300 123 456 - Expected: true - Found: true - Matches: [1300 123 456]
+    regex_debug_test.go:31: Input: 61412345678 - Expected: true - Found: true - Matches: [61412345678]
+FAIL
+coverage: 91.7% of statements
+FAIL	github.com/MacAttak/pi-scanner/pkg/testing	2.474s
+	github.com/MacAttak/pi-scanner/pkg/testing/benchmark		coverage: 0.0% of statements
+	github.com/MacAttak/pi-scanner/pkg/testing/datasets		coverage: 0.0% of statements
+	github.com/MacAttak/pi-scanner/pkg/testing/evaluation		coverage: 0.0% of statements
+--- FAIL: TestMultiLanguageAustralianPIDetection (0.00s)
+    --- FAIL: TestMultiLanguageAustralianPIDetection/ACN (0.00s)
+        multi_language_test.go:173: ACN detection rate: 66.7% (2/3)
+        multi_language_test.go:177:
+            	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/languages/multi_language_test.go:177
+            	Error:      	"0.6666666666666666" is not greater than or equal to "0.8"
+            	Test:       	TestMultiLanguageAustralianPIDetection/ACN
+            	Messages:   	Detection rate for ACN should be at least 80.0%
+--- FAIL: TestMultiLanguageContextFiltering (0.00s)
+    multi_language_test.go:205: Test context not properly suppressed in java-test-tfn-001: found 1 findings
+    multi_language_test.go:205: Test context not properly suppressed in java-annotation-pi-001: found 2 findings
+    multi_language_test.go:205: Test context not properly suppressed in scala-test-tfn-001: found 1 findings
+    multi_language_test.go:205: Test context not properly suppressed in scala-pattern-match-pi-001: found 2 findings
+    multi_language_test.go:205: Test context not properly suppressed in python-test-tfn-001: found 1 findings
+    multi_language_test.go:205: Test context not properly suppressed in python-pytest-param-001: found 3 findings
+    multi_language_test.go:214: Test context suppression rate: 33.3% (3/9)
+    multi_language_test.go:219:
+        	Error Trace:	/Users/dmccarthy/Projects/github-pi-scanner/pkg/testing/languages/multi_language_test.go:219
+        	Error:      	"0.3333333333333333" is not greater than or equal to "0.7"
+        	Test:       	TestMultiLanguageContextFiltering
+        	Messages:   	Test context suppression rate should be at least 70.0%
+FAIL
+coverage: 90.0% of statements
+FAIL	github.com/MacAttak/pi-scanner/pkg/testing/languages	2.381s
+	github.com/MacAttak/pi-scanner/pkg/testing/metrics		coverage: 0.0% of statements
+ok  	github.com/MacAttak/pi-scanner/pkg/validation	2.601s	coverage: 95.5% of statements

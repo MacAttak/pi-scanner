@@ -1,0 +1,28 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/MacAttak/pi-scanner/pkg/detection
+cpu: Apple M4 Pro
+BenchmarkDetector_Detect-14       	  145574	     81242 ns/op	   27410 B/op	     282 allocs/op
+BenchmarkDetector_LargeFile-14    	    7209	   1687444 ns/op	   35281 B/op	      94 allocs/op
+PASS
+ok  	github.com/MacAttak/pi-scanner/pkg/detection	25.268s
+# ./pkg/detection/patterns
+stat /Users/dmccarthy/Projects/github-pi-scanner/pkg/detection/patterns: directory not found
+FAIL	./pkg/detection/patterns [setup failed]
+FAIL
+goos: darwin
+goarch: arm64
+pkg: github.com/MacAttak/pi-scanner/pkg/validation
+cpu: Apple M4 Pro
+BenchmarkTFNValidator-14    	 5623588	      1976 ns/op	    5471 B/op	      70 allocs/op
+BenchmarkABNValidator-14    	 5541656	      2096 ns/op	    5699 B/op	      74 allocs/op
+PASS
+ok  	github.com/MacAttak/pi-scanner/pkg/validation	27.319s
+# ./pkg/risk
+no Go files in /Users/dmccarthy/Projects/github-pi-scanner/pkg/risk
+FAIL	./pkg/risk [setup failed]
+FAIL
+# ./pkg/scanner
+no Go files in /Users/dmccarthy/Projects/github-pi-scanner/pkg/scanner
+FAIL	./pkg/scanner [setup failed]
+FAIL

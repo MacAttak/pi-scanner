@@ -1,0 +1,275 @@
+#!/bin/bash
+# Enhanced Pre-push hook with Quality Gates for GitHub PI Scanner
+# This hook enforces quality standards before pushing to the repository
+
+set -euo pipefail
+
+# Quality gate configuration
+ENFORCE_COVERAGE="${ENFORCE_COVERAGE:-true}"
+ENFORCE_BENCHMARKS="${ENFORCE_BENCHMARKS:-false}"
+MIN_COVERAGE="${MIN_COVERAGE:-70}"
+QUALITY_REPORTS_DIR=".quality-reports"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Create reports directory
+mkdir -p "$QUALITY_REPORTS_DIR"
+
+# Function to print colored output
+print_status() {
+    if [ $1 -eq 0 ]; then
+        echo -e "${GREEN}✓ $2${NC}"
+    else
+        echo -e "${RED}✗ $2${NC}"
+        return 1
+    fi
+}
+
+# Track overall status and quality score
+FAILED=0
+QUALITY_CHECKS=0
+QUALITY_PASSED=0
+
+# Helper to track quality metrics
+track_quality() {
+    ((QUALITY_CHECKS++))
+    if [ $1 -eq 0 ]; then
+        ((QUALITY_PASSED++))
+    fi
+}
+
+echo "🚀 Running Enhanced Pre-push Quality Gates..."
+echo "============================================"
+
+# 1. Code Formatting
+echo -e "\n${BLUE}[1/10] Code Formatting${NC}"
+if [ -n "$(gofmt -l .)" ]; then
+    echo -e "${RED}✗ Go formatting issues found in:${NC}"
+    gofmt -l .
+    FAILED=1
+else
+    echo -e "${GREEN}✓ Go formatting${NC}"
+fi
+track_quality $?
+
+# 2. Import Organization
+echo -e "\n${BLUE}[2/10] Import Organization${NC}"
+if command -v goimports >/dev/null 2>&1; then
+    if [ -n "$(goimports -l .)" ]; then
+        echo -e "${RED}✗ Import issues found${NC}"
+        FAILED=1
+    else
+        echo -e "${GREEN}✓ Imports properly organized${NC}"
+    fi
+    track_quality $?
+else
+    echo -e "${YELLOW}⚠ goimports not installed${NC}"
+fi
+
+# 3. Static Analysis
+echo -e "\n${BLUE}[3/10] Static Analysis${NC}"
+if go vet ./... > "$QUALITY_REPORTS_DIR/vet.log" 2>&1; then
+    echo -e "${GREEN}✓ Go vet passed${NC}"
+    track_quality 0
+else
+    echo -e "${RED}✗ Go vet failed (see $QUALITY_REPORTS_DIR/vet.log)${NC}"
+    FAILED=1
+    track_quality 1
+fi
+
+# 4. Module Tidiness
+echo -e "\n${BLUE}[4/10] Module Tidiness${NC}"
+cp go.mod go.mod.bak
+cp go.sum go.sum.bak
+go mod tidy
+if ! cmp -s go.mod go.mod.bak || ! cmp -s go.sum go.sum.bak; then
+    rm go.mod.bak go.sum.bak
+    echo -e "${RED}✗ go.mod/go.sum not tidy. Run: go mod tidy${NC}"
+    FAILED=1
+    track_quality 1
+else
+    rm go.mod.bak go.sum.bak
+    echo -e "${GREEN}✓ go.mod is tidy${NC}"
+    track_quality 0
+fi
+
+# 5. Test Coverage
+echo -e "\n${BLUE}[5/10] Test Coverage${NC}"
+if [ "$ENFORCE_COVERAGE" = "true" ]; then
+    if go test -coverprofile="$QUALITY_REPORTS_DIR/coverage.out" ./... > "$QUALITY_REPORTS_DIR/test.log" 2>&1; then
+        COVERAGE=$(go tool cover -func="$QUALITY_REPORTS_DIR/coverage.out" | grep total | awk '{print $3}' | sed 's/%//')
+        COVERAGE_INT=${COVERAGE%.*}
+
+        if [ "$COVERAGE_INT" -ge "$MIN_COVERAGE" ]; then
+            echo -e "${GREEN}✓ Test coverage: ${COVERAGE}% (threshold: ${MIN_COVERAGE}%)${NC}"
+            track_quality 0
+        else
+            echo -e "${RED}✗ Test coverage: ${COVERAGE}% is below ${MIN_COVERAGE}% threshold${NC}"
+            FAILED=1
+            track_quality 1
+        fi
+
+        # Show package breakdown
+        echo "  Package coverage:"
+        go tool cover -func="$QUALITY_REPORTS_DIR/coverage.out" | grep -E "^github.com/MacAttak/pi-scanner/(pkg|cmd)" | head -5 | while read -r line; do
+            pkg=$(echo "$line" | awk '{print $1}' | sed 's|github.com/MacAttak/pi-scanner/||')
+            cov=$(echo "$line" | awk '{print $3}')
+            printf "    %-30s %s\n" "$pkg" "$cov"
+        done
+    else
+        echo -e "${RED}✗ Tests failed (see $QUALITY_REPORTS_DIR/test.log)${NC}"
+        FAILED=1
+        track_quality 1
+    fi
+else
+    echo -e "${YELLOW}⚠ Coverage enforcement disabled${NC}"
+fi
+
+# 6. Race Detection
+echo -e "\n${BLUE}[6/10] Race Detection${NC}"
+if go test -race -short ./... > "$QUALITY_REPORTS_DIR/race.log" 2>&1; then
+    echo -e "${GREEN}✓ No race conditions detected${NC}"
+    track_quality 0
+else
+    echo -e "${RED}✗ Race conditions detected (see $QUALITY_REPORTS_DIR/race.log)${NC}"
+    FAILED=1
+    track_quality 1
+fi
+
+# 7. Linting
+echo -e "\n${BLUE}[7/10] Code Linting${NC}"
+if command -v golangci-lint >/dev/null 2>&1; then
+    if golangci-lint run --timeout=5m > "$QUALITY_REPORTS_DIR/lint.log" 2>&1; then
+        echo -e "${GREEN}✓ Linting passed${NC}"
+        track_quality 0
+    else
+        echo -e "${RED}✗ Linting failed${NC}"
+        echo "  Common issues found:"
+        grep -E "Error:|Warning:" "$QUALITY_REPORTS_DIR/lint.log" | head -5
+        FAILED=1
+        track_quality 1
+    fi
+else
+    echo -e "${YELLOW}⚠ golangci-lint not installed${NC}"
+fi
+
+# 8. Security Scan
+echo -e "\n${BLUE}[8/10] Security Scan${NC}"
+if command -v gosec >/dev/null 2>&1; then
+    if gosec -fmt json -out "$QUALITY_REPORTS_DIR/security.json" -severity medium ./... 2>/dev/null; then
+        echo -e "${GREEN}✓ Security scan passed${NC}"
+        track_quality 0
+    else
+        echo -e "${YELLOW}⚠ Security issues found (non-blocking)${NC}"
+        if command -v jq >/dev/null 2>&1; then
+            ISSUES=$(jq -r '.Issues | length' "$QUALITY_REPORTS_DIR/security.json")
+            echo "  Found $ISSUES security issues"
+        fi
+        track_quality 1
+    fi
+else
+    echo -e "${YELLOW}⚠ gosec not installed${NC}"
+fi
+
+# 9. Secret Detection
+echo -e "\n${BLUE}[9/10] Secret Detection${NC}"
+if command -v gitleaks >/dev/null 2>&1; then
+    if gitleaks detect --no-banner --report-path "$QUALITY_REPORTS_DIR/secrets.json" 2>/dev/null; then
+        echo -e "${GREEN}✓ No secrets detected${NC}"
+        track_quality 0
+    else
+        echo -e "${RED}✗ Potential secrets detected${NC}"
+        FAILED=1
+        track_quality 1
+    fi
+else
+    echo -e "${YELLOW}⚠ gitleaks not installed${NC}"
+fi
+
+# 10. Performance Benchmarks (optional)
+echo -e "\n${BLUE}[10/10] Performance Benchmarks${NC}"
+if [ "$ENFORCE_BENCHMARKS" = "true" ]; then
+    if command -v bc >/dev/null 2>&1; then
+        echo "  Running critical benchmarks..."
+        BENCH_FAILED=0
+
+        # Run benchmarks for detection package
+        if go test -bench=BenchmarkDetector -benchtime=10s -run=^$ ./pkg/detection > "$QUALITY_REPORTS_DIR/bench.log" 2>&1; then
+            OPS_PER_SEC=$(grep "BenchmarkDetector" "$QUALITY_REPORTS_DIR/bench.log" | awk '{print $3}' | head -1)
+            if [ -n "$OPS_PER_SEC" ]; then
+                OPS=$(echo "scale=0; 1000000000 / $OPS_PER_SEC" | bc 2>/dev/null || echo "0")
+                if [ "$OPS" -ge 1000 ]; then
+                    echo -e "  ${GREEN}✓ Detection performance: $OPS ops/sec (>1000 required)${NC}"
+                else
+                    echo -e "  ${RED}✗ Detection performance: $OPS ops/sec (<1000 required)${NC}"
+                    BENCH_FAILED=1
+                fi
+            fi
+        fi
+
+        if [ "$BENCH_FAILED" -eq 0 ]; then
+            track_quality 0
+        else
+            FAILED=1
+            track_quality 1
+        fi
+    else
+        echo -e "${YELLOW}⚠ bc not installed, skipping benchmark calculations${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠ Benchmark enforcement disabled${NC}"
+fi
+
+# Calculate quality score
+QUALITY_SCORE=$((QUALITY_PASSED * 100 / QUALITY_CHECKS))
+
+# Generate quality summary
+cat > "$QUALITY_REPORTS_DIR/pre-push-summary.json" << EOF
+{
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "quality_score": $QUALITY_SCORE,
+  "checks_total": $QUALITY_CHECKS,
+  "checks_passed": $QUALITY_PASSED,
+  "coverage": ${COVERAGE:-0},
+  "failed": $FAILED
+}
+EOF
+
+# Summary
+echo -e "\n${BLUE}Quality Gate Summary${NC}"
+echo "===================="
+echo -e "Quality Score: ${QUALITY_SCORE}%"
+echo -e "Checks Passed: ${QUALITY_PASSED}/${QUALITY_CHECKS}"
+
+if [ -n "${COVERAGE:-}" ]; then
+    echo -e "Test Coverage: ${COVERAGE}%"
+fi
+
+# Show quality badge
+if [ "$QUALITY_SCORE" -ge 90 ]; then
+    echo -e "\n${GREEN}🏆 Excellent code quality!${NC}"
+elif [ "$QUALITY_SCORE" -ge 70 ]; then
+    echo -e "\n${YELLOW}📊 Good code quality${NC}"
+else
+    echo -e "\n${RED}⚠️  Code quality needs improvement${NC}"
+fi
+
+# Final status
+echo ""
+if [ $FAILED -eq 0 ]; then
+    echo -e "${GREEN}✅ All quality gates passed! Ready to push.${NC}"
+else
+    echo -e "${RED}❌ Quality gates failed. Please fix the issues before pushing.${NC}"
+    echo -e "${YELLOW}💡 Tips:${NC}"
+    echo "  - Run 'make quality-check' for detailed analysis"
+    echo "  - Run 'make coverage' to see coverage report"
+    echo "  - Check $QUALITY_REPORTS_DIR/ for detailed reports"
+    exit 1
+fi
+
+exit 0

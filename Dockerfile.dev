@@ -1,0 +1,67 @@
+# Development Environment Dockerfile
+# This ensures local development environment matches CI exactly
+
+FROM ubuntu:24.04
+
+# Set environment variables
+ENV GO_VERSION=1.23.9
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    ca-certificates \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go (detect architecture)
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "arm64" ]; then GOARCH="arm64"; else GOARCH="amd64"; fi && \
+    wget -q https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-${GOARCH}.tar.gz && \
+    rm go${GO_VERSION}.linux-${GOARCH}.tar.gz
+
+# Install development tools (exact versions as CI)
+ENV CGO_ENABLED=0
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
+RUN go install golang.org/x/vuln/cmd/govulncheck@latest
+
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Trivy for security scanning
+RUN wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add - \
+    && echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list \
+    && apt-get update \
+    && apt-get install -y trivy \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy go mod files for dependency caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Set git safe directory (for mounted volumes)
+RUN git config --global --add safe.directory /workspace
+
+# Create non-root user for development
+RUN useradd -m -s /bin/bash developer && \
+    usermod -aG sudo developer && \
+    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER developer
+
+# Default command
+CMD ["/bin/bash"]

@@ -156,7 +156,7 @@ func (pd *ProximityDetector) IdentifyPIContext(content, match string, startIndex
 	// Extract larger context for analysis
 	contextBefore, contextAfter := pd.analyzer.ExtractSurroundingText(content, startIndex, endIndex, 50)
 	fullContext := contextBefore + match + contextAfter
-	
+
 	// For very short content, use the entire content as context
 	if len(content) < 100 {
 		fullContext = content
@@ -193,7 +193,7 @@ func (pd *ProximityDetector) IdentifyPIContext(content, match string, startIndex
 				break
 			}
 		}
-		
+
 		if hasStrongLogIndicator {
 			keywords := pd.extractContextKeywords(fullContext, PIContextLog)
 			return PIContextInfo{
@@ -216,7 +216,7 @@ func (pd *ProximityDetector) IdentifyPIContext(content, match string, startIndex
 				break
 			}
 		}
-		
+
 		if hasStrongConfigIndicator {
 			keywords := pd.extractContextKeywords(fullContext, PIContextConfig)
 			return PIContextInfo{
@@ -333,7 +333,7 @@ func (pd *ProximityDetector) calculateLabelDistance(contextBefore string, labels
 		// Check if the label appears in the context
 		labelLower := strings.ToLower(label)
 		contextLower := strings.ToLower(contextBefore)
-		
+
 		// Direct substring search for simple labels
 		if strings.Contains(contextLower, labelLower) {
 			// Count words between label end and context end
@@ -462,10 +462,10 @@ func (pd *ProximityDetector) EnhanceFinding(finding *detection.Finding, content 
 // extractContextKeywords extracts relevant keywords based on the context type
 func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIContextType) []string {
 	keywords := make(map[string]bool)
-	
+
 	// Extract words from text
 	words := strings.Fields(text)
-	
+
 	switch contextType {
 	case PIContextDatabase:
 		// Extract SQL keywords and identifiers
@@ -478,13 +478,13 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 				}
 			}
 			// Also extract potential column/table names
-			if strings.Contains(strings.ToLower(word), "ssn") || 
-			   strings.Contains(strings.ToLower(word), "tfn") ||
-			   strings.Contains(strings.ToLower(word), "medicare") {
+			if strings.Contains(strings.ToLower(word), "ssn") ||
+				strings.Contains(strings.ToLower(word), "tfn") ||
+				strings.Contains(strings.ToLower(word), "medicare") {
 				keywords[strings.ToLower(word)] = true
 			}
 		}
-		
+
 	case PIContextLog:
 		// Extract log levels and key identifiers
 		logLevels := []string{"INFO", "DEBUG", "ERROR", "WARN", "TRACE", "FATAL"}
@@ -496,7 +496,7 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 				}
 			}
 		}
-		
+
 	case PIContextConfig:
 		// Extract configuration keys
 		for _, word := range words {
@@ -507,7 +507,7 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 				}
 			}
 		}
-		
+
 	case PIContextVariable:
 		// Extract variable declaration keywords and names
 		varKeywords := []string{"var", "let", "const"}
@@ -526,7 +526,7 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 				}
 			}
 		}
-		
+
 	case PIContextDocumentation:
 		// Extract meaningful words from comments
 		for _, word := range words {
@@ -535,7 +535,7 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 				keywords[cleaned] = true
 			}
 		}
-		
+
 	case PIContextForm:
 		// Extract form-related keywords
 		formKeywords := []string{"input", "form", "field", "name", "value", "type"}
@@ -551,13 +551,13 @@ func (pd *ProximityDetector) extractContextKeywords(text string, contextType PIC
 			keywords["structured"] = true
 		}
 	}
-	
+
 	// Convert map to slice
 	result := make([]string, 0, len(keywords))
 	for keyword := range keywords {
 		result = append(result, keyword)
 	}
-	
+
 	return result
 }
 

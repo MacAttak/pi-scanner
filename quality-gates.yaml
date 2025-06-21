@@ -1,0 +1,186 @@
+# Quality Gates Configuration for GitHub PI Scanner
+# This file defines the quality standards and thresholds for the project
+
+quality_gates:
+  # Code Coverage Requirements
+  coverage:
+    enabled: true
+    thresholds:
+      overall: 70.0       # Minimum overall coverage
+      packages:
+        - name: "pkg/detection"
+          minimum: 80.0   # Core detection logic needs higher coverage
+        - name: "pkg/validation"
+          minimum: 90.0   # Validation logic must be thoroughly tested
+        - name: "pkg/risk"
+          minimum: 75.0   # Risk assessment needs good coverage
+        - name: "cmd"
+          minimum: 50.0   # CLI code can have lower coverage
+    exclude_paths:
+      - "test/"
+      - "*.pb.go"
+      - "*_test.go"
+      - "mock*.go"
+
+  # Performance Benchmarks
+  performance:
+    enabled: true
+    benchmarks:
+      - name: "Detection Speed"
+        path: "pkg/detection"
+        threshold: "1000 files/sec"  # Minimum file processing speed
+        max_memory: "100MB"           # Maximum memory usage
+      - name: "Pattern Matching"
+        path: "pkg/detection/patterns"
+        threshold: "50000 ops/sec"    # Pattern matching operations
+        max_allocs: 1000              # Maximum allocations per op
+      - name: "Validation Speed"
+        path: "pkg/validation"
+        threshold: "100000 ops/sec"   # Validation operations
+        max_time: "1µs"               # Maximum time per operation
+
+  # Code Quality Metrics
+  code_quality:
+    enabled: true
+    cyclomatic_complexity:
+      warning: 10
+      error: 15
+    cognitive_complexity:
+      warning: 15
+      error: 20
+    duplicate_code:
+      warning: 5    # Percentage
+      error: 10
+    line_coverage:
+      warning: 60   # Percentage
+      error: 50
+    function_length:
+      warning: 50   # Lines
+      error: 100
+    file_length:
+      warning: 500  # Lines
+      error: 1000
+
+  # Security Standards
+  security:
+    enabled: true
+    gosec:
+      severity: "medium"  # Minimum severity to report
+      confidence: "medium"
+      exclude_rules:
+        - "G104"  # Allow unhandled errors in tests
+        - "G304"  # Allow file inclusion for config files
+    vulnerability_scan:
+      enabled: true
+      fail_on_critical: true
+      fail_on_high: true
+      ignore_unfixed: false
+    secrets_scan:
+      enabled: true
+      fail_on_detection: true
+      custom_patterns:
+        - name: "Australian TFN"
+          pattern: '\b\d{3}\s?\d{3}\s?\d{3}\b'
+        - name: "Australian Medicare"
+          pattern: '\b\d{4}\s?\d{5}\s?\d{1}\b'
+
+  # Test Requirements
+  testing:
+    enabled: true
+    unit_tests:
+      required: true
+      minimum_count: 1  # Per package
+      parallel: true
+      race_detection: true
+      timeout: "5m"
+    integration_tests:
+      required: true
+      timeout: "10m"
+    e2e_tests:
+      required: false   # Optional due to network requirements
+      timeout: "30m"
+    test_patterns:
+      - "*_test.go"
+      - "test/*.go"
+
+  # Build Requirements
+  build:
+    enabled: true
+    platforms:
+      - os: linux
+        arch: [amd64, arm64]
+      - os: darwin
+        arch: [amd64, arm64]
+      - os: windows
+        arch: [amd64]
+    flags:
+      - "-trimpath"
+      - "-ldflags=-s -w"
+    cgo_enabled: false
+    go_version: "1.23"
+
+  # Documentation Standards
+  documentation:
+    enabled: true
+    required_files:
+      - README.md
+      - LICENSE
+      - CONTRIBUTING.md
+      - SECURITY.md
+    godoc_coverage:
+      warning: 70   # Percentage
+      error: 50
+    examples_required:
+      - "pkg/detection"
+      - "pkg/scanner"
+      - "pkg/risk"
+
+  # Dependency Management
+  dependencies:
+    enabled: true
+    allow_direct_deps: 20     # Maximum direct dependencies
+    allow_indirect_deps: 100  # Maximum indirect dependencies
+    vulnerability_check: true
+    license_check:
+      allowed_licenses:
+        - MIT
+        - Apache-2.0
+        - BSD-3-Clause
+        - BSD-2-Clause
+        - ISC
+      forbidden_licenses:
+        - GPL-3.0
+        - AGPL-3.0
+    update_policy: "monthly"
+
+# Reporting Configuration
+reporting:
+  formats:
+    - console
+    - json
+    - html
+    - sarif
+  output_dir: ".quality-reports"
+  fail_fast: false  # Continue checking even after failures
+  verbose: true
+
+# Enforcement Levels
+enforcement:
+  pre_commit: warning    # Warn but don't block commits
+  pre_push: error        # Block pushes on quality gate failures
+  ci_pipeline: error     # Fail CI on any quality gate failure
+  pull_request: error    # Block PR merges on failures
+
+# Exceptions and Overrides
+exceptions:
+  # Temporary exceptions for existing code
+  coverage_exceptions:
+    - file: "cmd/pi-scanner/main.go"
+      reason: "CLI entry point, minimal logic"
+      expires: "2025-12-31"
+
+  complexity_exceptions:
+    - file: "pkg/detection/detector.go"
+      function: "processFile"
+      reason: "Complex by nature, refactoring planned"
+      expires: "2025-06-30"

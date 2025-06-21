@@ -59,3 +59,55 @@ services:
       - ./config:/home/scanner/config
       - ./repo-lists:/home/scanner/repo-lists
     command: scan --repo-list /home/scanner/repo-lists/australian-repos.txt --output /home/scanner/output/batch-results.json
+
+  # Development environment with consistent CI tools
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+      - go-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+    command: /bin/bash
+
+  # Isolated test runner
+  test-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+      - go-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    working_dir: /workspace
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+    command: go test -v ./...
+
+  # Security scan service
+  security-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+      - go-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    working_dir: /workspace
+    environment:
+      - CGO_ENABLED=0
+    command: bash -c "gosec ./... && govulncheck ./... && trivy fs --format sarif --output trivy-results.sarif ."
+
+volumes:
+  go-cache:
+  go-build-cache:

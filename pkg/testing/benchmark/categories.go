@@ -2,8 +2,9 @@ package benchmark
 
 import (
 	"fmt"
-	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"strings"
+
+	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
 
 // GenerateComprehensiveTestDataset generates a comprehensive dataset with 200+ test cases
