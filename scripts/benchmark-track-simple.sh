@@ -7,16 +7,16 @@ set -euo pipefail
 BENCH_DIR="${BENCH_DIR:-.benchmarks}"
 CURRENT_FILE="$BENCH_DIR/current.txt"
 BASELINE_FILE="$BENCH_DIR/baseline.txt"
-COMPARISON_FILE="$BENCH_DIR/comparison.md"
+# COMPARISON_FILE="$BENCH_DIR/comparison.md"  # Not used in simple version
 
 # Create benchmark directory
 mkdir -p "$BENCH_DIR"
 
 # Colors
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+# YELLOW='\033[1;33m'  # Not used in simple version
 RED='\033[0;31m'
-BLUE='\033[0;34m'
+# BLUE='\033[0;34m'  # Not used in simple version
 NC='\033[0m'
 
 echo "🏃 Running benchmarks..."
