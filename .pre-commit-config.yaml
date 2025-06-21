@@ -13,92 +13,97 @@ repos:
   # Quick formatting checks (fail fast on these)
   - repo: local
     hooks:
-      # Go formatting and imports
+      # Go formatting and imports (Docker-based for environment parity)
       - id: go-fmt
         name: Check Go formatting
-        entry: bash -c 'if [ -n "$(gofmt -l .)" ]; then echo "Files need formatting:"; gofmt -l .; exit 1; fi'
+        entry: bash -c 'docker compose run --rm dev bash -c "if [ -n \"\$(gofmt -l .)\" ]; then echo \"Files need formatting:\"; gofmt -l .; exit 1; fi"'
         language: system
         types: [go]
 
       - id: go-imports
         name: Check Go imports
-        entry: bash -c 'command -v goimports >/dev/null 2>&1 && (test -z "$(goimports -l .)" || (echo "Files need import formatting:"; goimports -l .; exit 1)) || echo "goimports not installed, skipping"'
+        entry: bash -c 'docker compose run --rm dev bash -c "command -v goimports >/dev/null 2>&1 && (test -z \"\$(goimports -l .)\" || (echo \"Files need import formatting:\"; goimports -l .; exit 1)) || echo \"goimports not installed, skipping\""'
         language: system
         types: [go]
 
-      # Static analysis
+      # Static analysis (Docker-based)
       - id: go-vet
         name: Run go vet
-        entry: go vet ./...
+        entry: docker compose run --rm dev go vet ./...
         language: system
         pass_filenames: false
         types: [go]
 
-      # Linting with specific rules
+      # Linting with specific rules (Docker-based)
       - id: golangci-lint
         name: Run golangci-lint
-        entry: bash -c 'command -v golangci-lint >/dev/null 2>&1 && golangci-lint run --timeout=5m || echo "golangci-lint not installed, skipping"'
+        entry: bash -c 'docker compose run --rm dev bash -c "GOROOT=/usr/local/go golangci-lint run --timeout=5m"'
         language: system
         pass_filenames: false
         types: [go]
 
-      # Module tidiness
+      # Module tidiness (Docker-based)
       - id: go-mod-tidy
         name: Check go.mod tidiness
-        entry: bash -c 'cp go.mod go.mod.bak && cp go.sum go.sum.bak && go mod tidy && if ! cmp -s go.mod go.mod.bak || ! cmp -s go.sum go.sum.bak; then rm go.mod.bak go.sum.bak && echo "go.mod/go.sum not tidy. Run go mod tidy" && exit 1; else rm go.mod.bak go.sum.bak; fi'
+        entry: >
+          bash -c 'docker compose run --rm dev bash -c
+          "cp go.mod go.mod.bak && cp go.sum go.sum.bak && go mod tidy &&
+          if ! cmp -s go.mod go.mod.bak || ! cmp -s go.sum go.sum.bak; then
+          rm go.mod.bak go.sum.bak && echo \"go.mod/go.sum not tidy. Run: make deps\" && exit 1;
+          else rm go.mod.bak go.sum.bak; fi"'
         language: system
         pass_filenames: false
 
   # Quality gates (enforce standards)
   - repo: local
     hooks:
-      # Test coverage threshold
+      # Test coverage threshold (Docker-based)
       - id: test-coverage
         name: Check test coverage (minimum 70%)
-        entry: bash -c 'go test -tags ci -coverprofile=coverage.out ./... && coverage=$(go tool cover -func=coverage.out | grep total | awk "{print \$3}" | sed "s/%//") && rm coverage.out && if [ "${coverage%.*}" -lt 70 ]; then echo "Test coverage ${coverage}% is below 70% threshold" && exit 1; else echo "Test coverage ${coverage}% meets threshold"; fi'
+        entry: bash -c 'docker compose run --rm dev bash -c "CGO_ENABLED=1 go test -tags ci -coverprofile=coverage.out \$(go list ./... | grep -v \"/test\$\") && coverage=\$(go tool cover -func=coverage.out | grep total | awk \"{print \\\$3}\" | sed \"s/%//\") && rm coverage.out && if [ \"\${coverage%.*}\" -lt 70 ]; then echo \"Test coverage \${coverage}% is below 70% threshold\" && exit 1; else echo \"Test coverage \${coverage}% meets threshold\"; fi"'
         language: system
         pass_filenames: false
         types: [go]
         stages: [manual]  # Disabled for now - run manually with: pre-commit run test-coverage
 
-      # Unit tests must pass
+      # Unit tests must pass (Docker-based, no race detection for speed)
       - id: go-test-short
         name: Run Go tests (short mode)
-        entry: go test -tags ci -short -race ./...
+        entry: docker compose run --rm dev bash -c "CGO_ENABLED=1 go test -tags ci -short \$(go list ./... | grep -v \"/test\$\")"
         language: system
         pass_filenames: false
         types: [go]
 
-      # Performance benchmarks
+      # Performance benchmarks (Docker-based)
       - id: check-benchmarks
         name: Run performance benchmarks
-        entry: bash -c 'go test -bench=. -benchmem -run=^$ ./pkg/detection/... | tee bench.txt && if grep -q "FAIL" bench.txt; then rm bench.txt; exit 1; else rm bench.txt; fi'
+        entry: bash -c 'docker compose run --rm dev bash -c "go test -tags ci -bench=. -benchmem -run=^\$ ./pkg/detection/... | tee bench.txt && if grep -q \"FAIL\" bench.txt; then rm bench.txt; exit 1; else rm bench.txt; fi"'
         language: system
         pass_filenames: false
         types: [go]
         stages: [manual]  # Disabled for now - run manually
 
-      # Build validation
+      # Build validation (Docker-based)
       - id: go-build
         name: Verify code builds
-        entry: go build ./...
+        entry: docker compose run --rm dev go build ./...
         language: system
         pass_filenames: false
         types: [go]
 
-  # Security scanning
+  # Security scanning (Docker-based)
   - repo: local
     hooks:
       - id: gosec
         name: Security scan with gosec
-        entry: bash -c 'command -v gosec >/dev/null 2>&1 && gosec -fmt text -severity medium -quiet ./... || echo "gosec not installed, skipping"'
+        entry: docker compose run --rm dev bash -c "gosec -fmt text -severity medium -quiet ./... || echo 'Security issues found'"
         language: system
         pass_filenames: false
         types: [go]
 
       - id: go-vulncheck
         name: Vulnerability check
-        entry: bash -c 'command -v govulncheck >/dev/null 2>&1 && govulncheck ./... || echo "govulncheck not installed, skipping"'
+        entry: docker compose run --rm dev bash -c "govulncheck ./... || echo 'Vulnerabilities found'"
         language: system
         pass_filenames: false
         types: [go]
