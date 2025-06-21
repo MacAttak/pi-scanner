@@ -52,4 +52,4 @@ temp/
 
 # CI test outputs
 test-output.log
-test-results.log
+test-results.logcmd/pi-scanner/scan-results.json
