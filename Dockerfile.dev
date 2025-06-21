@@ -28,12 +28,13 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # Install development tools (exact versions as CI)
 ENV CGO_ENABLED=1
 ENV GOPATH=/go
+ENV GOROOT=/usr/local/go
 ENV PATH="/go/bin:/usr/local/go/bin:${PATH}"
 # Clear all Go caches and rebuild tools to ensure version consistency
 RUN go clean -cache -modcache -testcache -fuzzcache && \
-    GOROOT=/usr/local/go go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 && \
-    GOROOT=/usr/local/go go install github.com/securego/gosec/v2/cmd/gosec@latest && \
-    GOROOT=/usr/local/go go install golang.org/x/vuln/cmd/govulncheck@latest
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 && \
+    go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -71,8 +72,10 @@ RUN useradd -m -s /bin/bash developer && \
     chown -R developer:developer /go
 
 USER developer
-# Ensure PATH is set for developer user
+# Ensure environment is set for developer user
 ENV PATH="/go/bin:/usr/local/go/bin:${PATH}"
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
 
 # Default command
 CMD ["/bin/bash"]
