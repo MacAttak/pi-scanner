@@ -108,10 +108,10 @@ done < <(parse_benchmarks "$BASELINE_FILE")
 
 # Compare each benchmark
 for bench in "${!current_results[@]}"; do
-    IFS='|' read -r curr_iters curr_ns curr_allocs curr_bytes <<< "${current_results[$bench]}"
+    IFS='|' read -r _ curr_ns curr_allocs curr_bytes <<< "${current_results[$bench]}"
 
     if [ -n "${baseline_results[$bench]:-}" ]; then
-        IFS='|' read -r base_iters base_ns base_allocs base_bytes <<< "${baseline_results[$bench]}"
+        IFS='|' read -r _ base_ns base_allocs base_bytes <<< "${baseline_results[$bench]}"
 
         # Calculate percentage change
         if [ "$base_ns" != "0" ]; then
@@ -159,10 +159,10 @@ echo "==============="
 } >> "$COMPARISON_FILE"
 
 for bench in "${!current_results[@]}"; do
-    IFS='|' read -r curr_iters curr_ns curr_allocs curr_bytes <<< "${current_results[$bench]}"
+    IFS='|' read -r _ curr_ns curr_allocs curr_bytes <<< "${current_results[$bench]}"
 
     if [ -n "${baseline_results[$bench]:-}" ]; then
-        IFS='|' read -r base_iters base_ns base_allocs base_bytes <<< "${baseline_results[$bench]}"
+        IFS='|' read -r _ base_ns base_allocs base_bytes <<< "${baseline_results[$bench]}"
 
         printf "%-50s %10s B/op → %10s B/op | %6s → %6s allocs\n" \
             "$bench" "$base_bytes" "$curr_bytes" "$base_allocs" "$curr_allocs"
