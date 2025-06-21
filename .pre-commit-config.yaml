@@ -55,7 +55,7 @@ repos:
       # Test coverage threshold
       - id: test-coverage
         name: Check test coverage (minimum 70%)
-        entry: bash -c 'go test -coverprofile=coverage.out ./... && coverage=$(go tool cover -func=coverage.out | grep total | awk "{print \$3}" | sed "s/%//") && rm coverage.out && if [ "${coverage%.*}" -lt 70 ]; then echo "Test coverage ${coverage}% is below 70% threshold" && exit 1; else echo "Test coverage ${coverage}% meets threshold"; fi'
+        entry: bash -c 'go test -tags ci -coverprofile=coverage.out ./... && coverage=$(go tool cover -func=coverage.out | grep total | awk "{print \$3}" | sed "s/%//") && rm coverage.out && if [ "${coverage%.*}" -lt 70 ]; then echo "Test coverage ${coverage}% is below 70% threshold" && exit 1; else echo "Test coverage ${coverage}% meets threshold"; fi'
         language: system
         pass_filenames: false
         types: [go]
