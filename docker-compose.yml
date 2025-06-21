@@ -73,9 +73,9 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - CGO_ENABLED=0
       - GOOS=linux
-      - GOARCH=amd64
+      # CGO_ENABLED and GOARCH will be set by individual commands as needed
+      # Don't hardcode GOARCH to allow native builds on both amd64 and arm64
     command: /bin/bash
 
   # Isolated test runner
@@ -91,7 +91,7 @@ services:
     environment:
       - CGO_ENABLED=0
       - GOOS=linux
-      - GOARCH=amd64
+      # Don't hardcode GOARCH to allow native builds on both amd64 and arm64
     command: go test -v ./...
 
   # Security scan service
@@ -106,6 +106,8 @@ services:
     working_dir: /workspace
     environment:
       - CGO_ENABLED=0
+      - GOOS=linux
+      # Don't hardcode GOARCH to allow native builds on both amd64 and arm64
     command: bash -c "gosec ./... && govulncheck ./... && trivy fs --format sarif --output trivy-results.sarif ."
 
 volumes:
