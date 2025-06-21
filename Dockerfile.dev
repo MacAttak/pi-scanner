@@ -26,7 +26,9 @@ RUN ARCH=$(dpkg --print-architecture) && \
     rm go${GO_VERSION}.linux-${GOARCH}.tar.gz
 
 # Install development tools (exact versions as CI)
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
+ENV GOPATH=/go
+ENV PATH="/go/bin:/usr/local/go/bin:${PATH}"
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
 RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
 RUN go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -49,6 +51,9 @@ RUN wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key
 # Set working directory
 WORKDIR /workspace
 
+# Create go directories
+RUN mkdir -p /go/bin /go/src /go/pkg
+
 # Copy go mod files for dependency caching
 COPY go.mod go.sum ./
 RUN go mod download
@@ -59,9 +64,12 @@ RUN git config --global --add safe.directory /workspace
 # Create non-root user for development
 RUN useradd -m -s /bin/bash developer && \
     usermod -aG sudo developer && \
-    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    chown -R developer:developer /go
 
 USER developer
+# Ensure PATH is set for developer user
+ENV PATH="/go/bin:/usr/local/go/bin:${PATH}"
 
 # Default command
 CMD ["/bin/bash"]
