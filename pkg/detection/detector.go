@@ -274,13 +274,9 @@ func (d *detector) initializeMatchers() {
 			// Remove spaces
 			clean := strings.ReplaceAll(match, " ", "")
 			// Must be exactly 9 digits
-			if len(clean) != 9 {
-				return false
-			}
-
 			// For pattern matching, we accept any 9-digit number that looks like an ACN
 			// Checksum validation will happen later via the validation registry
-			return true
+			return len(clean) == 9
 		},
 	})
 
@@ -565,12 +561,8 @@ func (d *detector) isValidPersonName(name string) bool {
 			break
 		}
 	}
-	if allCaps {
-		return false
-	}
-
 	// Passed all filters - likely a real person name
-	return true
+	return !allCaps
 }
 
 // shouldIncludeFinding determines if a finding should be included based on context validation and confidence thresholds
@@ -589,12 +581,8 @@ func (d *detector) shouldIncludeFinding(ctx context.Context, finding Finding, fi
 	// Check base confidence threshold (without context modifier)
 	// This ensures we don't filter out legitimate findings just because they're in test files
 	minConfidence := d.getMinimumConfidenceThreshold(finding)
-	if finding.Confidence < minConfidence {
-		return false
-	}
-
 	// Include the finding
-	return true
+	return finding.Confidence >= minConfidence
 }
 
 // getMinimumConfidenceThreshold returns the minimum confidence threshold for a finding

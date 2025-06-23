@@ -497,6 +497,9 @@ func runScanCommand(t *testing.T, repoURL, outputFile string, verbose bool) *E2E
 		t.Logf("Scanner output:\n%s", string(output))
 	}
 
+	// Check for command execution error
+	require.NoError(t, err, "Scanner command should execute successfully: %s", string(output))
+
 	// Read and parse results
 	require.FileExists(t, outputFile, "Output file should be created")
 

@@ -271,7 +271,6 @@ func generateMedicareTestCases(g *TestDataGenerator) []TestCase {
 		Rationale:  "Medicare number in test file",
 		Filename:   "test_health.py",
 	})
-	id++
 
 	return cases
 }
@@ -656,7 +655,6 @@ func generateEdgeCases(g *TestDataGenerator) []TestCase {
 		Rationale:  "BSB in error message - potential leak",
 		Filename:   "errors.go",
 	})
-	id++
 
 	return cases
 }
@@ -755,7 +753,6 @@ func generateSyntheticPatterns(g *TestDataGenerator) []TestCase {
 		Rationale:  "Log file name, not PI",
 		Filename:   "logging.go",
 	})
-	id++
 
 	return cases
 }

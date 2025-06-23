@@ -172,14 +172,7 @@ func newReportCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&format, "format", "f", "html", "Report format (html, csv, sarif)")
 	cmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file (default: report.<format>)")
 
-	cmd.MarkFlagRequired("input")
+	_ = cmd.MarkFlagRequired("input")
 
 	return cmd
-}
-
-// isValidRepoURL performs basic validation of repository URLs
-func isValidRepoURL(url string) bool {
-	// Basic validation - just check if it starts with https://
-	// More comprehensive validation will be added later
-	return len(url) > 8 && url[:8] == "https://"
 }

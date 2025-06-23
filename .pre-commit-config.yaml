@@ -69,7 +69,7 @@ repos:
       # Unit tests must pass (Docker-based, no race detection for speed)
       - id: go-test-short
         name: Run Go tests (short mode)
-        entry: docker compose run --rm dev bash -c "CGO_ENABLED=1 go test -tags ci -short \$(go list ./... | grep -v \"/test\$\")"
+        entry: docker compose run --rm dev bash -c "CGO_ENABLED=1 go test -tags ci -short ./cmd/... ./pkg/..."
         language: system
         pass_filenames: false
         types: [go]

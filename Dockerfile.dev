@@ -32,7 +32,7 @@ ENV GOROOT=/usr/local/go
 ENV PATH="/go/bin:/usr/local/go/bin:${PATH}"
 # Clear all Go caches and rebuild tools to ensure version consistency
 RUN go clean -cache -modcache -testcache -fuzzcache && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.3 && \
     go install github.com/securego/gosec/v2/cmd/gosec@latest && \
     go install golang.org/x/vuln/cmd/govulncheck@latest
 

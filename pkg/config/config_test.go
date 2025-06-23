@@ -379,7 +379,9 @@ func BenchmarkLoadConfig(b *testing.B) {
 
 	config := DefaultConfig()
 	data, _ := yaml.Marshal(config)
-	os.WriteFile(configPath, data, 0644)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

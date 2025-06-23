@@ -227,14 +227,14 @@ func (g *gitHubManager) CloneRepository(ctx context.Context, repoURL string) (*R
 	repoInfo.IsShallow = g.config.ShallowClone
 
 	// Check size limits
-	if g.config.MaxRepositorySize > 0 && repoInfo.Size > g.config.MaxRepositorySize {
-		// Don't fail, but log warning
-		// In a real implementation, you'd use a logger here
+	if g.config.MaxRepositorySize > 0 && repoInfo.Size > g.config.MaxRepositorySize { //nolint:staticcheck // TODO: Add logging
+		// TODO: Log warning when repository exceeds size limit
+		// This will be implemented when proper logging is added
 	}
 
-	if g.config.MaxFileCount > 0 && repoInfo.FileCount > g.config.MaxFileCount {
-		// Don't fail, but log warning
-		// In a real implementation, you'd use a logger here
+	if g.config.MaxFileCount > 0 && repoInfo.FileCount > g.config.MaxFileCount { //nolint:staticcheck // TODO: Add logging
+		// TODO: Log warning when repository exceeds file count limit
+		// This will be implemented when proper logging is added
 	}
 
 	return repoInfo, nil

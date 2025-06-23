@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	contextval "github.com/MacAttak/pi-scanner/pkg/context"
 	"github.com/MacAttak/pi-scanner/pkg/detection"
@@ -212,13 +213,23 @@ func (w *FileWorker) start() {
 			// Process the file
 			result := w.processFile(job)
 
-			// Send result (non-blocking)
+			// Always try to send the result, even if context is cancelled
+			// This ensures the caller knows what happened to every submitted job
 			select {
 			case w.resultQueue <- result:
 				// Result sent successfully
-			case <-w.ctx.Done():
-				// Context cancelled, stop worker
+			case <-time.After(5 * time.Second):
+				// Timeout sending result - this prevents deadlock if result channel is full
+				// In production, this should be logged
 				return
+			}
+
+			// Check if we should stop after processing
+			select {
+			case <-w.ctx.Done():
+				return
+			default:
+				// Continue processing
 			}
 
 		case <-w.ctx.Done():
@@ -250,7 +261,9 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 	// Track processing time
 	start := w.processor.ctx.Value("start_time")
 	if start != nil {
-		// Processing time tracking would be implemented here
+		// TODO: Processing time tracking would be implemented here
+		// This will be added when metrics collection is implemented
+		_ = start // Acknowledge unused variable
 	}
 
 	// Check context cancellation before processing
@@ -302,9 +315,8 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 
 // BatchProcessor handles processing multiple files efficiently
 type BatchProcessor struct {
-	processor   *FileProcessor
-	batchSize   int
-	concurrency int
+	processor *FileProcessor
+	batchSize int
 }
 
 // NewBatchProcessor creates a batch processor for multiple files

@@ -254,10 +254,10 @@ type DetailedReport struct {
 
 // Summary returns a human-readable summary of the report
 func (dr *DetailedReport) Summary() string {
-	summary := fmt.Sprintf("PI Detection Quality Assessment Report\n")
+	summary := "PI Detection Quality Assessment Report\n"
 	summary += fmt.Sprintf("Generated: %s\n\n", dr.Timestamp.Format("2006-01-02 15:04:05"))
 
-	summary += fmt.Sprintf("Dataset Statistics:\n")
+	summary += "Dataset Statistics:\n"
 	summary += fmt.Sprintf("- Total test cases: %d\n", dr.DatasetStats.TotalCases)
 	summary += fmt.Sprintf("- True positives: %d\n", dr.DatasetStats.TruePositives)
 	summary += fmt.Sprintf("- True negatives: %d\n", dr.DatasetStats.TrueNegatives)

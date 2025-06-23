@@ -371,7 +371,9 @@ func ConfigFromEnvironment() *Config {
 
 	// Scanner environment variables
 	if workers := os.Getenv("PI_SCANNER_WORKERS"); workers != "" {
-		// Parse and set workers
+		// TODO: Parse and set workers
+		// This will be implemented when environment override feature is added
+		_ = workers // Acknowledge unused variable
 	}
 
 	// GitHub token

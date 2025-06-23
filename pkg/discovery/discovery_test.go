@@ -220,7 +220,7 @@ func TestFileDiscovery_EdgeCases(t *testing.T) {
 			// Cleanup permission denied directory for next tests
 			if tt.name == "permission denied directory" {
 				restrictedDir := filepath.Join(tmpDir, "restricted")
-				os.Chmod(restrictedDir, 0755) // Restore permissions for cleanup
+				_ = os.Chmod(restrictedDir, 0755) // Restore permissions for cleanup
 			}
 		})
 	}

@@ -74,7 +74,7 @@ keywords = ["tfn", "tax file", "tax_file"]
 
 [[rules]]
 id = "australian-abn"
-description = "Australian Business Number"  
+description = "Australian Business Number"
 regex = '''\b\d{2}[\s]?\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
 keywords = ["abn", "business number", "business_number"]
 
@@ -113,7 +113,8 @@ func (g *gitleaksDetector) Detect(ctx context.Context, content []byte, filename 
 	}
 
 	// Create a fragment to scan
-	fragment := detect.Fragment{
+	// TODO: Update to use sources.Fragment when upgrading gitleaks
+	fragment := detect.Fragment{ //nolint:staticcheck // detect.Fragment is deprecated but still functional
 		Raw:      string(content),
 		FilePath: filename,
 	}

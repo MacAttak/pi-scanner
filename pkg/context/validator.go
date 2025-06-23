@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/MacAttak/pi-scanner/pkg/detection"
 )
@@ -15,7 +14,6 @@ type ContextValidator struct {
 	codePatterns    *CodePatternAnalyzer
 	proximityEngine *ProximityAnalyzer
 	syntaxAnalyzer  *SyntaxContextAnalyzer
-	mu              sync.RWMutex
 }
 
 // ValidationResult represents the result of context validation

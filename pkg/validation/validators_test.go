@@ -443,7 +443,7 @@ func BenchmarkTFNValidator(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		validator.Validate(tfn)
+		_, _ = validator.Validate(tfn)
 	}
 }
 
@@ -453,6 +453,6 @@ func BenchmarkABNValidator(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		validator.Validate(abn)
+		_, _ = validator.Validate(abn)
 	}
 }

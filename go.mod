@@ -1,8 +1,6 @@
 module github.com/MacAttak/pi-scanner
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.23.9
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1

@@ -343,7 +343,7 @@ func TestGitHubManager_ShallowClone(t *testing.T) {
 	repoInfo, err := manager.CloneRepository(ctx, "owner/repo")
 
 	require.NoError(t, err)
-	defer manager.CleanupRepository(repoInfo.LocalPath)
+	defer func() { _ = manager.CleanupRepository(repoInfo.LocalPath) }()
 
 	// Verify shallow clone arguments were used
 	assert.Len(t, gitCommands, 1)

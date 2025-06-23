@@ -136,13 +136,11 @@ func TestRepositoryManager_MultipleRepositories_CleanupAll(t *testing.T) {
 
 	ctx := context.Background()
 	repos := []string{"owner/repo1", "owner/repo2", "owner/repo3"}
-	var repoInfos []*RepositoryInfo
 
 	// Clone multiple repositories
 	for _, repo := range repos {
-		repoInfo, err := manager.CloneAndTrack(ctx, repo)
+		_, err := manager.CloneAndTrack(ctx, repo)
 		require.NoError(t, err)
-		repoInfos = append(repoInfos, repoInfo)
 	}
 
 	// Verify all repositories are tracked
@@ -221,7 +219,7 @@ func TestRepositoryManager_PartialCleanupFailure(t *testing.T) {
 	}
 
 	// Fix permissions for final cleanup
-	os.Chmod(repo1.LocalPath, 0755)
+	_ = os.Chmod(repo1.LocalPath, 0755)
 	os.RemoveAll(repo1.LocalPath)
 }
 
@@ -280,11 +278,9 @@ func TestRepositoryManager_ConcurrentOperations(t *testing.T) {
 	}
 
 	// Collect results
-	var repoInfos []*RepositoryInfo
 	for i := 0; i < numConcurrent; i++ {
 		result := <-results
 		require.NoError(t, result.err)
-		repoInfos = append(repoInfos, result.info)
 	}
 
 	duration := time.Since(start)

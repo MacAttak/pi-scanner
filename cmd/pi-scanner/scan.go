@@ -88,7 +88,7 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 		if verbose {
 			fmt.Printf("🧹 Cleaning up cloned repository...\n")
 		}
-		repoManager.CleanupAll()
+		_ = repoManager.CleanupAll()
 	}()
 
 	if verbose {
