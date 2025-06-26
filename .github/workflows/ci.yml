@@ -171,6 +171,10 @@ jobs:
     name: Performance Benchmark
     runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

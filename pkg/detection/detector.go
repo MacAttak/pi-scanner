@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/MacAttak/pi-scanner/pkg/validation"
+	"github.com/nyaruka/phonenumbers"
 )
 
 // detector implements the Detector interface
@@ -108,6 +110,12 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 			// Extract context
 			contextBefore, contextAfter := d.extractContext(contentStr, match.StartIndex, match.EndIndex)
 
+			// Set base confidence based on pattern validation
+			baseConfidence := float32(0.8)
+			if !match.ValidationPassed {
+				baseConfidence = 0.5 // Lower confidence for patterns that fail validation
+			}
+
 			finding := Finding{
 				Type:            matcher.Type(),
 				Match:           match.Value,
@@ -119,7 +127,7 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 				ContextAfter:    contextAfter,
 				DetectedAt:      time.Now(),
 				DetectorName:    d.Name(),
-				Confidence:      0.8, // Base confidence for pattern match
+				Confidence:      baseConfidence,
 				ContextModifier: d.getContextModifier(filename),
 			}
 
@@ -167,6 +175,7 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 }
 
 // initializeMatchers sets up all pattern matchers
+// Order matters: more specific patterns should come before generic ones
 func (d *detector) initializeMatchers() {
 	// ABN matcher - 11 digits (check first to avoid TFN confusion)
 	d.matchers = append(d.matchers, &regexMatcher{
@@ -192,67 +201,33 @@ func (d *detector) initializeMatchers() {
 		},
 	})
 
-	// Medicare matcher
+	// Medicare matcher with enhanced validation
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b[2-6]\d{3}[\s\-]?\d{5}[\s\-]?\d{1}(?:/\d)?\b`,
 		piType:  PITypeMedicare,
 		d:       d,
 		validator: func(match string) bool {
-			// Remove spaces, dashes, and issue number
-			clean := regexp.MustCompile(`[\s\-/]`).ReplaceAllString(match, "")
-			// Extract first 10 digits (ignore issue number if present)
-			if len(clean) < 10 {
-				return false
-			}
-			medicare := clean[:10]
-
-			// First digit must be 2-6
-			if medicare[0] < '2' || medicare[0] > '6' {
-				return false
-			}
-
-			// For pattern matching, we accept any number that looks like Medicare
-			// Checksum validation will happen later via the validation registry
-			return true
+			return d.isValidAustralianMedicare(match)
 		},
 	})
 
-	// TFN matcher - exactly 9 digits (after ABN to avoid confusion)
+	// TFN matcher - exactly 9 digits with proper checksum validation
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b`,
 		piType:  PITypeTFN,
 		d:       d,
 		validator: func(match string) bool {
-			// Remove spaces and dashes
-			clean := regexp.MustCompile(`[\s\-]`).ReplaceAllString(match, "")
-			// Must be exactly 9 digits and not start with 0
-			if len(clean) != 9 || clean[0] == '0' {
-				return false
-			}
-
-			// For pattern matching, we accept any 9-digit number that looks like a TFN
-			// Checksum validation will happen later via the validation registry
-			return true
+			return d.isValidAustralianTFN(match)
 		},
 	})
 
-	// BSB matcher - exactly 6 digits with optional hyphen
+	// BSB matcher - enhanced validation with bank code ranges
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `\b\d{3}[\-]?\d{3}\b`,
 		piType:  PITypeBSB,
 		d:       d,
 		validator: func(match string) bool {
-			// Remove dashes and spaces
-			clean := regexp.MustCompile(`[\s\-]`).ReplaceAllString(match, "")
-			// Must be exactly 6 digits
-			if len(clean) != 6 {
-				return false
-			}
-			// Check for valid BSB range (first digit should be 0-7)
-			if clean[0] < '0' || clean[0] > '7' {
-				return false
-			}
-			return true
+			return d.isValidAustralianBSB(match)
 		},
 	})
 
@@ -280,26 +255,13 @@ func (d *detector) initializeMatchers() {
 		},
 	})
 
-	// Phone matcher (Australian formats) - MUST BE BEFORE driver license to avoid conflicts
+	// Phone matcher (Australian formats) - Enhanced with libphonenumber validation
 	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `(?:\+61[\s.-]?[2-9]\d{8}|\b0[2-9](?:[\s.-]?\d){8}\b|\(\d{2}\)\s*\d{4}\s*\d{4}|\b1[38]00[\s.-]?\d{3}[\s.-]?\d{3}\b)`,
+		pattern: `(?:\+61[\s.-]?[0-9](?:[\s.-]?[0-9]){8,9}|\b0[2-9](?:[\s.-]?[0-9]){8}\b|\([0-9]{2}\)\s*[0-9]{4}\s*[0-9]{4}|\b1[38]00[\s.-]?[0-9]{3}[\s.-]?[0-9]{3}\b|\+61[\s.-]?4[0-9](?:[\s.-]?[0-9]){7})`,
 		piType:  PITypePhone,
 		d:       d,
 		validator: func(match string) bool {
-			// Remove all non-digits
-			digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(match, "")
-			// Check for valid Australian phone formats
-			// Mobile: 10 digits starting with 04 or +614
-			// Landline: 10 digits starting with 02-09
-			// 1300/1800: 10 digits
-			if len(digits) == 10 {
-				return true
-			}
-			// International format with country code
-			if len(digits) == 11 && strings.HasPrefix(digits, "61") {
-				return true
-			}
-			return false
+			return d.isValidAustralianPhone(match)
 		},
 	})
 
@@ -308,50 +270,6 @@ func (d *detector) initializeMatchers() {
 		pattern: `\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b`,
 		piType:  PITypeEmail,
 		d:       d,
-	})
-
-	// Driver License matcher - state-specific patterns (AFTER phone to avoid conflicts)
-	// NSW/QLD: 8 digits
-	// VIC: 8-10 digits
-	// SA: Letter + 6 digits
-	// WA: 7 digits
-	// TAS: 7 digits or 2 letters + 5 digits
-	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b(?:[A-Z]\d{6}|[A-Z]{2}\d{5}|\d{7})\b`,
-		piType:  PITypeDriverLicense,
-		d:       d,
-		validator: func(match string) bool {
-			// Remove all non-digits for checking
-			digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(match, "")
-
-			// Exclude phone numbers - they start with 0, +61, or 1300/1800
-			if match[0] == '0' || strings.HasPrefix(match, "+61") ||
-				strings.HasPrefix(digits, "1300") || strings.HasPrefix(digits, "1800") ||
-				strings.HasPrefix(digits, "04") { // Mobile numbers
-				return false
-			}
-
-			// Check driver license formats
-			if len(match) >= 7 && len(match) <= 10 {
-				// Numeric formats (NSW/QLD/VIC/WA/TAS)
-				if regexp.MustCompile(`^\d+$`).MatchString(match) {
-					// Exclude 8 or 9-digit numbers that could be TFNs or other IDs
-					if len(match) == 8 || len(match) == 9 {
-						return false
-					}
-					return true
-				}
-				// SA format: Letter + 6 digits
-				if len(match) == 7 && match[0] >= 'A' && match[0] <= 'Z' {
-					return true
-				}
-				// TAS format: 2 letters + 5 digits
-				if len(match) == 7 && match[0] >= 'A' && match[0] <= 'Z' && match[1] >= 'A' && match[1] <= 'Z' {
-					return true
-				}
-			}
-			return false
-		},
 	})
 
 	// Name matcher with context-aware filtering for code scanning
@@ -363,6 +281,50 @@ func (d *detector) initializeMatchers() {
 		validator: func(match string) bool {
 			// Context-aware validation for code scanning
 			return d.isValidPersonName(match)
+		},
+	})
+
+	// Australian Address matcher
+	// Matches: Unit/Number Street Name, Suburb STATE Postcode
+	// Examples: "123 Queen Street, Melbourne VIC 3000", "Unit 4/56 Kings Road, Sydney NSW 2000"
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `(?i)\b(?:unit\s*\d+[/-]?)?\d{1,5}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Place|Pl|Court|Ct|Crescent|Cres|Parade|Pde|Boulevard|Blvd|Highway|Hwy|Terrace|Tce|Way|Circuit|Cct)\b(?:\s*,\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\s+\d{4}\b)?`,
+		piType:  PITypeAddress,
+		d:       d,
+		validator: func(match string) bool {
+			// Validate Australian address format
+			return d.isValidAustralianAddress(match)
+		},
+	})
+
+	// Driver License matcher - moved to end due to broad numeric patterns
+	// Enhanced state-specific validation to reduce false positives
+	// More specific patterns to avoid matching other PI types
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b(?:[A-Z]\d{6,8}|[A-Z]{2}\d{5}|[2-9]\d{7,8})\b`,
+		piType:  PITypeDriverLicense,
+		d:       d,
+		validator: func(match string) bool {
+			return d.isValidAustralianDriverLicense(match)
+		},
+	})
+
+	// Australian Passport matcher
+	// Format: Letter followed by 7 digits (e.g., A1234567, M9876543)
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b[A-Z]\d{7}\b`,
+		piType:  PITypePassport,
+		d:       d,
+		validator: func(match string) bool {
+			// Australian passports start with specific letters
+			validPrefixes := []byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+			firstChar := match[0]
+			for _, prefix := range validPrefixes {
+				if firstChar == prefix {
+					return true
+				}
+			}
+			return false
 		},
 	})
 }
@@ -772,7 +734,6 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 		if len(match) >= 2 {
 			value := string(content[match[0]:match[1]])
 
-			// Apply validator if present
 			// Apply extractor if present
 			extractedValue := value
 			if m.extractor != nil {
@@ -782,15 +743,22 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 				}
 			}
 
-			// Apply validator if present
-			if m.validator != nil && !m.validator(extractedValue) {
-				continue
+			// Note: We no longer skip matches that fail validation here
+			// This allows us to track all pattern matches and handle validation
+			// results differently based on the PI type (e.g., skip driver licenses
+			// that fail validation, but keep TFNs with low confidence)
+
+			// Check validator but include match regardless
+			validationPassed := true
+			if m.validator != nil {
+				validationPassed = m.validator(extractedValue)
 			}
 
 			matches = append(matches, PatternMatch{
-				Value:      extractedValue,
-				StartIndex: match[0],
-				EndIndex:   match[1],
+				Value:            extractedValue,
+				StartIndex:       match[0],
+				EndIndex:         match[1],
+				ValidationPassed: validationPassed,
 			})
 		}
 	}
@@ -801,4 +769,522 @@ func (m *regexMatcher) Match(content []byte) []PatternMatch {
 // Type returns the PI type this matcher detects
 func (m *regexMatcher) Type() PIType {
 	return m.piType
+}
+
+// isValidAustralianAddress validates if a matched string is a legitimate Australian address
+func (d *detector) isValidAustralianAddress(address string) bool {
+	// Basic validation: must contain at least street name and number
+	if len(address) < 5 {
+		return false
+	}
+
+	// Extract and validate postcode if present
+	postcodePattern := regexp.MustCompile(`\b(\d{4})\b`)
+	postcodeMatches := postcodePattern.FindStringSubmatch(address)
+	if len(postcodeMatches) > 1 {
+		postcode := postcodeMatches[1]
+		if !isValidAustralianPostcode(postcode) {
+			return false
+		}
+	}
+
+	// Check for valid Australian state abbreviations if present
+	statePattern := regexp.MustCompile(`\b(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\b`)
+	stateMatches := statePattern.FindStringSubmatch(address)
+	if len(stateMatches) > 1 && len(postcodeMatches) > 1 {
+		state := stateMatches[1]
+		postcode := postcodeMatches[1]
+		if !isValidStatePostcodeCombination(state, postcode) {
+			return false
+		}
+	}
+
+	// Check for common Australian street types
+	streetTypePattern := regexp.MustCompile(`(?i)\b(Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Place|Pl|Court|Ct|Crescent|Cres|Parade|Pde|Boulevard|Blvd|Highway|Hwy|Terrace|Tce|Way|Circuit|Cct|Close|Cl|Grove|Gr|Esplanade|Esp|Walk|Wk|Row|Rise|Ridge|View|Vw|Park|Gardens|Gdns|Square|Sq|Mall|Promenade|Prom)\b`)
+	if !streetTypePattern.MatchString(address) {
+		return false
+	}
+
+	// Reject obvious test patterns
+	testPatterns := []string{
+		"123 Test Street", "999 Fake Road", "111 Sample Avenue",
+		"123 Example Road", "456 Demo Street", "789 Mock Avenue",
+	}
+	addressLower := strings.ToLower(address)
+	for _, testPattern := range testPatterns {
+		if strings.Contains(addressLower, strings.ToLower(testPattern)) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isValidAustralianPostcode validates Australian postcode ranges
+func isValidAustralianPostcode(postcode string) bool {
+	if len(postcode) != 4 {
+		return false
+	}
+
+	code, err := strconv.Atoi(postcode)
+	if err != nil {
+		return false
+	}
+
+	// Valid Australian postcode ranges
+	validRanges := [][]int{
+		{200, 299},   // ACT (LVRs and PO Boxes)
+		{800, 899},   // NT
+		{900, 999},   // NT (LVRs and PO Boxes)
+		{1000, 1999}, // NSW (LVRs and PO Boxes)
+		{2000, 2599}, // NSW
+		{2600, 2618}, // ACT
+		{2619, 2899}, // NSW
+		{2900, 2920}, // ACT
+		{2921, 2999}, // NSW
+		{3000, 3996}, // VIC
+		{4000, 4999}, // QLD
+		{5000, 5799}, // SA
+		{5800, 5999}, // SA (LVRs and PO Boxes)
+		{6000, 6797}, // WA
+		{6800, 6999}, // WA (LVRs and PO Boxes)
+		{7000, 7799}, // TAS
+		{7800, 7999}, // TAS (LVRs and PO Boxes)
+		{8000, 8999}, // VIC (LVRs and PO Boxes)
+		{9000, 9999}, // QLD (LVRs and PO Boxes)
+	}
+
+	for _, validRange := range validRanges {
+		if code >= validRange[0] && code <= validRange[1] {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isValidStatePostcodeCombination validates state and postcode combinations
+func isValidStatePostcodeCombination(state, postcode string) bool {
+	code, err := strconv.Atoi(postcode)
+	if err != nil {
+		return false
+	}
+
+	switch state {
+	case "NSW":
+		return (code >= 1000 && code <= 1999) || (code >= 2000 && code <= 2599) || (code >= 2619 && code <= 2899) || (code >= 2921 && code <= 2999)
+	case "ACT":
+		return (code >= 200 && code <= 299) || (code >= 2600 && code <= 2618) || (code >= 2900 && code <= 2920)
+	case "VIC":
+		return (code >= 3000 && code <= 3996) || (code >= 8000 && code <= 8999)
+	case "QLD":
+		return (code >= 4000 && code <= 4999) || (code >= 9000 && code <= 9999)
+	case "SA":
+		return (code >= 5000 && code <= 5799) || (code >= 5800 && code <= 5999)
+	case "WA":
+		return (code >= 6000 && code <= 6797) || (code >= 6800 && code <= 6999)
+	case "TAS":
+		return (code >= 7000 && code <= 7799) || (code >= 7800 && code <= 7999)
+	case "NT":
+		return (code >= 800 && code <= 899) || (code >= 900 && code <= 999)
+	}
+
+	return false
+}
+
+// isValidAustralianPhone validates Australian phone numbers using libphonenumber
+func (d *detector) isValidAustralianPhone(phoneStr string) bool {
+	// Parse the phone number for Australia
+	num, err := phonenumbers.Parse(phoneStr, "AU")
+	if err != nil {
+		// Try parsing without a default region for international numbers
+		num, err = phonenumbers.Parse(phoneStr, "")
+		if err != nil {
+			return false
+		}
+	}
+
+	// Check if it's a valid number
+	if !phonenumbers.IsValidNumber(num) {
+		return false
+	}
+
+	// Check if it's specifically Australian
+	region := phonenumbers.GetRegionCodeForNumber(num)
+	if region != "AU" {
+		return false
+	}
+
+	// Additional checks to prevent confusion with other PI types
+	formattedNumber := phonenumbers.Format(num, phonenumbers.E164)
+
+	// Reject if it looks like an ABN (would be +61 followed by specific patterns)
+	// ABNs don't start with typical phone prefixes
+	if strings.HasPrefix(formattedNumber, "+61") {
+		// Extract national number
+		nationalNumber := strings.TrimPrefix(formattedNumber, "+61")
+
+		// Australian mobile numbers start with 4
+		// Landlines start with 2, 3, 7, 8 depending on state
+		// Service numbers start with 13 or 18
+		if len(nationalNumber) >= 1 {
+			firstDigit := nationalNumber[0]
+			// Valid Australian phone number prefixes
+			if firstDigit == '2' || firstDigit == '3' || firstDigit == '4' ||
+				firstDigit == '7' || firstDigit == '8' ||
+				(len(nationalNumber) >= 2 && (nationalNumber[:2] == "13" || nationalNumber[:2] == "18")) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// isValidAustralianTFN validates Australian Tax File Numbers using modulo 11 checksum
+func (d *detector) isValidAustralianTFN(tfnStr string) bool {
+	// Remove spaces and dashes
+	clean := regexp.MustCompile(`[\s\-]`).ReplaceAllString(tfnStr, "")
+
+	// Must be exactly 9 digits and not start with 0
+	if len(clean) != 9 || clean[0] == '0' {
+		return false
+	}
+
+	// Convert to array of integers
+	digits := make([]int, 9)
+	for i, char := range clean {
+		digit := int(char - '0')
+		if digit < 0 || digit > 9 {
+			return false
+		}
+		digits[i] = digit
+	}
+
+	// TFN validation weights: [1, 4, 3, 7, 5, 8, 6, 9, 10]
+	weights := []int{1, 4, 3, 7, 5, 8, 6, 9, 10}
+
+	// Calculate weighted sum
+	sum := 0
+	for i := 0; i < 9; i++ {
+		sum += digits[i] * weights[i]
+	}
+
+	// Valid TFN if sum is divisible by 11
+	return sum%11 == 0
+}
+
+// isValidAustralianMedicare validates Australian Medicare numbers using proper checksum and IRN validation
+func (d *detector) isValidAustralianMedicare(medicareStr string) bool {
+	// Remove spaces, dashes, and issue number
+	clean := regexp.MustCompile(`[\s\-/]`).ReplaceAllString(medicareStr, "")
+
+	// Extract medicare number and IRN
+	var medicare, irn string
+	if len(clean) >= 10 {
+		medicare = clean[:10]
+		if len(clean) >= 11 {
+			irn = clean[10:]
+		}
+	} else {
+		return false
+	}
+
+	// First digit must be 2-6
+	if medicare[0] < '2' || medicare[0] > '6' {
+		return false
+	}
+
+	// Validate IRN (Individual Reference Number) if present
+	if irn != "" {
+		irnNum, err := strconv.Atoi(irn)
+		if err != nil || irnNum < 1 || irnNum > 9 {
+			return false
+		}
+	}
+
+	// Convert medicare number to array of integers
+	digits := make([]int, 10)
+	for i, char := range medicare {
+		digit := int(char - '0')
+		if digit < 0 || digit > 9 {
+			return false
+		}
+		digits[i] = digit
+	}
+
+	// Medicare checksum validation using weights [1, 3, 7, 9, 1, 3, 7, 9]
+	// Only use first 8 digits for checksum, 9th digit is the check digit
+	weights := []int{1, 3, 7, 9, 1, 3, 7, 9}
+
+	// Calculate weighted sum of first 8 digits
+	sum := 0
+	for i := 0; i < 8; i++ {
+		sum += digits[i] * weights[i]
+	}
+
+	// Check digit should equal sum % 10
+	checkDigit := sum % 10
+	return checkDigit == digits[8]
+}
+
+// isValidAustralianBSB validates Australian Bank State Branch codes
+func (d *detector) isValidAustralianBSB(bsbStr string) bool {
+	// Remove dashes and spaces
+	clean := regexp.MustCompile(`[\s\-]`).ReplaceAllString(bsbStr, "")
+
+	// Must be exactly 6 digits
+	if len(clean) != 6 {
+		return false
+	}
+
+	// Convert to integer for range checking
+	bsbNum, err := strconv.Atoi(clean)
+	if err != nil {
+		return false
+	}
+
+	// Enhanced BSB validation with known bank ranges
+	// Based on APCA BSB directory structure
+
+	// Reserve Bank of Australia: 001-000 to 009-999
+	if bsbNum >= 1000 && bsbNum <= 9999 {
+		return true
+	}
+
+	// Commonwealth Bank: 060-000 to 069-999, 062-000 to 064-999
+	if (bsbNum >= 60000 && bsbNum <= 69999) || (bsbNum >= 62000 && bsbNum <= 64999) {
+		return true
+	}
+
+	// Westpac Banking Corporation: 030-000 to 039-999, 732-000 to 739-999
+	if (bsbNum >= 30000 && bsbNum <= 39999) || (bsbNum >= 732000 && bsbNum <= 739999) {
+		return true
+	}
+
+	// Australia and New Zealand Banking Group: 010-000 to 019-999
+	if bsbNum >= 10000 && bsbNum <= 19999 {
+		return true
+	}
+
+	// National Australia Bank: 080-000 to 089-999
+	if bsbNum >= 80000 && bsbNum <= 89999 {
+		return true
+	}
+
+	// Credit unions and building societies: 800-000 to 839-999
+	if bsbNum >= 800000 && bsbNum <= 839999 {
+		return true
+	}
+
+	// Other financial institutions: Various ranges
+	// Bendigo Bank: 633-000 to 633-999
+	if bsbNum >= 633000 && bsbNum <= 633999 {
+		return true
+	}
+
+	// ING Bank: 923-000 to 923-999
+	if bsbNum >= 923000 && bsbNum <= 923999 {
+		return true
+	}
+
+	// Macquarie Bank: 182-000 to 182-999
+	if bsbNum >= 182000 && bsbNum <= 182999 {
+		return true
+	}
+
+	// Basic format validation as fallback
+	// First digit should be 0-9 (expanded from original 0-7)
+	// Check for obvious invalid patterns
+	firstDigit := clean[0]
+	if firstDigit < '0' || firstDigit > '9' {
+		return false
+	}
+
+	// Reject obvious test patterns
+	if clean == "000000" || clean == "111111" || clean == "222222" ||
+		clean == "333333" || clean == "444444" || clean == "555555" ||
+		clean == "666666" || clean == "777777" || clean == "888888" ||
+		clean == "999999" {
+		return false
+	}
+
+	// If it doesn't match known ranges but has valid format, be conservative
+	// Return false to reduce false positives unless we're confident it's a real BSB
+	return false
+}
+
+// isValidAustralianDriverLicense validates Australian driver licenses with state-specific formats
+func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
+	license := strings.TrimSpace(licenseStr)
+
+	// Remove all non-alphanumeric for checking
+	alphaNumeric := regexp.MustCompile(`[^A-Za-z0-9]`).ReplaceAllString(license, "")
+	digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(license, "")
+
+	// Exclude numbers that are clearly other PI types
+	if len(digits) == 9 {
+		// Could be TFN or ACN - exclude sequential/repeated patterns
+		if digits == "123456789" || digits == "987654321" {
+			return false
+		}
+		// Check for repeated digits
+		firstDigit := digits[0]
+		allSame := true
+		for i := 0; i < len(digits); i++ {
+			if digits[i] != firstDigit {
+				allSame = false
+				break
+			}
+		}
+		if allSame {
+			return false
+		}
+	}
+	if len(digits) == 10 {
+		// Could be Medicare number - be more cautious
+		// Medicare numbers start with 2-6, but we'll exclude all 10-digit numbers
+		// that start with 1-6 to be safe
+		if digits[0] >= '1' && digits[0] <= '6' {
+			return false
+		}
+	}
+	if len(digits) == 11 {
+		// Could be ABN
+		return false
+	}
+
+	// Exclude phone numbers first
+	if len(license) > 0 && (license[0] == '0' || strings.HasPrefix(license, "+61")) {
+		return false
+	}
+	if strings.HasPrefix(digits, "1300") || strings.HasPrefix(digits, "1800") ||
+		strings.HasPrefix(digits, "04") || strings.HasPrefix(digits, "614") {
+		return false
+	}
+
+	// State-specific validation based on research
+
+	// NSW: 8-digit numeric format
+	if regexp.MustCompile(`^\d{8}$`).MatchString(alphaNumeric) {
+		// Exclude obvious test patterns
+		if isTestDriverLicense(alphaNumeric) {
+			return false
+		}
+		// NSW licenses typically don't start with 0 or 1
+		if alphaNumeric[0] == '0' || alphaNumeric[0] == '1' {
+			return false
+		}
+		// Be more restrictive - require some entropy (not all same digit)
+		firstDigit := alphaNumeric[0]
+		allSame := true
+		for i := 1; i < len(alphaNumeric); i++ {
+			if alphaNumeric[i] != firstDigit {
+				allSame = false
+				break
+			}
+		}
+		if allSame {
+			return false
+		}
+		// NSW licenses are typically in specific ranges - be conservative
+		// This is a heuristic to reduce false positives
+		num, _ := strconv.Atoi(alphaNumeric)
+		// NSW licenses are typically in higher ranges
+		return num >= 20000000
+	}
+
+	// VIC: 9 digits exactly (based on more specific research)
+	// This prevents matching with TFNs and other 9-digit numbers
+	if regexp.MustCompile(`^\d{9}$`).MatchString(alphaNumeric) {
+		if isTestDriverLicense(alphaNumeric) {
+			return false
+		}
+		// Additional validation to prevent matching other PI types
+		// VIC licenses typically don't start with 0 or 1
+		if alphaNumeric[0] == '0' || alphaNumeric[0] == '1' {
+			return false
+		}
+		// Exclude patterns that look like TFNs (sequential or structured)
+		if isSequentialNumber(alphaNumeric) {
+			return false
+		}
+		return true
+	}
+
+	// SA: 1 letter + 6 digits (7 characters total)
+	if regexp.MustCompile(`^[A-Z]\d{6}$`).MatchString(alphaNumeric) {
+		return true
+	}
+
+	// WA: Various formats (not fully specified)
+	if regexp.MustCompile(`^\d{7}$`).MatchString(alphaNumeric) {
+		return !isTestDriverLicense(alphaNumeric)
+	}
+
+	// TAS: 1 letter + 6 digits OR 2 letters + 5 digits
+	if regexp.MustCompile(`^[A-Z]\d{6}$`).MatchString(alphaNumeric) ||
+		regexp.MustCompile(`^[A-Z]{2}\d{5}$`).MatchString(alphaNumeric) {
+		return true
+	}
+
+	// NT: Following general Australian pattern
+	if regexp.MustCompile(`^\d{7,8}$`).MatchString(alphaNumeric) {
+		return !isTestDriverLicense(alphaNumeric)
+	}
+
+	// ACT: Following general Australian pattern
+	if regexp.MustCompile(`^\d{7,8}$`).MatchString(alphaNumeric) {
+		return !isTestDriverLicense(alphaNumeric)
+	}
+
+	return false
+}
+
+// isTestDriverLicense checks for obvious test patterns in driver licenses
+func isTestDriverLicense(license string) bool {
+	testPatterns := []string{
+		"00000000", "11111111", "22222222", "33333333", "44444444",
+		"55555555", "66666666", "77777777", "88888888", "99999999",
+		"12345678", "87654321", "00000007", "0000000", "1111111",
+		"2222222", "3333333", "4444444", "5555555", "6666666",
+		"7777777", "8888888", "9999999", "1234567", "7654321",
+		"123456789", "987654321",
+	}
+
+	for _, pattern := range testPatterns {
+		if license == pattern {
+			return true
+		}
+	}
+
+	// Also check for sequential patterns
+	return isSequentialNumber(license)
+}
+
+// isSequentialNumber checks if a number is sequential (like 123456789)
+func isSequentialNumber(num string) bool {
+	if len(num) < 3 {
+		return false
+	}
+
+	// Check for ascending sequence
+	ascending := true
+	for i := 1; i < len(num); i++ {
+		if num[i] != num[i-1]+1 {
+			ascending = false
+			break
+		}
+	}
+
+	// Check for descending sequence
+	descending := true
+	for i := 1; i < len(num); i++ {
+		if num[i] != num[i-1]-1 {
+			descending = false
+			break
+		}
+	}
+
+	return ascending || descending
 }

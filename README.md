@@ -6,6 +6,7 @@ A high-performance scanner for detecting Australian Personal Information (PI) in
 
 - **Australian PI Detection**: Specialized detection for TFN, ABN, Medicare numbers, BSB codes, ACN, and driver licenses
 - **Context-Aware Detection**: Pattern matching with intelligent context validation and confidence scoring
+- **LLM-Enhanced Validation**: Optional AI-powered validation using local LLMs to reduce false positives
 - **High Performance**: Concurrent processing with worker pools
 - **Enterprise Ready**: Batch processing, comprehensive reporting, and CI/CD integration
 - **Compliance Focused**: Designed for Australian Privacy Act and Notifiable Data Breach compliance
@@ -56,6 +57,9 @@ pi-scanner scan --repo github/docs --output results.json
 
 # Scan with verbose output
 pi-scanner scan --repo github/docs --output results.json --verbose
+
+# Scan with LLM validation (requires LM Studio)
+pi-scanner scan --repo github/docs --enable-llm --output results.json
 ```
 
 ### Batch Scanning
@@ -120,11 +124,21 @@ performance:
 repository:
   clone_depth: 1
   timeout: 300s
-  
+
 # Risk scoring
 risk:
   high_threshold: 0.9
   medium_threshold: 0.7
+
+# LLM validation (optional)
+llm:
+  enabled: false
+  provider: "lmstudio"
+  endpoint: "http://localhost:1234/v1"
+  model: "qwen2.5-coder-7b-instruct"
+  validate_risks:
+    - HIGH
+    - MEDIUM
 ```
 
 ## Output Format
@@ -161,6 +175,38 @@ The scanner produces detailed JSON output:
 }
 ```
 
+## LLM-Enhanced Detection
+
+The scanner supports optional LLM-based validation to reduce false positives by analyzing the context around detected patterns.
+
+### Setup
+
+1. **Install LM Studio**: Download from [lmstudio.ai](https://lmstudio.ai/)
+2. **Download a Model**: Recommended models:
+   - Qwen2.5-Coder-7B-Instruct (best for code analysis)
+   - DeepSeek-Coder-6.7B
+   - Llama-3.2-3B-Instruct (lighter option)
+3. **Start the Server**: In LM Studio, go to the Developer tab and start the local server
+
+### Usage
+
+```bash
+# Enable LLM validation
+pi-scanner scan --repo github/docs --enable-llm
+
+# Use a different model
+pi-scanner scan --repo github/docs --enable-llm --llm-model "deepseek-coder-6.7b"
+
+# Custom endpoint
+pi-scanner scan --repo github/docs --enable-llm --llm-endpoint "http://192.168.1.100:1234/v1"
+```
+
+### Benefits
+
+- **Reduced False Positives**: LLM analyzes context to identify test data vs. real PI
+- **Risk Refinement**: Adjusts risk levels based on code context
+- **Clear Explanations**: Provides reasoning for each validation decision
+
 ## CI/CD Integration
 
 ### GitHub Actions
@@ -174,13 +220,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run PI Scanner
         uses: your-org/pi-scanner-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output-format: sarif
-          
+
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:

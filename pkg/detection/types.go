@@ -58,6 +58,12 @@ type Finding struct {
 	Validated       bool   `json:"validated"`
 	ValidationError string `json:"validation_error,omitempty"`
 
+	// LLM Validation
+	LLMValidated   bool      `json:"llm_validated,omitempty"`
+	LLMRisk        RiskLevel `json:"llm_risk,omitempty"`
+	LLMExplanation string    `json:"llm_explanation,omitempty"`
+	LLMConfidence  float64   `json:"llm_confidence,omitempty"`
+
 	// Metadata
 	DetectedAt   time.Time `json:"detected_at"`
 	DetectorName string    `json:"detector_name"`
@@ -83,10 +89,11 @@ type PatternMatcher interface {
 
 // PatternMatch represents a regex pattern match
 type PatternMatch struct {
-	Value      string
-	StartIndex int
-	EndIndex   int
-	Groups     map[string]string
+	Value            string
+	StartIndex       int
+	EndIndex         int
+	Groups           map[string]string
+	ValidationPassed bool // Whether pattern-specific validation passed
 }
 
 // Validator validates specific PI types
@@ -158,6 +165,26 @@ type Config struct {
 	MaxFileSize   int64 `yaml:"max_file_size"`
 	MaxWorkers    int   `yaml:"max_workers"`
 	EnableCaching bool  `yaml:"enable_cache"`
+
+	// LLM Validation
+	EnableLLMValidation bool        `yaml:"enable_llm_validation"`
+	LLMProvider         string      `yaml:"llm_provider"`
+	LLMEndpoint         string      `yaml:"llm_endpoint"`
+	LLMModel            string      `yaml:"llm_model"`
+	LLMAPIKey           string      `yaml:"llm_api_key"`
+	LLMMaxTokens        int         `yaml:"llm_max_tokens"`
+	LLMTemperature      float32     `yaml:"llm_temperature"`
+	LLMValidateRisks    []RiskLevel `yaml:"llm_validate_risks"`
+}
+
+// LLMEnhancedConfig holds configuration for LLM-enhanced detection
+type LLMEnhancedConfig struct {
+	Enabled            bool        `yaml:"enabled"`
+	ValidateRiskLevels []RiskLevel `yaml:"validate_risk_levels"`
+	MaxConcurrency     int         `yaml:"max_concurrency"`
+	SkipTestFiles      bool        `yaml:"skip_test_files"`
+	ContextLinesBefore int         `yaml:"context_lines_before"`
+	ContextLinesAfter  int         `yaml:"context_lines_after"`
 }
 
 // DefaultConfig returns the default detection configuration
@@ -250,5 +277,15 @@ func DefaultConfig() *Config {
 		MaxFileSize:     10 * 1024 * 1024, // 10MB
 		MaxWorkers:      0,                // 0 means runtime.NumCPU()
 		EnableCaching:   true,
+
+		// LLM defaults
+		EnableLLMValidation: false,
+		LLMProvider:         "lmstudio",
+		LLMEndpoint:         "http://localhost:1234/v1",
+		LLMModel:            "qwen2.5-coder-7b-instruct",
+		LLMAPIKey:           "lm-studio",
+		LLMMaxTokens:        1000,
+		LLMTemperature:      0.3,
+		LLMValidateRisks:    []RiskLevel{RiskLevelHigh, RiskLevelMedium},
 	}
 }
