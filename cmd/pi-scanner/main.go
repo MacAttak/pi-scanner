@@ -63,11 +63,14 @@ func newVersionCmd() *cobra.Command {
 
 func newScanCmd() *cobra.Command {
 	var (
-		repoURL    string
-		repoList   string
-		configFile string
-		outputFile string
-		verbose    bool
+		repoURL     string
+		repoList    string
+		configFile  string
+		outputFile  string
+		verbose     bool
+		enableLLM   bool
+		llmModel    string
+		llmEndpoint string
 	)
 
 	cmd := &cobra.Command{
@@ -95,8 +98,18 @@ using a multi-stage detection pipeline.`,
 				return fmt.Errorf("repo list scanning not yet implemented")
 			}
 
+			// Create scan options
+			opts := &scanOptions{
+				repoURL:     repoURL,
+				outputFile:  outputFile,
+				verbose:     verbose,
+				enableLLM:   enableLLM,
+				llmModel:    llmModel,
+				llmEndpoint: llmEndpoint,
+			}
+
 			// Single repo scan
-			return runScan(cmd.Context(), repoURL, outputFile, verbose)
+			return runScan(cmd.Context(), opts)
 		},
 	}
 
@@ -106,6 +119,11 @@ using a multi-stage detection pipeline.`,
 	cmd.Flags().StringVarP(&configFile, "config", "c", "", "Configuration file (default: built-in)")
 	cmd.Flags().StringVarP(&outputFile, "output", "o", "scan-results.json", "Output file for results")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
+
+	// LLM validation flags
+	cmd.Flags().BoolVar(&enableLLM, "enable-llm", false, "Enable LLM validation to reduce false positives")
+	cmd.Flags().StringVar(&llmModel, "llm-model", "qwen2.5-coder-7b-instruct", "LLM model to use for validation")
+	cmd.Flags().StringVar(&llmEndpoint, "llm-endpoint", "http://localhost:1234/v1", "LLM API endpoint (LM Studio default)")
 
 	return cmd
 }

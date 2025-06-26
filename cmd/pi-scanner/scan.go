@@ -10,6 +10,7 @@ import (
 
 	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"github.com/MacAttak/pi-scanner/pkg/discovery"
+	"github.com/MacAttak/pi-scanner/pkg/llm"
 	"github.com/MacAttak/pi-scanner/pkg/processing"
 	"github.com/MacAttak/pi-scanner/pkg/repository"
 )
@@ -37,8 +38,18 @@ type ScanStats struct {
 	ProcessingTime time.Duration  `json:"processing_time"`
 }
 
+// scanOptions holds all scan configuration
+type scanOptions struct {
+	repoURL     string
+	outputFile  string
+	verbose     bool
+	enableLLM   bool
+	llmModel    string
+	llmEndpoint string
+}
+
 // runScan performs the actual scanning logic
-func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) error {
+func runScan(ctx context.Context, opts *scanOptions) error {
 	result := &ScanResult{
 		ScanStarted: time.Now(),
 		Stats: ScanStats{
@@ -47,8 +58,8 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 		},
 	}
 
-	if verbose {
-		fmt.Printf("🔍 Starting PI scan of repository: %s\n", repoURL)
+	if opts.verbose {
+		fmt.Printf("🔍 Starting PI scan of repository: %s\n", opts.repoURL)
 	}
 
 	// Step 1: Set up repository manager
@@ -56,83 +67,103 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 	repoManager := repository.NewRepositoryManager(repoConfig)
 
 	// Check authentication
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("🔐 Checking GitHub authentication...\n")
 	}
 
 	err := repoManager.CheckAuthentication(ctx)
 	if err != nil {
 		result.Error = fmt.Sprintf("Authentication failed: %v", err)
-		return saveResult(result, outputFile)
+		return saveResult(result, opts.outputFile)
 	}
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("✅ GitHub authentication successful\n")
 	}
 
 	// Step 2: Clone repository
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("📥 Cloning repository...\n")
 	}
 
-	repoInfo, err := repoManager.CloneAndTrack(ctx, repoURL)
+	repoInfo, err := repoManager.CloneAndTrack(ctx, opts.repoURL)
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to clone repository: %v", err)
-		return saveResult(result, outputFile)
+		return saveResult(result, opts.outputFile)
 	}
 
 	result.Repository = repoInfo
 
 	// Ensure cleanup happens
 	defer func() {
-		if verbose {
+		if opts.verbose {
 			fmt.Printf("🧹 Cleaning up cloned repository...\n")
 		}
 		_ = repoManager.CleanupAll()
 	}()
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("✅ Repository cloned to: %s\n", repoInfo.LocalPath)
 		fmt.Printf("📊 Repository info: %d files, %d bytes\n", repoInfo.FileCount, repoInfo.Size)
 	}
 
 	// Step 3: Set up detectors
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("🔧 Setting up detection pipeline...\n")
 	}
 
 	var detectors []detection.Detector
 
-	// Add pattern detector
+	// Create base configuration
+	detectionConfig := detection.DefaultConfig()
+
+	// Configure LLM if enabled
+	if opts.enableLLM {
+		detectionConfig.EnableLLMValidation = true
+		detectionConfig.LLMModel = opts.llmModel
+		detectionConfig.LLMEndpoint = opts.llmEndpoint
+		if opts.verbose {
+			fmt.Printf("🤖 LLM validation enabled: %s at %s\n", opts.llmModel, opts.llmEndpoint)
+		}
+	}
+
+	// Add pattern detector (potentially enhanced with LLM)
 	patternDetector := detection.NewDetector()
-	detectors = append(detectors, patternDetector)
+	enhancedDetector, err := llm.CreateEnhancedDetector(patternDetector, detectionConfig)
+	if err != nil {
+		if opts.verbose {
+			fmt.Printf("⚠️  Failed to create LLM-enhanced detector: %v\n", err)
+		}
+		enhancedDetector = patternDetector // Fall back to base detector
+	}
+	detectors = append(detectors, enhancedDetector)
 
 	// Add Gitleaks detector
 	gitleaksConfigPath := filepath.Join("configs", "gitleaks.toml")
 	if _, err := os.Stat(gitleaksConfigPath); err == nil {
 		gitleaksDetector, err := detection.NewGitleaksDetector(gitleaksConfigPath)
 		if err != nil {
-			if verbose {
+			if opts.verbose {
 				fmt.Printf("⚠️  Gitleaks detector setup failed: %v\n", err)
 			}
 		} else {
 			detectors = append(detectors, gitleaksDetector)
-			if verbose {
+			if opts.verbose {
 				fmt.Printf("✅ Gitleaks detector loaded\n")
 			}
 		}
 	} else {
-		if verbose {
+		if opts.verbose {
 			fmt.Printf("⚠️  Gitleaks config not found, skipping\n")
 		}
 	}
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("✅ %d detectors configured\n", len(detectors))
 	}
 
 	// Step 4: Discover files
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("🔍 Discovering files to scan...\n")
 	}
 
@@ -142,12 +173,12 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 	files, err := fileDiscovery.DiscoverFiles(ctx, repoInfo.LocalPath)
 	if err != nil {
 		result.Error = fmt.Sprintf("File discovery failed: %v", err)
-		return saveResult(result, outputFile)
+		return saveResult(result, opts.outputFile)
 	}
 
 	result.Stats.TotalFiles = len(files)
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("✅ Discovered %d files\n", len(files))
 	}
 
@@ -168,7 +199,7 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 		// Read file content
 		content, err := os.ReadFile(file.Path)
 		if err != nil {
-			if verbose {
+			if opts.verbose {
 				fmt.Printf("⚠️  Could not read file %s: %v\n", file.Path, err)
 			}
 			result.Stats.SkippedFiles++
@@ -188,12 +219,12 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 
 	result.Stats.ScannedFiles = len(jobs)
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("📋 Prepared %d files for scanning (%d skipped)\n", len(jobs), result.Stats.SkippedFiles)
 	}
 
 	// Step 7: Process files
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("🚀 Starting file processing with %d workers...\n", processorConfig.NumWorkers)
 	}
 
@@ -203,24 +234,24 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 	results, err := batchProcessor.ProcessFiles(ctx, jobs)
 	if err != nil {
 		result.Error = fmt.Sprintf("File processing failed: %v", err)
-		return saveResult(result, outputFile)
+		return saveResult(result, opts.outputFile)
 	}
 
 	result.Stats.ProcessingTime = time.Since(processingStart)
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("✅ Processing completed in %v\n", result.Stats.ProcessingTime)
 	}
 
 	// Step 8: Collect and analyze findings
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("📊 Analyzing findings...\n")
 	}
 
 	var allFindings []detection.Finding
 	for _, procResult := range results {
 		if procResult.Error != nil {
-			if verbose {
+			if opts.verbose {
 				fmt.Printf("⚠️  Error processing %s: %v\n", procResult.FilePath, procResult.Error)
 			}
 			continue
@@ -243,7 +274,7 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 	result.ScanFinished = time.Now()
 	result.Duration = result.ScanFinished.Sub(result.ScanStarted)
 
-	if verbose {
+	if opts.verbose {
 		fmt.Printf("🎯 Scan Summary:\n")
 		fmt.Printf("   • Duration: %v\n", result.Duration)
 		fmt.Printf("   • Files scanned: %d\n", result.FilesScanned)
@@ -262,10 +293,27 @@ func runScan(ctx context.Context, repoURL, outputFile string, verbose bool) erro
 				fmt.Printf("     - %s: %d\n", risk, count)
 			}
 		}
+
+		if opts.enableLLM {
+			// Count LLM validations
+			llmValidated := 0
+			llmDowngraded := 0
+			for _, finding := range allFindings {
+				if finding.LLMValidated {
+					llmValidated++
+					if finding.LLMRisk < finding.RiskLevel {
+						llmDowngraded++
+					}
+				}
+			}
+			if llmValidated > 0 {
+				fmt.Printf("   • LLM validation: %d findings validated, %d downgraded\n", llmValidated, llmDowngraded)
+			}
+		}
 	}
 
 	// Step 9: Save results
-	return saveResult(result, outputFile)
+	return saveResult(result, opts.outputFile)
 }
 
 // saveResult saves the scan result to a JSON file

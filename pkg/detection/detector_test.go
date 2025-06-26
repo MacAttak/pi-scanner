@@ -20,22 +20,22 @@ func TestDetector_Detect(t *testing.T) {
 		// Australian Tax File Number tests
 		{
 			name:         "detect TFN in code",
-			content:      `const customerTFN = "123456789"`,
-			expectedPIs:  []string{"123456789"},
+			content:      `const customerTFN = "123456782"`,
+			expectedPIs:  []string{"123456782"},
 			expectedType: []PIType{PITypeTFN},
 			description:  "Should detect valid TFN in string literal",
 		},
 		{
 			name:         "detect TFN with formatting",
-			content:      `tfn: "123-456-789"`,
-			expectedPIs:  []string{"123-456-789"},
+			content:      `tfn: "123-456-782"`,
+			expectedPIs:  []string{"123-456-782"},
 			expectedType: []PIType{PITypeTFN},
 			description:  "Should detect TFN with dashes",
 		},
 		{
 			name:         "detect TFN with spaces",
-			content:      `user_tfn = "123 456 789"`,
-			expectedPIs:  []string{"123 456 789"},
+			content:      `user_tfn = "123 456 782"`,
+			expectedPIs:  []string{"123 456 782"},
 			expectedType: []PIType{PITypeTFN},
 			description:  "Should detect TFN with spaces",
 		},
@@ -127,26 +127,26 @@ func TestDetector_Detect(t *testing.T) {
 			content: `
 				customer := Customer{
 					Name: "John Smith",
-					TFN: "123456789",
+					TFN: "123456782",
 					Email: "john@example.com",
 				}
 			`,
-			expectedPIs:  []string{"John Smith", "123456789", "john@example.com"},
+			expectedPIs:  []string{"John Smith", "123456782", "john@example.com"},
 			expectedType: []PIType{PITypeName, PITypeTFN, PITypeEmail},
 			description:  "Should detect multiple PI types in struct",
 		},
 		// Edge cases
 		{
 			name:         "ignore PI in comments",
-			content:      `// Example TFN: 123456789`,
-			expectedPIs:  []string{"123456789"},
+			content:      `// Example TFN: 123456782`,
+			expectedPIs:  []string{"123456782"},
 			expectedType: []PIType{PITypeTFN},
 			description:  "Should still detect PI in comments (context analysis comes later)",
 		},
 		{
 			name:         "detect PI in JSON",
-			content:      `{"tfn": "123456789", "email": "test@example.com"}`,
-			expectedPIs:  []string{"123456789", "test@example.com"},
+			content:      `{"tfn": "123456782", "email": "test@example.com"}`,
+			expectedPIs:  []string{"123456782", "test@example.com"},
 			expectedType: []PIType{PITypeTFN, PITypeEmail},
 			description:  "Should detect PI in JSON format",
 		},
@@ -181,28 +181,28 @@ func TestDetector_DetectWithContext(t *testing.T) {
 	}{
 		{
 			name:            "reduce risk for test files",
-			content:         `tfn := "123456789"`,
+			content:         `tfn := "123456782"`,
 			filename:        "customer_test.go",
 			expectedRiskMod: 0.1,
 			description:     "Should reduce risk for test files",
 		},
 		{
 			name:            "reduce risk for mock files",
-			content:         `mockTFN := "123456789"`,
+			content:         `mockTFN := "123456782"`,
 			filename:        "mock_data.go",
 			expectedRiskMod: 0.1,
 			description:     "Should reduce risk for mock files",
 		},
 		{
 			name:            "normal risk for production files",
-			content:         `customerTFN := "123456789"`,
+			content:         `customerTFN := "123456782"`,
 			filename:        "customer.go",
 			expectedRiskMod: 1.0,
 			description:     "Should maintain normal risk for production files",
 		},
 		{
 			name:            "reduce risk for test directories",
-			content:         `tfn := "123456789"`,
+			content:         `tfn := "123456782"`,
 			filename:        "test/fixtures/data.go",
 			expectedRiskMod: 0.1,
 			description:     "Should reduce risk for files in test directories",
@@ -232,7 +232,7 @@ func TestDetector_Performance(t *testing.T) {
 		largeContent += `
 			customer := Customer{
 				Name: "John Smith",
-				TFN: "123456789",
+				TFN: "123456782",
 				Email: "john@example.com",
 				Phone: "0412345678",
 			}
@@ -278,7 +278,7 @@ func BenchmarkDetector_LargeFile(b *testing.B) {
 	for i := 0; i < 100; i++ {
 		content += `const data = "Some regular content without PI information that should be skipped quickly"`
 	}
-	content += `tfn := "123456789"` // One PI in large file
+	content += `tfn := "123456782"` // One PI in large file
 
 	detector := NewDetector()
 	ctx := context.Background()

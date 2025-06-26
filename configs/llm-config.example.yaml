@@ -1,0 +1,77 @@
+# Example configuration for LLM-enhanced PI detection
+# This configuration enables local LLM validation to reduce false positives
+
+# Basic detection settings
+enable_regex: true
+enable_gitleaks: true
+enable_validation: true
+validate_checksums: true
+enable_context_validation: true
+
+# LLM Validation Settings
+enable_llm_validation: true
+
+# LLM Provider Configuration
+# Provider can be "lmstudio" (default) or future providers
+llm_provider: "lmstudio"
+
+# LM Studio endpoint (default: http://localhost:1234/v1)
+llm_endpoint: "http://localhost:1234/v1"
+
+# Model to use for validation
+# Recommended models for code analysis:
+# - qwen2.5-coder-7b-instruct (recommended)
+# - deepseek-coder-6.7b
+# - llama-3.2-3b-instruct (lighter option)
+llm_model: "qwen2.5-coder-7b-instruct"
+
+# API Key (can be any string for LM Studio)
+llm_api_key: "lm-studio"
+
+# Maximum tokens for LLM response
+llm_max_tokens: 1000
+
+# Temperature for generation (lower = more deterministic)
+llm_temperature: 0.3
+
+# Which risk levels to validate with LLM
+# Only medium and high risk findings are sent to LLM by default
+llm_validate_risks:
+  - HIGH
+  - MEDIUM
+
+# Performance settings
+max_file_size: 10485760  # 10MB
+max_workers: 0           # 0 = use all CPU cores
+enable_cache: true
+
+# Confidence thresholds
+min_confidence_threshold: 0.4
+context_confidence_boost: 0.2
+
+# Risk scoring weights
+risk_weights:
+  TFN: 100
+  MEDICARE: 90
+  CREDIT_CARD: 90
+  PASSPORT: 80
+  ABN: 60
+  ACN: 60
+  BSB: 50
+  ACCOUNT: 50
+  NAME: 40
+  ADDRESS: 40
+  PHONE: 30
+  EMAIL: 20
+  IP_ADDRESS: 10
+
+# Test file patterns to exclude from scanning
+test_path_patterns:
+  - "*_test.go"
+  - "*/test/*"
+  - "*/tests/*"
+  - "*/testdata/*"
+  - "**/fixtures/*"
+  - "test_*.py"
+  - "*.test.js"
+  - "*.spec.js"
