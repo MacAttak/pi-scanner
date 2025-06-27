@@ -39,6 +39,8 @@ type ProcessingStats struct {
 type FileProcessor struct {
 	detectors        []detection.Detector
 	contextValidator *contextval.ContextValidator
+	streamProcessor  *StreamProcessor
+	config           ProcessorConfig
 	numWorkers       int
 	jobQueue         chan FileJob
 	resultQueue      chan ProcessingResult
@@ -61,21 +63,27 @@ type FileWorker struct {
 
 // ProcessorConfig configures the file processor
 type ProcessorConfig struct {
-	NumWorkers     int
-	QueueSize      int
-	MaxFileSize    int64
-	EnablePatterns bool
-	EnableGitleaks bool
+	NumWorkers       int
+	QueueSize        int
+	MaxFileSize      int64
+	MaxMemory        int64
+	StreamLargeFiles bool
+	EnablePatterns   bool
+	EnableGitleaks   bool
+	EnableCaching    bool
 }
 
 // DefaultProcessorConfig returns sensible defaults
 func DefaultProcessorConfig() ProcessorConfig {
 	return ProcessorConfig{
-		NumWorkers:     runtime.NumCPU(),
-		QueueSize:      10000,            // Support very large repositories
-		MaxFileSize:    10 * 1024 * 1024, // 10MB
-		EnablePatterns: true,
-		EnableGitleaks: true,
+		NumWorkers:       runtime.NumCPU(),
+		QueueSize:        10000,                  // Support very large repositories
+		MaxFileSize:      10 * 1024 * 1024,       // 10MB
+		MaxMemory:        2 * 1024 * 1024 * 1024, // 2GB
+		StreamLargeFiles: true,
+		EnablePatterns:   true,
+		EnableGitleaks:   true,
+		EnableCaching:    false,
 	}
 }
 
@@ -87,10 +95,24 @@ func NewFileProcessor(config ProcessorConfig, detectors []detection.Detector) *F
 	if config.QueueSize <= 0 {
 		config.QueueSize = 100
 	}
+	if config.MaxMemory <= 0 {
+		config.MaxMemory = 2 * 1024 * 1024 * 1024 // 2GB default
+	}
+
+	// Create memory tracker
+	memTracker := NewMemoryTracker(config.MaxMemory)
+
+	// Create stream processor
+	streamProcessor := NewStreamProcessor(
+		WithMaxFileSize(config.MaxFileSize),
+		WithMemoryTracker(memTracker),
+	)
 
 	return &FileProcessor{
 		detectors:        detectors,
 		contextValidator: contextval.NewContextValidator(),
+		streamProcessor:  streamProcessor,
+		config:           config,
 		numWorkers:       config.NumWorkers,
 		jobQueue:         make(chan FileJob, config.QueueSize),
 		resultQueue:      make(chan ProcessingResult, config.QueueSize),
@@ -241,29 +263,12 @@ func (w *FileWorker) start() {
 
 // processFile runs all detectors on a file and collects findings
 func (w *FileWorker) processFile(job FileJob) ProcessingResult {
+	startTime := time.Now()
+
 	result := ProcessingResult{
 		FilePath: job.FilePath,
 		Findings: []detection.Finding{},
-		Stats: ProcessingStats{
-			BytesProcessed: int64(len(job.Content)),
-		},
-	}
-
-	// Count lines for stats
-	lineCount := 1
-	for _, b := range job.Content {
-		if b == '\n' {
-			lineCount++
-		}
-	}
-	result.Stats.LinesProcessed = lineCount
-
-	// Track processing time
-	start := w.processor.ctx.Value("start_time")
-	if start != nil {
-		// TODO: Processing time tracking would be implemented here
-		// This will be added when metrics collection is implemented
-		_ = start // Acknowledge unused variable
+		Stats:    ProcessingStats{},
 	}
 
 	// Check context cancellation before processing
@@ -274,10 +279,57 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 	default:
 	}
 
+	// Determine content source
+	var content []byte
+	if job.Content != nil {
+		// Use provided content (even if empty)
+		content = job.Content
+		result.Stats.BytesProcessed = int64(len(content))
+
+		// Count lines for stats
+		lineCount := 1
+		if len(content) > 0 {
+			for _, b := range content {
+				if b == '\n' {
+					lineCount++
+				}
+			}
+		}
+		result.Stats.LinesProcessed = lineCount
+	} else if job.FilePath != "" {
+		// Content not provided, read from file
+		fileContent, err := w.processor.streamProcessor.ProcessFile(
+			w.ctx,
+			job.FilePath,
+			ProcessOptions{
+				StreamLargeFiles: w.processor.config.StreamLargeFiles,
+				MaxMemoryPerFile: w.processor.config.MaxFileSize,
+				EnableCaching:    w.processor.config.EnableCaching,
+			},
+		)
+		if err != nil {
+			result.Error = fmt.Errorf("failed to read file: %w", err)
+			return result
+		}
+		content = fileContent.GetContent()
+		result.Stats.BytesProcessed = int64(len(content))
+
+		// Count lines from line map if available
+		if fileContent.LineMap != nil {
+			result.Stats.LinesProcessed = len(fileContent.LineMap)
+		} else {
+			result.Stats.LinesProcessed = 1
+		}
+	} else {
+		// No content and no file path
+		result.Error = fmt.Errorf("no content or file path provided")
+		return result
+	}
+
 	// Run all detectors on the file content
 	filename := filepath.Base(job.FilePath)
 	for _, detector := range w.processor.detectors {
-		findings, err := detector.Detect(w.ctx, job.Content, filename)
+		findings, err := detector.Detect(w.ctx, content, filename)
 		if err != nil {
 			// Log error but continue with other detectors
 			if result.Error == nil {
@@ -294,7 +346,7 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 			f.File = job.FilePath
 
 			// Apply context validation to reduce false positives
-			validationResult, err := w.processor.contextValidator.Validate(w.ctx, f, string(job.Content))
+			validationResult, err := w.processor.contextValidator.Validate(w.ctx, f, string(content))
 			if err == nil {
 				if !validationResult.IsValid {
 					// Skip invalid findings
@@ -309,6 +361,9 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 
 		result.Findings = append(result.Findings, validFindings...)
 	}
+
+	// Record processing time
+	result.Stats.ProcessingTime = time.Since(startTime).Nanoseconds()
 
 	return result
 }

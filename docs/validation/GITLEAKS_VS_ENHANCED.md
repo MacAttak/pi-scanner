@@ -52,35 +52,35 @@ mockUser := User{
 ```go
 func (cv *ContextValidator) ValidateFinding(finding Finding) ValidationResult {
     score := 1.0 // Start assuming it's real PI
-    
+
     // Reduce score for test contexts
     if cv.isTestFile(finding.File) {
         score *= 0.2 // 80% reduction
     }
-    
+
     // Reduce score for comments
     if cv.isInComment(finding.Context) {
         score *= 0.3 // 70% reduction
     }
-    
+
     // Reduce score for common test patterns
     if cv.hasTestPatterns(finding.Context) {
         // Patterns like "mock", "test", "example", "demo"
         score *= 0.3
     }
-    
+
     // Boost score for production patterns
     if cv.hasProductionPatterns(finding.Context) {
         // Database queries, API calls, config files
         score *= 1.5
     }
-    
+
     // Boost score for co-occurrence
     nearbyPI := cv.findNearbyPI(finding)
     if len(nearbyPI) > 0 {
         score *= (1.0 + 0.3*float64(len(nearbyPI)))
     }
-    
+
     return ValidationResult{
         Confidence: score,
         ShouldReport: score > 0.5,

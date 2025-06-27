@@ -11,6 +11,12 @@ A high-performance scanner for detecting Australian Personal Information (PI) in
 - **Enterprise Ready**: Batch processing, comprehensive reporting, and CI/CD integration
 - **Compliance Focused**: Designed for Australian Privacy Act and Notifiable Data Breach compliance
 
+## Prerequisites
+
+- Go 1.21+ (for building from source)
+- Docker (for containerized development and deployment)
+- GitHub token with repository read access
+
 ## Quick Start
 
 ### Using Docker (Recommended)
@@ -261,11 +267,19 @@ pi-scan:
 | Medicare | Medicare Card Number | XXXX XXXXX X |
 | BSB | Bank State Branch | XXX-XXX |
 | ACN | Australian Company Number | XXX XXX XXX |
+| ARBN | Australian Registered Body Number | XXX XXX XXX |
+| Passport | Australian Passport Number | X1234567, PA1234567 |
+| Bank Account | Bank Account Number | 6-10 digits |
 | Driver License | State-based licenses | Various formats |
+| Phone | Australian Phone Numbers | 04XX XXX XXX |
+| Email | Email Addresses | user@example.com |
 
 ## Development
 
-See [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for detailed development instructions.
+For development setup and guidelines:
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Docker-based development environment
+- [Developer Guide](docs/DEVELOPER_GUIDE.md) - Architecture and API reference
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines
 
 ## Contributing
 

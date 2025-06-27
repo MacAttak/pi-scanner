@@ -1,5 +1,8 @@
 # Developer Guide for GitHub PI Scanner
 
+> **Important**: This project uses Docker-enforced development for environment parity with CI/CD.
+> See [DEVELOPMENT.md](../DEVELOPMENT.md) for the containerized development workflow.
+
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Setting Up Development Environment](#setting-up-development-environment)
@@ -11,8 +14,9 @@
 ## Prerequisites
 
 ### System Requirements
-- Go 1.23+ (required for generics support)
+- Go 1.21+ (1.23.9 used in CI/Docker)
 - Git
+- Docker and Docker Compose (for development)
 - macOS, Linux, or Windows (with WSL recommended)
 
 ### Required Dependencies
@@ -158,10 +162,25 @@ go test -bench=BenchmarkPatternDetection ./pkg/detection/...
 
 ## Docker Development
 
+> **Note**: All development happens in Docker containers for environment parity.
+> See [DEVELOPMENT.md](../DEVELOPMENT.md) for the complete Docker-based workflow.
+
+### Quick Start with Docker
+```bash
+# Start interactive development shell
+make dev
+
+# Run tests in Docker (same as CI)
+make test
+
+# Run full CI pipeline locally
+make ci-local
+```
+
 ### Building Docker Image
 ```bash
-# Build using Make
-make docker-build
+# Build using docker-compose
+docker-compose build pi-scanner
 
 # Or build directly
 docker build -t pi-scanner:latest .

@@ -50,6 +50,17 @@ func NewLMStudioClient(config Config) (*LMStudioClient, error) {
 		config.Timeout = 30 * time.Second
 	}
 
+	// Validate endpoint security
+	validator := NewEndpointValidator(DefaultValidationConfig())
+	if err := validator.ValidateConfig(config); err != nil {
+		return nil, fmt.Errorf("invalid LLM configuration: %w", err)
+	}
+
+	// Additional provider-specific validation
+	if err := validator.ValidateProviderConfig(config.Provider, config); err != nil {
+		return nil, fmt.Errorf("provider validation failed: %w", err)
+	}
+
 	clientConfig := openai.DefaultConfig(config.APIKey)
 	clientConfig.BaseURL = config.Endpoint
 

@@ -13,7 +13,9 @@ const (
 	PITypeMedicare      PIType = "MEDICARE"
 	PITypeABN           PIType = "ABN"
 	PITypeACN           PIType = "ACN"
+	PITypeARBN          PIType = "ARBN"
 	PITypeBSB           PIType = "BSB"
+	PITypeBankAccount   PIType = "BANK_ACCOUNT"
 	PITypeEmail         PIType = "EMAIL"
 	PITypePhone         PIType = "PHONE"
 	PITypeName          PIType = "NAME"
@@ -258,19 +260,22 @@ func DefaultConfig() *Config {
 		ContextConfidenceBoost: 0.2,
 
 		RiskWeights: map[PIType]int{
-			PITypeTFN:        100,
-			PITypeMedicare:   90,
-			PITypeCreditCard: 90,
-			PITypePassport:   80,
-			PITypeABN:        60,
-			PITypeACN:        60,
-			PITypeBSB:        50,
-			PITypeAccount:    50,
-			PITypeName:       40,
-			PITypeAddress:    40,
-			PITypePhone:      30,
-			PITypeEmail:      20,
-			PITypeIP:         10,
+			PITypeTFN:           100,
+			PITypeMedicare:      90,
+			PITypeCreditCard:    90,
+			PITypePassport:      80,
+			PITypeDriverLicense: 75,
+			PITypeBankAccount:   70,
+			PITypeABN:           60,
+			PITypeACN:           60,
+			PITypeARBN:          60,
+			PITypeBSB:           50,
+			PITypeAccount:       50,
+			PITypeName:          40,
+			PITypeAddress:       40,
+			PITypePhone:         30,
+			PITypeEmail:         20,
+			PITypeIP:            10,
 		},
 
 		ProximityWindow: 5,

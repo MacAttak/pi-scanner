@@ -390,10 +390,19 @@ func TestValidatorRegistry(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			piType, valid := registry.ValidateAll(tt.value)
+			piTypes, valid := registry.ValidateAll(tt.value)
 			assert.Equal(t, tt.shouldMatch, valid)
 			if tt.shouldMatch {
-				assert.Equal(t, tt.expectedType, piType)
+				// Verify that the expected type is in the list of matches
+				assert.Contains(t, piTypes, tt.expectedType,
+					"Expected %s to be identified as %s, but got %v",
+					tt.value, tt.expectedType, piTypes)
+
+				// Also verify directly with the specific validator
+				if validator, ok := registry.Get(tt.expectedType); ok {
+					isValid, _ := validator.Validate(tt.value)
+					assert.True(t, isValid, "Value %s should validate as %s", tt.value, tt.expectedType)
+				}
 			}
 		}
 	})

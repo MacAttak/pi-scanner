@@ -34,7 +34,7 @@ func TestNewLMStudioClient(t *testing.T) {
 		{
 			name: "custom config",
 			config: Config{
-				Endpoint:    "http://custom:8080/v1",
+				Endpoint:    "http://localhost:8080/v1",
 				APIKey:      "custom-key",
 				Model:       "custom-model",
 				MaxTokens:   500,
@@ -42,7 +42,7 @@ func TestNewLMStudioClient(t *testing.T) {
 				Timeout:     60 * time.Second,
 			},
 			want: Config{
-				Endpoint:    "http://custom:8080/v1",
+				Endpoint:    "http://localhost:8080/v1",
 				APIKey:      "custom-key",
 				Model:       "custom-model",
 				MaxTokens:   500,
