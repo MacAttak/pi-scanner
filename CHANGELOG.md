@@ -20,17 +20,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive address validation for Australian postcodes
 - LLM configuration options via CLI flags and config files
 - Documentation for LLM integration setup and usage
+- New PI pattern support:
+  - Australian Passport numbers (old and new formats)
+  - Bank Account numbers with validation
+  - All state/territory driver license formats
+  - Australian Registered Body Number (ARBN)
+- Secure Output Framework with configurable masking levels
+- File processing with memory management
+- LLM endpoint validation for security
+- Comprehensive documentation cleanup and consolidation
 
 ### Changed
 - Improved PI detection accuracy with algorithmic validation
 - Enhanced context extraction for better LLM analysis
 - Updated detection confidence scoring system
+- Consolidated documentation structure for better navigation
+- Updated Gitleaks configuration with new PI patterns
+- Enhanced masking patterns for new PI types
 
 ### Fixed
 - Fixed compilation error with missing isValidAustralianAddress function
 - Corrected TFN validation algorithm
 - Fixed Medicare number validation logic
 - Improved BSB and driver license validation accuracy
+- Removed duplicate and outdated documentation
 
 ## [1.1.0] - 2024-06-19
 

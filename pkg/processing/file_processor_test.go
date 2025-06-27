@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -612,20 +613,39 @@ func BenchmarkFileProcessor_Concurrent(b *testing.B) {
 
 	b.ResetTimer()
 
-	// Submit all jobs first
-	for i := 0; i < b.N; i++ {
-		job := FileJob{
-			FilePath: fmt.Sprintf("/test/file%d.txt", i),
-			Content:  content,
-			FileInfo: discovery.FileResult{Path: fmt.Sprintf("/test/file%d.txt", i)},
+	// Process jobs in parallel - submit and collect results concurrently
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Producer goroutine
+	go func() {
+		defer wg.Done()
+		for i := 0; i < b.N; i++ {
+			job := FileJob{
+				FilePath: fmt.Sprintf("/test/file%d.txt", i),
+				Content:  content,
+				FileInfo: discovery.FileResult{Path: fmt.Sprintf("/test/file%d.txt", i)},
+			}
+
+			// Keep trying to submit until successful
+			for {
+				err := processor.Submit(job)
+				if err == nil {
+					break
+				}
+				// Small delay to avoid busy waiting
+				time.Sleep(time.Microsecond)
+			}
 		}
+	}()
 
-		err = processor.Submit(job)
-		require.NoError(b, err)
-	}
+	// Consumer goroutine
+	go func() {
+		defer wg.Done()
+		for i := 0; i < b.N; i++ {
+			<-processor.Results()
+		}
+	}()
 
-	// Collect all results
-	for i := 0; i < b.N; i++ {
-		<-processor.Results()
-	}
+	wg.Wait()
 }

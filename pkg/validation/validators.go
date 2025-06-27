@@ -260,6 +260,9 @@ func NewValidatorRegistry() *ValidatorRegistry {
 	registry.Register(&BSBValidator{})
 	registry.Register(&ACNValidator{})
 
+	// Register additional validators
+	RegisterAdditionalValidators(registry)
+
 	return registry
 }
 
@@ -274,12 +277,15 @@ func (r *ValidatorRegistry) Get(piType string) (Validator, bool) {
 	return v, ok
 }
 
-// ValidateAll validates a value against all validators
-func (r *ValidatorRegistry) ValidateAll(value string) (string, bool) {
+// ValidateAll validates a value against all validators and returns all matches
+func (r *ValidatorRegistry) ValidateAll(value string) ([]string, bool) {
+	var matches []string
+
 	for piType, validator := range r.validators {
 		if valid, _ := validator.Validate(value); valid {
-			return piType, true
+			matches = append(matches, piType)
 		}
 	}
-	return "", false
+
+	return matches, len(matches) > 0
 }

@@ -1,0 +1,11 @@
+# Gitleaks ignore file
+
+# Ignore the gitleaks configuration file itself
+configs/gitleaks.toml
+
+# Ignore test files
+**/*_test.go
+**/testdata/**
+
+# Ignore documentation files
+docs/**/*.md
