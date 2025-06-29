@@ -62,56 +62,56 @@ keywords = ["arbn", "registered body", "registered_body"]
 [[rules]]
 id = "australian-bank-account"
 description = "Australian Bank Account Number"
-regex = '''\b\d{6,10}\b'''
-keywords = ["account", "account number", "account_number", "bank account", "bank_account"]
+regex = '''(?i)\b(?:(?:account|acct|acc)[\s\-]*(?:number|no\.?)?[\s:#\-=]*|bank[\s\-]*account[\s:#\-=]*)(\d{6,10})\b'''
+keywords = ["account", "account number", "account_number", "bank account", "bank_account", "acct", "acc"]
 
 # Australian Driver's License patterns (state-specific)
 [[rules]]
 id = "australian-drivers-license-nsw"
 description = "Australian Driver's License - NSW"
-regex = '''\b(\d{8}|[A-Z]{2}\d{6})\b'''
+regex = '''(?i)\b(?:nsw[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?(\d{8}|[A-Z]{2}\d{6})\b'''
 keywords = ["license", "licence", "driver", "nsw"]
 
 [[rules]]
 id = "australian-drivers-license-vic"
 description = "Australian Driver's License - VIC"
-regex = '''\b(\d{1,10}|\d{1,9}[A-Z])\b'''
+regex = '''(?i)\b(?:vic(?:toria)?[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{8,10}\b'''
 keywords = ["license", "licence", "driver", "vic", "victoria"]
 
 [[rules]]
 id = "australian-drivers-license-qld"
 description = "Australian Driver's License - QLD"
-regex = '''\b\d{9}\b'''
+regex = '''(?i)\b(?:qld|queensland[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{9}\b'''
 keywords = ["license", "licence", "driver", "qld", "queensland"]
 
 [[rules]]
 id = "australian-drivers-license-sa"
 description = "Australian Driver's License - SA"
-regex = '''\b[A-Z]\d{6}\b'''
+regex = '''(?i)\b(?:sa|south[\s\-]*australia[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?[A-Z]\d{6}\b'''
 keywords = ["license", "licence", "driver", "sa", "south australia"]
 
 [[rules]]
 id = "australian-drivers-license-wa"
 description = "Australian Driver's License - WA"
-regex = '''\b\d{7}\b'''
+regex = '''(?i)\b(?:wa|western[\s\-]*australia[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{7}\b'''
 keywords = ["license", "licence", "driver", "wa", "western australia"]
 
 [[rules]]
 id = "australian-drivers-license-tas"
 description = "Australian Driver's License - TAS"
-regex = '''\b(\d{7}|[A-Z0-9]{8})\b'''
+regex = '''(?i)\b(?:tas(?:mania)?[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?[A-Z0-9]{7,8}\b'''
 keywords = ["license", "licence", "driver", "tas", "tasmania"]
 
 [[rules]]
 id = "australian-drivers-license-nt"
 description = "Australian Driver's License - NT"
-regex = '''\b\d{10}\b'''
+regex = '''(?i)\b(?:nt|northern[\s\-]*territory[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{10}\b'''
 keywords = ["license", "licence", "driver", "nt", "northern territory"]
 
 [[rules]]
 id = "australian-drivers-license-act"
 description = "Australian Driver's License - ACT"
-regex = '''\b\d{10}\b'''
+regex = '''(?i)\b(?:act|australian[\s\-]*capital[\s\-]*territory[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{10}\b'''
 keywords = ["license", "licence", "driver", "act", "australian capital territory"]
 
 [[rules]]

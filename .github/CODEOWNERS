@@ -1,0 +1,35 @@
+# CODEOWNERS for GitHub PI Scanner
+# This file defines who is responsible for code in this repository.
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owner for everything in the repo
+*                     @MacAttak
+
+# Core scanner logic
+/pkg/scanner/         @MacAttak
+/pkg/detection/       @MacAttak
+/pkg/validation/      @MacAttak
+
+# CLI and user interface
+/cmd/                 @MacAttak
+/internal/cli/        @MacAttak
+
+# Documentation
+/docs/                @MacAttak
+*.md                  @MacAttak
+
+# CI/CD and build configuration
+/.github/             @MacAttak
+/Dockerfile*          @MacAttak
+/docker-compose.yml   @MacAttak
+/Makefile            @MacAttak
+
+# Test files
+*_test.go            @MacAttak
+/test/               @MacAttak
+/e2e/                @MacAttak
+
+# Security-sensitive files
+/SECURITY.md         @MacAttak
+go.mod               @MacAttak
+go.sum               @MacAttak

@@ -11,7 +11,7 @@ import (
 
 func TestGitleaksDetector_WithCustomConfig(t *testing.T) {
 	// Use our custom config file
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
+	configPath := filepath.Join("..", "..", "config", "gitleaks.toml")
 
 	detector, err := NewGitleaksDetector(configPath)
 	require.NoError(t, err)
@@ -108,7 +108,7 @@ func TestGitleaksDetector_WithCustomConfig(t *testing.T) {
 }
 
 func TestGitleaksDetector_ContextModifier(t *testing.T) {
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
+	configPath := filepath.Join("..", "..", "config", "gitleaks.toml")
 	detector, err := NewGitleaksDetector(configPath)
 	require.NoError(t, err)
 
@@ -165,7 +165,7 @@ func TestCombinedDetection(t *testing.T) {
 	// Create both detectors
 	patternDetector := NewDetector()
 
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
+	configPath := filepath.Join("..", "..", "config", "gitleaks.toml")
 	gitleaksDetector, err := NewGitleaksDetector(configPath)
 	require.NoError(t, err)
 

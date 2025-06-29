@@ -366,3 +366,65 @@ func TestDetector_DetectWithValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestDriverLicenseFalsePositives(t *testing.T) {
+	detector := NewDetector()
+	ctx := context.Background()
+
+	testCases := []struct {
+		name     string
+		content  string
+		expected bool
+	}{
+		// Pure numbers without context - should NOT match
+		{"Order ID", "Order ID: 12345678", false},
+		{"Transaction ID", "Transaction: 987654321", false},
+		{"Serial Number", "Serial: 88888888", false},
+		{"Version Number", "Version: 20230501", false},
+		{"Phone Number", "Call: 98765432", false},
+		{"Date Format", "Date: 20240115", false},
+		{"Timestamp", "Time: 12345678", false},
+		{"Random 8 digits", "Code: 45678901", false},
+		{"Random 9 digits", "Ref: 456789012", false},
+
+		// Numbers with driver license context - should match
+		{"Driver License Context", "Driver License: 35834761", true},
+		{"Licence Context", "licence number: 56789012", true},
+		{"DL Abbreviation", "DL#: 98765432", true},
+		{"License with colon", "License: 34567890", true},
+
+		// Alphanumeric patterns - should always match
+		{"NSW Format", "License: A1234567", true},
+		{"SA Format", "ID: S123456", true},
+		{"TAS Format 1", "Ref: T1234567", true},
+		{"TAS Format 2", "ID: AB12345", true},
+
+		// Edge cases
+		{"License in sentence", "The driver license 87654321 was expired", true},
+		{"Multiple numbers", "Order 12345678 for license 87654321", true}, // Should find the one with context
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			findings, err := detector.Detect(ctx, []byte(tc.content), "test.txt")
+			if err != nil {
+				t.Fatalf("Detection error: %v", err)
+			}
+
+			foundDriverLicense := false
+			for _, f := range findings {
+				t.Logf("Found: Type=%s, Match=%s", f.Type, f.Match)
+				if f.Type == PITypeDriverLicense {
+					foundDriverLicense = true
+					t.Logf("Found driver license: %s", f.Match)
+					break
+				}
+			}
+
+			if foundDriverLicense != tc.expected {
+				t.Errorf("Content '%s' - expected driver license: %v, got: %v",
+					tc.content, tc.expected, foundDriverLicense)
+			}
+		})
+	}
+}

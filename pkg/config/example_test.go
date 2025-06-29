@@ -10,7 +10,7 @@ import (
 
 func ExampleLoadConfig() {
 	// Load configuration from file
-	cfg, err := config.LoadConfig("scanner.yaml")
+	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		// Fall back to defaults if config file not found
 		cfg = config.DefaultConfig()

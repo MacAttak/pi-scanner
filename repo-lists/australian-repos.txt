@@ -1,0 +1,30 @@
+# Australian Government and Organization Repositories
+# These repositories are used for E2E testing of Australian PI detection
+
+# Government repositories
+https://github.com/govau/design-system-components
+https://github.com/govau/australia-gov-au-static
+https://github.com/qld-gov-au/qgds-qol-mvp
+
+# National institutions
+https://github.com/nla/nla-blacklight
+https://github.com/TerriaJS/nationalmap
+
+# Additional Australian repositories for testing
+https://github.com/ato-gov-au/ato-design-system
+https://github.com/nsw-gov-au/nsw-design-system
+https://github.com/vic-gov-au/vic-gov-au
+https://github.com/sa-gov-au/sa-design-system
+
+# Educational and research institutions
+https://github.com/monash-merc/monash-mydata
+https://github.com/unimelb/unimelb-design-system
+https://github.com/uts-itd/utsdesignindex
+
+# Healthcare-related repositories
+https://github.com/AuDigitalHealth/mhr-b2b-client-java
+https://github.com/AuDigitalHealth/mhr-fhir-client-java
+
+# Financial sector examples
+https://github.com/CommBank/CommBank-API-Samples
+https://github.com/anz-bank/pkg

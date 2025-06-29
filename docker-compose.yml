@@ -12,7 +12,7 @@ services:
     volumes:
       - ./output:/home/scanner/output
       - ./config:/home/scanner/config
-    command: scan --repo github/docs --output /home/scanner/output/scan-results.json
+    command: https://github.com/github/docs --no-input
 
   # Development container with shell access
   pi-scanner-dev:
@@ -58,7 +58,9 @@ services:
       - ./output:/home/scanner/output
       - ./config:/home/scanner/config
       - ./repo-lists:/home/scanner/repo-lists
-    command: scan --repo-list /home/scanner/repo-lists/australian-repos.txt --output /home/scanner/output/batch-results.json
+    # Note: Batch processing via repo list not yet implemented in new architecture
+    # For now, run multiple containers or use a shell script
+    command: https://github.com/govau/design-system-components --no-input
 
   # Development environment with consistent CI tools
   dev:

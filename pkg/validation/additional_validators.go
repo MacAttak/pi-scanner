@@ -222,4 +222,5 @@ func RegisterAdditionalValidators(registry *ValidatorRegistry) {
 	registry.Register(&BankAccountValidator{})
 	registry.Register(NewDriverLicenseValidator())
 	registry.Register(&ARBNValidator{})
+	registry.Register(NewCreditCardValidator())
 }

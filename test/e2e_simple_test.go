@@ -5,8 +5,6 @@ package test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -89,8 +87,8 @@ func testCLICommands(t *testing.T, binaryPath string) {
 		},
 		{
 			name:     "Scan Help",
-			args:     []string{"scan", "--help"},
-			patterns: []string{"Usage:", "scan", "--repo"},
+			args:     []string{"--help"},
+			patterns: []string{"Usage:", "repository-url", "--no-input"},
 		},
 	}
 
@@ -126,8 +124,7 @@ func testCIAuthentication(t *testing.T, binaryPath string) {
 	}()
 
 	// Try a quick scan that should not fail due to authentication
-	outputFile := filepath.Join(t.TempDir(), "test-scan.json")
-	args := []string{"scan", "--repo", "https://github.com/octocat/Hello-World", "--output", outputFile}
+	args := []string{"--no-input", "https://github.com/octocat/Hello-World"}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -147,19 +144,11 @@ func testCIAuthentication(t *testing.T, binaryPath string) {
 			"Should not request GitHub CLI login in CI environment")
 	}
 
-	// If scan succeeded, verify output file was created
+	// If scan succeeded, verify output was produced
 	if err == nil {
-		assert.FileExists(t, outputFile, "Output file should be created on success")
-
-		if _, statErr := os.Stat(outputFile); statErr == nil {
-			resultData, readErr := os.ReadFile(outputFile)
-			if readErr == nil {
-				var scanResult map[string]interface{}
-				if jsonErr := json.Unmarshal(resultData, &scanResult); jsonErr == nil {
-					t.Logf("Scan completed successfully with %v", scanResult)
-				}
-			}
-		}
+		assert.Contains(t, outputStr, "Pattern Scan Results", "Should show scan results")
+		assert.Contains(t, outputStr, "Scan complete", "Should complete successfully")
+		t.Logf("Scan completed successfully")
 	}
 }
 
@@ -174,20 +163,19 @@ func testSimpleErrorHandling(t *testing.T, binaryPath string) {
 			name:          "Invalid Repository URL",
 			repositoryURL: "invalid-url",
 			expectError:   true,
-			errorPattern:  "Invalid repository URL",
+			errorPattern:  "invalid repository URL",
 		},
 		{
 			name:          "Malformed GitHub URL",
 			repositoryURL: "https://github.com/",
 			expectError:   true,
-			errorPattern:  "Invalid repository URL",
+			errorPattern:  "invalid repository URL",
 		},
 	}
 
 	for _, test := range errorTests {
 		t.Run(test.name, func(t *testing.T) {
-			outputFile := filepath.Join(t.TempDir(), "error-test.json")
-			args := []string{"scan", "--repo", test.repositoryURL, "--output", outputFile}
+			args := []string{"--no-input", test.repositoryURL}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -225,8 +213,7 @@ func BenchmarkE2E_SimpleRepository(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		outputFile := filepath.Join(b.TempDir(), fmt.Sprintf("bench-%d.json", i))
-		args := []string{"scan", "--repo", "https://github.com/octocat/Hello-World", "--output", outputFile}
+		args := []string{"--no-input", "https://github.com/octocat/Hello-World"}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		cmd := exec.CommandContext(ctx, binaryPath, args...)
@@ -241,7 +228,5 @@ func BenchmarkE2E_SimpleRepository(b *testing.B) {
 		if err != nil {
 			b.Logf("Benchmark iteration %d failed: %v", i, err)
 		}
-
-		os.Remove(outputFile)
 	}
 }

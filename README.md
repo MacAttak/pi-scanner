@@ -1,301 +1,175 @@
 # GitHub PI Scanner
 
+[![CI Status](https://github.com/MacAttak/pi-scanner/workflows/Fixed%20CI%2FCD%20Pipeline/badge.svg)](https://github.com/MacAttak/pi-scanner/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/MacAttak/pi-scanner)](https://goreportcard.com/report/github.com/MacAttak/pi-scanner)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org/doc/install)
+
 A high-performance scanner for detecting Australian Personal Information (PI) in GitHub repositories, designed for enterprise compliance with Australian privacy regulations.
 
 ## Features
 
-- **Australian PI Detection**: Specialized detection for TFN, ABN, Medicare numbers, BSB codes, ACN, and driver licenses
-- **Context-Aware Detection**: Pattern matching with intelligent context validation and confidence scoring
-- **LLM-Enhanced Validation**: Optional AI-powered validation using local LLMs to reduce false positives
-- **High Performance**: Concurrent processing with worker pools
-- **Enterprise Ready**: Batch processing, comprehensive reporting, and CI/CD integration
-- **Compliance Focused**: Designed for Australian Privacy Act and Notifiable Data Breach compliance
+- **Australian PI Detection**: Specialized detection for TFN, ABN, Medicare numbers, BSB codes, ACN, driver licenses, passports, and credit cards
+- **Banking Domain Intelligence**: AST-based analysis for Java, Scala, and Python with banking-specific risk assessment
+- **Two-Phase Architecture**: Pattern detection followed by optional AI-powered validation for 100% accuracy
+- **Local LLM Integration**: Code-aware validation using LM Studio for superior false positive reduction
+- **Repository Structure Analysis**: Intelligent risk zone mapping based on file paths and code patterns
+- **Smart Progress Tracking**: Real-time progress indicators with accurate time estimates
+- **Secure Output**: Configurable masking levels to protect sensitive data in reports
+- **Enterprise Ready**: Non-interactive mode for CI/CD integration with comprehensive reporting
 
 ## Prerequisites
 
 - Go 1.21+ (for building from source)
-- Docker (for containerized development and deployment)
 - GitHub token with repository read access
+- (Optional) LM Studio for AI-powered validation
 
 ## Quick Start
 
-### Using Docker (Recommended)
-
-```bash
-# Set your GitHub token
-export GITHUB_TOKEN="your-github-token"
-
-# Run with Docker
-docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
-  ghcr.io/macattak/pi-scanner:latest \
-  scan --repo octocat/Hello-World
-```
-
 ### Installation
-
-#### Building from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/MacAttak/pi-scanner.git
 cd pi-scanner
 
-# Setup development environment
-make setup
-
 # Build the binary
-make build
-
-# Or use Go directly
 go build -o bin/pi-scanner ./cmd/pi-scanner
 
-# Install to system PATH
-make install
+# Or use Make
+make build
 ```
 
-## Usage
+### Basic Usage
 
-### Basic Scan
+The scanner provides a guided experience through two phases:
+
+1. **Pattern-based scanning** - Fast detection using regex patterns
+2. **AI validation** (optional) - Reduce false positives using LLM
 
 ```bash
-# Scan a single repository
-pi-scanner scan --repo github/docs --output results.json
+# Interactive guided scan
+pi-scanner https://github.com/example/repo
 
-# Scan with verbose output
-pi-scanner scan --repo github/docs --output results.json --verbose
-
-# Scan with LLM validation (requires LM Studio)
-pi-scanner scan --repo github/docs --enable-llm --output results.json
+# The scanner will:
+# 1. Clone and scan the repository for PI patterns
+# 2. Save a masked report to ./reports/
+# 3. Show you a summary of findings
+# 4. Ask if you want to validate findings with AI
 ```
 
-### Batch Scanning
+### Non-Interactive Mode
+
+For automation and CI/CD pipelines:
 
 ```bash
-# Scan multiple repositories from a file
-pi-scanner scan --repo-list repos.txt --output batch-results.json
+# Pattern scan only (no AI validation)
+pi-scanner https://github.com/example/repo --no-input
 
-# Example repos.txt:
-# govau/design-system-components
-# qld-gov-au/qgds-qol-mvp
-# TerriaJS/nationalmap
+# Automatic high-risk validation
+pi-scanner https://github.com/example/repo --no-input --validate=high
+
+# Validate all findings
+pi-scanner https://github.com/example/repo --no-input --validate=all
 ```
 
-### Configuration
+### Masking Levels
+
+Control how PI data appears in reports:
 
 ```bash
-# Use custom configuration
-pi-scanner scan --repo github/docs --config custom-config.yaml
+# Partial masking (default) - Shows partial values like 123****82
+pi-scanner https://github.com/example/repo --masking=partial
 
-# Generate default configuration
-pi-scanner config generate > config.yaml
+# Full masking - Complete redaction
+pi-scanner https://github.com/example/repo --masking=full
+
+# No masking - Shows full values (use with caution!)
+pi-scanner https://github.com/example/repo --masking=none
 ```
 
-### Reporting
+## AI-Powered Validation
+
+The scanner can use a local LLM to validate findings and reduce false positives:
+
+### Setup LM Studio
+
+1. Download and install [LM Studio](https://lmstudio.ai/)
+2. Download a recommended model (e.g., `qwen2.5-coder-7b-instruct`)
+3. Start the local server (usually on port 1234)
+
+### Check LLM Availability
 
 ```bash
-# Generate HTML report
-pi-scanner report --input results.json --format html --output report.html
-
-# Generate CSV report
-pi-scanner report --input results.json --format csv --output findings.csv
-
-# Generate SARIF for CI/CD integration
-pi-scanner report --input results.json --format sarif --output results.sarif
+# Test if LLM service is available
+pi-scanner llm-check
 ```
 
-## Configuration Options
+### Validation Options
 
-Create a `config.yaml` file:
+During interactive scanning, you'll be presented with validation options:
 
-```yaml
-# Detection settings
-detection:
-  patterns:
-    enabled: true
-    confidence_threshold: 0.8
-  gitleaks:
-    enabled: true
-    config_path: "gitleaks.toml"
-  context:
-    enabled: true
-    proximity_distance: 10
+```
+📊 Would you like to validate these findings with AI?
+This can significantly reduce false positives.
 
-# Performance settings
-performance:
-  workers: 8
-  file_queue_size: 10000
-  max_file_size: 10485760  # 10MB
-
-# Repository settings
-repository:
-  clone_depth: 1
-  timeout: 300s
-
-# Risk scoring
-risk:
-  high_threshold: 0.9
-  medium_threshold: 0.7
-
-# LLM validation (optional)
-llm:
-  enabled: false
-  provider: "lmstudio"
-  endpoint: "http://localhost:1234/v1"
-  model: "qwen2.5-coder-7b-instruct"
-  validate_risks:
-    - HIGH
-    - MEDIUM
+1) Validate all findings (329 items) - Est. 10-15 minutes
+2) Validate HIGH + MEDIUM only (28 items) - Est. 1-2 minutes
+3) Validate HIGH + CRITICAL only (5 items) - Est. < 1 minute
+4) Skip validation
 ```
 
-## Output Format
+## Reports
 
-The scanner produces detailed JSON output:
+All scan results are saved to the `./reports/` directory with the following structure:
 
-```json
-{
-  "repository": {
-    "url": "github/docs",
-    "file_count": 1234,
-    "size": 45678900
-  },
-  "scan_duration": "45.2s",
-  "findings": [
-    {
-      "type": "TFN",
-      "file": "docs/example.md",
-      "line": 42,
-      "confidence": 0.95,
-      "risk_level": "HIGH",
-      "context": "Example TFN: [REDACTED]"
-    }
-  ],
-  "statistics": {
-    "total_files": 1234,
-    "scanned_files": 1200,
-    "findings_by_type": {
-      "TFN": 5,
-      "ABN": 12,
-      "MEDICARE": 3
-    }
-  }
-}
 ```
-
-## LLM-Enhanced Detection
-
-The scanner supports optional LLM-based validation to reduce false positives by analyzing the context around detected patterns.
-
-### Setup
-
-1. **Install LM Studio**: Download from [lmstudio.ai](https://lmstudio.ai/)
-2. **Download a Model**: Recommended models:
-   - Qwen2.5-Coder-7B-Instruct (best for code analysis)
-   - DeepSeek-Coder-6.7B
-   - Llama-3.2-3B-Instruct (lighter option)
-3. **Start the Server**: In LM Studio, go to the Developer tab and start the local server
-
-### Usage
-
-```bash
-# Enable LLM validation
-pi-scanner scan --repo github/docs --enable-llm
-
-# Use a different model
-pi-scanner scan --repo github/docs --enable-llm --llm-model "deepseek-coder-6.7b"
-
-# Custom endpoint
-pi-scanner scan --repo github/docs --enable-llm --llm-endpoint "http://192.168.1.100:1234/v1"
+reports/
+└── 20250628_140000_owner_repo/
+    ├── phase1_pattern_scan.json      # Pattern scan results
+    ├── phase2_llm_validated.json     # AI validation results (if performed)
+    └── summary.txt                   # Human-readable summary
 ```
-
-### Benefits
-
-- **Reduced False Positives**: LLM analyzes context to identify test data vs. real PI
-- **Risk Refinement**: Adjusts risk levels based on code context
-- **Clear Explanations**: Provides reasoning for each validation decision
 
 ## CI/CD Integration
 
-### GitHub Actions
+Example GitHub Actions workflow:
 
 ```yaml
-name: PI Scan
-on: [push, pull_request]
-
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run PI Scanner
-        uses: your-org/pi-scanner-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          output-format: sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: pi-scan-results.sarif
+- name: PI Security Scan
+  run: |
+    pi-scanner ${{ github.event.repository.html_url }} \
+      --no-input \
+      --validate=high \
+      --masking=full
 ```
 
-### GitLab CI
+## Environment Variables
 
-```yaml
-pi-scan:
-  image: ghcr.io/your-org/pi-scanner:latest
-  script:
-    - pi-scanner scan --repo $CI_PROJECT_PATH --output results.json
-  artifacts:
-    reports:
-      sast: results.sarif
+- `GITHUB_TOKEN` - Required for accessing private repositories
+- `NO_COLOR` - Disable colored output
+- `CI` - Automatically enables non-interactive mode
+
+## Advanced Usage
+
+### Verbose Output
+
+```bash
+# Show detailed progress and debugging information
+pi-scanner https://github.com/example/repo --verbose
 ```
 
-## Performance
+### Custom LLM Configuration
 
-- Processes ~1,300 files/second on modern hardware
-- Concurrent detection pipeline with configurable workers
-- Memory efficient streaming for large repositories
-- Automatic binary file detection and skipping
-
-## Supported PI Types
-
-| Type | Description | Example Pattern |
-|------|-------------|-----------------|
-| TFN | Tax File Number | XXX XXX XXX |
-| ABN | Australian Business Number | XX XXX XXX XXX |
-| Medicare | Medicare Card Number | XXXX XXXXX X |
-| BSB | Bank State Branch | XXX-XXX |
-| ACN | Australian Company Number | XXX XXX XXX |
-| ARBN | Australian Registered Body Number | XXX XXX XXX |
-| Passport | Australian Passport Number | X1234567, PA1234567 |
-| Bank Account | Bank Account Number | 6-10 digits |
-| Driver License | State-based licenses | Various formats |
-| Phone | Australian Phone Numbers | 04XX XXX XXX |
-| Email | Email Addresses | user@example.com |
-
-## Development
-
-For development setup and guidelines:
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Docker-based development environment
-- [Developer Guide](docs/DEVELOPER_GUIDE.md) - Architecture and API reference
-- [Contributing](CONTRIBUTING.md) - Contribution guidelines
+```bash
+# Use a different LLM endpoint
+pi-scanner llm-check --endpoint http://localhost:8080/v1 --model codellama-7b
+```
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
-
-## Support
-
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/MacAttak/pi-scanner/issues)
-- **Security**: Please report security vulnerabilities via GitHub Security tab
-
-## Acknowledgments
-
-- Gitleaks by Zachary Rice
-- Australian Government for PI validation algorithms
+MIT License - see [LICENSE](LICENSE) for details.

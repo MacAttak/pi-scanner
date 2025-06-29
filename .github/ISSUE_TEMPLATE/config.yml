@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Issue
+    url: mailto:macmilky1@gmail.com
+    about: Please report security vulnerabilities via email
+  - name: Question or Discussion
+    url: https://github.com/MacAttak/pi-scanner/discussions
+    about: Please ask and answer questions in GitHub Discussions

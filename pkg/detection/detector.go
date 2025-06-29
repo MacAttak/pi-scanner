@@ -255,6 +255,16 @@ func (d *detector) initializeMatchers() {
 		},
 	})
 
+	// Credit Card matcher - supports major card types with Luhn validation
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b(?:4[0-9]{3}[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}|5[1-5][0-9]{2}[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}|3[47][0-9]{2}[\s\-]?[0-9]{6}[\s\-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s\-]?[0-9]{6}[\s\-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}[\s\-]?[0-9]{4}|(?:2131|1800|35\d{3})[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{3})\b`,
+		piType:  PITypeCreditCard,
+		d:       d,
+		validator: func(match string) bool {
+			return d.isValidCreditCard(match)
+		},
+	})
+
 	// Phone matcher (Australian formats) - Enhanced with libphonenumber validation
 	d.matchers = append(d.matchers, &regexMatcher{
 		pattern: `(?:\+61[\s.-]?[0-9](?:[\s.-]?[0-9]){8,9}|\b0[2-9](?:[\s.-]?[0-9]){8}\b|\([0-9]{2}\)\s*[0-9]{4}\s*[0-9]{4}|\b1[38]00[\s.-]?[0-9]{3}[\s.-]?[0-9]{3}\b|\+61[\s.-]?4[0-9](?:[\s.-]?[0-9]){7})`,
@@ -270,6 +280,42 @@ func (d *detector) initializeMatchers() {
 		pattern: `\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b`,
 		piType:  PITypeEmail,
 		d:       d,
+	})
+
+	// Driver License matcher - moved before name matcher to ensure proper priority
+	// Enhanced state-specific validation to reduce false positives
+	// More specific patterns to avoid matching other PI types
+	// Only match alphanumeric patterns or very specific numeric patterns with context
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b(?:[A-Z]\d{6,8}|[A-Z]{2}\d{5}|(?i)(?:driver[\s\-]*)?(?:license|licence|driv\.?lic\.?|dl)[\s:#-]*(?:number[\s:#-]*)?\d{7,9})\b`,
+		piType:  PITypeDriverLicense,
+		d:       d,
+		extractor: func(match string) string {
+			// If it's a pure alphanumeric pattern, return as is
+			if regexp.MustCompile(`^[A-Z]\d{6,8}$|^[A-Z]{2}\d{5}$`).MatchString(match) {
+				return match
+			}
+			// Otherwise extract the numeric part after the context
+			numRe := regexp.MustCompile(`\d{7,9}`)
+			if num := numRe.FindString(match); num != "" {
+				// Preserve the original match for validation but return the number
+				return num
+			}
+			return match
+		},
+		validator: func(match string) bool {
+			// For pure alphanumeric patterns, validate directly
+			if regexp.MustCompile(`^[A-Z]\d{6,8}$|^[A-Z]{2}\d{5}$`).MatchString(match) {
+				return d.isValidAustralianDriverLicense(match)
+			}
+			// For numeric patterns that were matched with context, they're already validated by the regex
+			// Just check basic validity
+			if regexp.MustCompile(`^\d{7,9}$`).MatchString(match) {
+				// Skip test patterns
+				return !isTestDriverLicense(match)
+			}
+			return d.isValidAustralianDriverLicense(match)
+		},
 	})
 
 	// Name matcher with context-aware filtering for code scanning
@@ -294,18 +340,6 @@ func (d *detector) initializeMatchers() {
 		validator: func(match string) bool {
 			// Validate Australian address format
 			return d.isValidAustralianAddress(match)
-		},
-	})
-
-	// Driver License matcher - moved to end due to broad numeric patterns
-	// Enhanced state-specific validation to reduce false positives
-	// More specific patterns to avoid matching other PI types
-	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b(?:[A-Z]\d{6,8}|[A-Z]{2}\d{5}|[2-9]\d{7,8})\b`,
-		piType:  PITypeDriverLicense,
-		d:       d,
-		validator: func(match string) bool {
-			return d.isValidAustralianDriverLicense(match)
 		},
 	})
 
@@ -425,6 +459,9 @@ func (d *detector) isValidPersonName(name string) bool {
 	// Convert to lowercase for comparison
 	nameLower := strings.ToLower(name)
 
+	// Debug: uncomment to trace name validation
+	// fmt.Printf("isValidPersonName: checking '%s' (lower: '%s')\n", name, nameLower)
+
 	// Filter out common programming language constructs
 	programmingTerms := []string{
 		// Java/Scala constructs
@@ -468,11 +505,15 @@ func (d *detector) isValidPersonName(name string) bool {
 		"lorem ipsum", "foo bar", "hello world",
 		"test data", "sample data", "mock data",
 		"dummy data", "fake data", "example data",
+
+		// License/ID related terms that should be handled by other matchers
+		"driver license", "driver licence", "driving license", "driving licence",
+		"license number", "licence number", "license id", "licence id",
 	}
 
 	// Check against programming terms
 	for _, term := range programmingTerms {
-		if strings.Contains(nameLower, term) {
+		if nameLower == term || strings.Contains(nameLower, term) {
 			return false
 		}
 	}
@@ -1118,6 +1159,13 @@ func (d *detector) isValidAustralianBSB(bsbStr string) bool {
 func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
 	license := strings.TrimSpace(licenseStr)
 
+	// Check if the license string contains context keywords (from the regex pattern)
+	lowerLicense := strings.ToLower(license)
+	hasContext := strings.Contains(lowerLicense, "license") ||
+		strings.Contains(lowerLicense, "licence") ||
+		strings.Contains(lowerLicense, "driver") ||
+		strings.Contains(lowerLicense, "dl")
+
 	// Remove all non-alphanumeric for checking
 	alphaNumeric := regexp.MustCompile(`[^A-Za-z0-9]`).ReplaceAllString(license, "")
 	digits := regexp.MustCompile(`[^\d]`).ReplaceAllString(license, "")
@@ -1167,6 +1215,11 @@ func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
 
 	// NSW: 8-digit numeric format
 	if regexp.MustCompile(`^\d{8}$`).MatchString(alphaNumeric) {
+		// For pure numeric patterns without context, be VERY restrictive
+		if !hasContext {
+			return false // Don't match pure 8-digit numbers without context
+		}
+
 		// Exclude obvious test patterns
 		if isTestDriverLicense(alphaNumeric) {
 			return false
@@ -1197,6 +1250,11 @@ func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
 	// VIC: 9 digits exactly (based on more specific research)
 	// This prevents matching with TFNs and other 9-digit numbers
 	if regexp.MustCompile(`^\d{9}$`).MatchString(alphaNumeric) {
+		// For pure numeric patterns without context, be VERY restrictive
+		if !hasContext {
+			return false // Don't match pure 9-digit numbers without context
+		}
+
 		if isTestDriverLicense(alphaNumeric) {
 			return false
 		}
@@ -1219,6 +1277,10 @@ func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
 
 	// WA: Various formats (not fully specified)
 	if regexp.MustCompile(`^\d{7}$`).MatchString(alphaNumeric) {
+		// For pure numeric patterns without context, be restrictive
+		if !hasContext {
+			return false
+		}
 		return !isTestDriverLicense(alphaNumeric)
 	}
 
@@ -1230,11 +1292,19 @@ func (d *detector) isValidAustralianDriverLicense(licenseStr string) bool {
 
 	// NT: Following general Australian pattern
 	if regexp.MustCompile(`^\d{7,8}$`).MatchString(alphaNumeric) {
+		// For pure numeric patterns without context, be restrictive
+		if !hasContext {
+			return false
+		}
 		return !isTestDriverLicense(alphaNumeric)
 	}
 
 	// ACT: Following general Australian pattern
 	if regexp.MustCompile(`^\d{7,8}$`).MatchString(alphaNumeric) {
+		// For pure numeric patterns without context, be restrictive
+		if !hasContext {
+			return false
+		}
 		return !isTestDriverLicense(alphaNumeric)
 	}
 
@@ -1260,6 +1330,19 @@ func isTestDriverLicense(license string) bool {
 
 	// Also check for sequential patterns
 	return isSequentialNumber(license)
+}
+
+// isValidCreditCard validates credit card numbers using the validator
+func (d *detector) isValidCreditCard(cardStr string) bool {
+	// Get credit card validator from registry
+	validator, ok := d.validators.Get("CREDIT_CARD")
+	if !ok {
+		return false
+	}
+
+	// Validate using the credit card validator (includes Luhn check)
+	valid, _ := validator.Validate(cardStr)
+	return valid
 }
 
 // isSequentialNumber checks if a number is sequential (like 123456789)

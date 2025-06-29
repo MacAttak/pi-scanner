@@ -1,0 +1,36 @@
+# Australian Test Repositories for PI Scanner E2E Testing
+# This list includes repositories likely to contain test/sample PI data
+
+# Healthcare - High likelihood of test Medicare, IHI numbers
+https://github.com/hl7au/au-fhir-test-data
+https://github.com/AuDigitalHealth/mhr-b2b-client-java
+https://github.com/AuDigitalHealth/hi-vendor-client-dotnet
+https://github.com/AuDigitalHealth/mhr-fhir-client-java
+https://github.com/AuDigitalHealth/clinical-document-library-java
+
+# Financial Services - May contain test BSB, account numbers
+https://github.com/CommBank/CommBank-API-Samples
+https://github.com/anz-bank/pkg
+https://github.com/wpay/sdk-reference-server-nodejs
+
+# Government - Design systems and forms
+https://github.com/govau/design-system-components
+https://github.com/govau/australia-gov-au-static
+https://github.com/digitalnsw/nsw-design-system
+https://github.com/qld-gov-au/qgds-qol-mvp
+https://github.com/health-design-system/health-design-system
+
+# Education - May contain test student data
+https://github.com/unimelb/unimelb-design-system
+https://github.com/monash-merc/monash-mydata
+https://github.com/uts-itd/utsdesignindex
+
+# Research/Data - Scientific data repositories
+https://github.com/au-research/ANDS-Registry-Core
+https://github.com/GeoscienceAustralia/dea-notebooks
+https://github.com/aehrc/aehrc-clinical-fhir
+
+# National Infrastructure
+https://github.com/nla/nla-blacklight
+https://github.com/TerriaJS/nationalmap
+https://github.com/australian-Antarctic-Program/

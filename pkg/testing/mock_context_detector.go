@@ -89,10 +89,48 @@ func (mcd *MockContextDetector) isInComment(content string, finding detection.Fi
 
 // isTestFile checks if filename indicates a test file
 func (mcd *MockContextDetector) isTestFile(filename string) bool {
-	testPatterns := []string{"_test.go", "test.go", "mock_", "fixture_"}
+	// Use the same test patterns as the real detector
+	testPatterns := []string{
+		// Go test patterns
+		"_test.go",
+		"/test/",
+		"/tests/",
+		"/testdata/",
+		"/fixtures/",
+		"/spec/",
+		"mock_",
+		"_mock.go",
 
+		// Java test patterns
+		"Test.java",
+		"Tests.java",
+		"/src/test/",
+		"/test/java/",
+		"/test/resources/",
+
+		// Scala test patterns
+		"Test.scala",
+		"Tests.scala",
+		"Spec.scala",
+		"Suite.scala",
+		"/test/scala/",
+
+		// Python test patterns
+		"test_",
+		"_test.py",
+		"conftest.py",
+
+		// JavaScript/TypeScript test patterns
+		".test.js",
+		".test.ts",
+		".spec.js",
+		".spec.ts",
+		"/__tests__/",
+	}
+
+	lowerFilename := strings.ToLower(filename)
 	for _, pattern := range testPatterns {
-		if strings.Contains(filename, pattern) {
+		if strings.Contains(lowerFilename, strings.ToLower(pattern)) {
 			return true
 		}
 	}

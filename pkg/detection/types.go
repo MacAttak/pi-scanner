@@ -291,6 +291,6 @@ func DefaultConfig() *Config {
 		LLMAPIKey:           "lm-studio",
 		LLMMaxTokens:        1000,
 		LLMTemperature:      0.3,
-		LLMValidateRisks:    []RiskLevel{RiskLevelHigh, RiskLevelMedium},
+		LLMValidateRisks:    []RiskLevel{RiskLevelCritical, RiskLevelHigh, RiskLevelMedium, RiskLevelLow},
 	}
 }
