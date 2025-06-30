@@ -37,6 +37,33 @@ const (
 	RiskLevelLow      RiskLevel = "LOW"
 )
 
+// ToInt converts RiskLevel to integer for comparison
+func (r RiskLevel) ToInt() int {
+	switch r {
+	case RiskLevelLow:
+		return 1
+	case RiskLevelMedium:
+		return 2
+	case RiskLevelHigh:
+		return 3
+	case RiskLevelCritical:
+		return 4
+	default:
+		return 0
+	}
+}
+
+// Compare returns -1 if r < other, 0 if r == other, 1 if r > other
+func (r RiskLevel) Compare(other RiskLevel) int {
+	ri, oi := r.ToInt(), other.ToInt()
+	if ri < oi {
+		return -1
+	} else if ri > oi {
+		return 1
+	}
+	return 0
+}
+
 // Finding represents a detected PI instance
 type Finding struct {
 	// Core fields
@@ -269,7 +296,7 @@ func DefaultConfig() *Config {
 			PITypeABN:           60,
 			PITypeACN:           60,
 			PITypeARBN:          60,
-			PITypeBSB:           50,
+			PITypeBSB:           75,
 			PITypeAccount:       50,
 			PITypeName:          40,
 			PITypeAddress:       40,

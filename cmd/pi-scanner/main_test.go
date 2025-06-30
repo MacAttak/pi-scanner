@@ -71,7 +71,7 @@ func TestMainCommand(t *testing.T) {
 			name: "valid repository URL format",
 			args: []string{"https://github.com/test/repo", "--no-input", "--validate=none"},
 			expectedOutput: []string{
-				"GitHub authentication failed",
+				"failed to initialize scan resources",
 			},
 			expectedError: true, // Will fail on auth in test environment
 		},

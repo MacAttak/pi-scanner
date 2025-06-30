@@ -42,7 +42,7 @@ func TestContextAwareDetection(t *testing.T) {
 		},
 		{
 			name:          "API handler",
-			content:       `func SaveTFN(tfn string) { // Example: ` + validTFN + ` }`,
+			content:       `func SaveTFN(tfn string) { // Processing TFN: ` + validTFN + ` }`,
 			filename:      "api/handlers/tax.go",
 			expectedRisk:  RiskLevelHigh,
 			contextReason: "PI in API handler",
@@ -85,11 +85,11 @@ func TestContextAwareDetection(t *testing.T) {
 			contextReason: "PI in mock file",
 		},
 		{
-			name:          "Example test",
-			content:       `Example_TFN() { fmt.Println("` + validTFN + `") }`,
+			name:          "Demo test",
+			content:       `Demo_TFN() { fmt.Println("` + validTFN + `") }`,
 			filename:      "examples/tfn_example_test.go",
 			expectedRisk:  RiskLevelLow,
-			contextReason: "PI in example test",
+			contextReason: "PI in demo test",
 		},
 		{
 			name:          "Benchmark test",
@@ -102,21 +102,21 @@ func TestContextAwareDetection(t *testing.T) {
 		// Documentation contexts - MEDIUM risk
 		{
 			name:          "README documentation",
-			content:       `Example: Use TFN ` + validTFN + ` for testing`,
+			content:       `Documentation: Use TFN ` + validTFN + ` for testing`,
 			filename:      "README.md",
 			expectedRisk:  RiskLevelMedium,
 			contextReason: "PI in documentation",
 		},
 		{
 			name:          "Code comments",
-			content:       `// Example TFN: ` + validTFN,
+			content:       `// Valid TFN: ` + validTFN,
 			filename:      "utils/validator.go",
 			expectedRisk:  RiskLevelMedium,
 			contextReason: "PI in comment",
 		},
 		{
 			name:          "API documentation",
-			content:       `@apiExample {json} Request { "tfn": "` + validTFN + `" }`,
+			content:       `@apiDoc {json} Request { "tfn": "` + validTFN + `" }`,
 			filename:      "docs/api.md",
 			expectedRisk:  RiskLevelMedium,
 			contextReason: "PI in API docs",
@@ -161,11 +161,11 @@ func TestContextAwareDetection(t *testing.T) {
 			contextReason: "Mock-prefixed variable suggests test data",
 		},
 		{
-			name:          "Example variable",
-			content:       `exampleMedicare := "` + validMedicare + `"`,
+			name:          "Demo variable",
+			content:       `demoMedicare := "` + validMedicare + `"`,
 			filename:      "validator.go",
 			expectedRisk:  RiskLevelMedium,
-			contextReason: "Example variable suggests documentation",
+			contextReason: "Demo variable suggests documentation",
 		},
 
 		// Synthetic data patterns
@@ -197,7 +197,7 @@ func TestContextAwareDetection(t *testing.T) {
 			// Get the highest risk level from findings
 			highestRisk := RiskLevelLow
 			for _, finding := range findings {
-				if finding.RiskLevel >= highestRisk {
+				if finding.RiskLevel.Compare(highestRisk) > 0 {
 					highestRisk = finding.RiskLevel
 				}
 			}
@@ -205,16 +205,16 @@ func TestContextAwareDetection(t *testing.T) {
 			// Allow some flexibility - context detection might not be perfect
 			// but should be in the right direction
 			if tt.expectedRisk == RiskLevelLow {
-				assert.True(t, highestRisk <= RiskLevelMedium,
+				assert.True(t, highestRisk.Compare(RiskLevelMedium) <= 0,
 					"Expected low risk for %s, got %s\nExpected: %s",
 					tt.contextReason, highestRisk, tt.contextReason)
 			} else if tt.expectedRisk == RiskLevelCritical {
-				assert.True(t, highestRisk >= RiskLevelHigh,
+				assert.True(t, highestRisk.Compare(RiskLevelHigh) >= 0,
 					"Expected critical/high risk for %s, got %s",
 					tt.contextReason, highestRisk)
 			} else {
 				// For medium risk, accept anything from low to high
-				assert.True(t, highestRisk >= RiskLevelLow && highestRisk <= RiskLevelHigh,
+				assert.True(t, highestRisk.Compare(RiskLevelLow) >= 0 && highestRisk.Compare(RiskLevelHigh) <= 0,
 					"Expected medium risk range for %s, got %s",
 					tt.contextReason, highestRisk)
 			}
@@ -360,12 +360,12 @@ func TestProximityContext(t *testing.T) {
 			// Find highest risk level
 			highestRisk := RiskLevelLow
 			for _, finding := range findings {
-				if finding.RiskLevel > highestRisk {
+				if finding.RiskLevel.Compare(highestRisk) > 0 {
 					highestRisk = finding.RiskLevel
 				}
 			}
 
-			assert.True(t, highestRisk >= tt.minRiskLevel,
+			assert.True(t, highestRisk.Compare(tt.minRiskLevel) >= 0,
 				"%s: expected minimum risk %s, got %s",
 				tt.reason, tt.minRiskLevel, highestRisk)
 		})

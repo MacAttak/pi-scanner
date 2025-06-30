@@ -154,7 +154,17 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 			}
 
 			// Set initial risk level based on type
-			finding.RiskLevel = d.calculateRiskLevel(finding.Type)
+			baseRisk := d.calculateRiskLevel(finding.Type)
+			finding.RiskLevel = baseRisk
+
+			// Adjust risk level based on context
+			adjustedRisk := d.adjustRiskLevelForContext(baseRisk, filename, contentStr, finding.Line)
+			finding.RiskLevel = adjustedRisk
+
+			// if strings.Contains(filename, "PaymentService") {
+			//	fmt.Printf("DEBUG: After assignment - finding.Type=%s, baseRisk=%s, adjustedRisk=%s, finding.RiskLevel=%s\n",
+			//		finding.Type, baseRisk, adjustedRisk, finding.RiskLevel)
+			// }
 
 			// Apply context validation and confidence-based filtering
 			if d.shouldIncludeFinding(ctx, finding, contentStr) {
@@ -222,10 +232,19 @@ func (d *detector) initializeMatchers() {
 	})
 
 	// BSB matcher - enhanced validation with bank code ranges
+	// Requires BSB context to avoid false positives from random 6-digit numbers
 	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b\d{3}[\-]?\d{3}\b`,
+		pattern: `(?i)(?:bsb|bank\s*state\s*branch|bank_bsb)[\s:#=]*["']?\d{3}[\-\s]?\d{3}["']?\b`,
 		piType:  PITypeBSB,
 		d:       d,
+		extractor: func(match string) string {
+			// Extract just the BSB number
+			bsbRe := regexp.MustCompile(`\d{3}[\-\s]?\d{3}`)
+			if bsb := bsbRe.FindString(match); bsb != "" {
+				return bsb
+			}
+			return match
+		},
 		validator: func(match string) bool {
 			return d.isValidAustralianBSB(match)
 		},
@@ -441,6 +460,37 @@ func (d *detector) initializeMatchers() {
 		},
 	})
 
+	// Generic bank account matcher for assignment contexts
+	// Matches variable assignments containing account-like numbers
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `(?i)(?:TEST_)?ACCOUNT\s*[=:]\s*["']?\d{6,10}["']?`,
+		piType:  PITypeBankAccount,
+		d:       d,
+		extractor: func(match string) string {
+			// Extract just the numeric part
+			numRe := regexp.MustCompile(`\d{6,10}`)
+			if num := numRe.FindString(match); num != "" {
+				return num
+			}
+			return match
+		},
+		validator: func(match string) bool {
+			// Extract numeric part
+			numRe := regexp.MustCompile(`\d{6,10}`)
+			num := numRe.FindString(match)
+			if num == "" {
+				return false
+			}
+
+			// Skip synthetic patterns
+			if d.isSyntheticPattern(num) {
+				return false
+			}
+
+			return true
+		},
+	})
+
 	// SWIFT/BIC Code matcher
 	// Format: 8 or 11 alphanumeric characters (e.g., ANZBNZ22, ANZBNZ22MEL)
 	d.matchers = append(d.matchers, &regexMatcher{
@@ -562,16 +612,222 @@ func (d *detector) getContextModifier(filename string) float32 {
 
 // calculateRiskLevel determines risk level based on PI type
 func (d *detector) calculateRiskLevel(piType PIType) RiskLevel {
-	weight := d.config.RiskWeights[piType]
+	weight, exists := d.config.RiskWeights[piType]
+	if !exists {
+		// Default weight if not found
+		weight = 50
+	}
+
+	// Debug: Log BSB weight
+	// if piType == PITypeBSB {
+	//	// For debugging only - uncomment if needed
+	//	// fmt.Printf("DEBUG: BSB piType='%s', weight=%d, exists=%v\n", piType, weight, exists)
+	// }
 
 	switch {
 	case weight >= 90:
 		return RiskLevelHigh
-	case weight >= 60:
+	case weight >= 70:
 		return RiskLevelMedium
 	default:
 		return RiskLevelLow
 	}
+}
+
+// adjustRiskLevelForContext adjusts risk level based on file path, content context, and proximity
+func (d *detector) adjustRiskLevelForContext(baseRisk RiskLevel, filename, content string, line int) RiskLevel {
+	// Get context modifier for file path
+	contextModifier := d.getContextModifier(filename)
+
+	// Check for multiple PI types in proximity (within 5 lines)
+	proximityRisk := d.assessProximityRisk(content, line)
+
+	// Check content context for risk indicators
+	contentContext := d.assessContentContext(content, line)
+
+	// Start with base risk
+	adjustedRisk := baseRisk
+
+	// Debug output for production files
+	isProdFile := strings.Contains(strings.ToLower(filename), "prod") ||
+		strings.Contains(strings.ToLower(filename), "production") ||
+		(strings.Contains(filename, "/main/") && !strings.Contains(filename, "/test/"))
+	isConfigFile := strings.Contains(strings.ToLower(filename), "config") ||
+		strings.Contains(strings.ToLower(filename), ".env") ||
+		strings.Contains(strings.ToLower(filename), "secret") ||
+		strings.Contains(strings.ToLower(filename), ".properties")
+
+	// For debugging - uncomment if needed
+	// if strings.Contains(filename, "PaymentService") {
+	//	fmt.Printf("DEBUG: filename=%s, isProdFile=%v, isConfigFile=%v, contextModifier=%f, baseRisk=%s\n",
+	//	    filename, isProdFile, isConfigFile, contextModifier, baseRisk)
+	// }
+
+	// Context-based adjustments
+	switch {
+	case contextModifier <= 0.1: // Test files
+		// Lower risk for test files, but not too much
+		if adjustedRisk == RiskLevelHigh {
+			adjustedRisk = RiskLevelMedium
+		} else if adjustedRisk == RiskLevelMedium {
+			adjustedRisk = RiskLevelLow
+		}
+		// RiskLevelLow stays low
+
+	case contextModifier <= 0.3: // Example/doc files
+		// Moderate risk for documentation
+		if adjustedRisk == RiskLevelHigh {
+			adjustedRisk = RiskLevelMedium
+		}
+		// Medium stays medium, low stays low
+
+	case isConfigFile:
+		// Increase risk for config/environment files
+		if adjustedRisk == RiskLevelLow {
+			adjustedRisk = RiskLevelMedium
+		} else if adjustedRisk == RiskLevelMedium {
+			adjustedRisk = RiskLevelHigh
+		}
+		// High stays high
+
+	case isProdFile:
+		// Increase risk for production files
+		// src/main/java is production code (not test)
+		// if strings.Contains(filename, "PaymentService") {
+		//	fmt.Printf("DEBUG: In isProdFile case, adjustedRisk before=%s\n", adjustedRisk)
+		// }
+		if adjustedRisk == RiskLevelLow {
+			adjustedRisk = RiskLevelHigh
+		} else if adjustedRisk == RiskLevelMedium {
+			adjustedRisk = RiskLevelHigh
+		} else if adjustedRisk == RiskLevelHigh {
+			adjustedRisk = RiskLevelCritical
+		}
+		// if strings.Contains(filename, "PaymentService") {
+		//	fmt.Printf("DEBUG: In isProdFile case, adjustedRisk after=%s\n", adjustedRisk)
+		// }
+	}
+
+	// Content context adjustments
+	switch contentContext {
+	case "database":
+		// Database operations are high risk
+		if adjustedRisk.Compare(RiskLevelHigh) < 0 {
+			adjustedRisk = RiskLevelHigh
+		}
+	case "api_response":
+		// API responses exposing PI are critical
+		adjustedRisk = RiskLevelCritical
+	case "comment":
+		// Comments with PI in production code should maintain their risk level
+		// Only downgrade if it's already been identified as test/example file
+		if contextModifier <= 0.3 && adjustedRisk.Compare(RiskLevelMedium) > 0 {
+			adjustedRisk = RiskLevelMedium
+		}
+	case "test_data":
+		// Test data patterns are lower risk
+		if adjustedRisk.Compare(RiskLevelLow) > 0 {
+			adjustedRisk = RiskLevelLow
+		}
+	}
+
+	// Proximity risk adjustments
+	if proximityRisk && adjustedRisk.Compare(RiskLevelHigh) < 0 {
+		// Multiple PI in proximity increases risk
+		if adjustedRisk == RiskLevelLow {
+			adjustedRisk = RiskLevelMedium
+		} else if adjustedRisk == RiskLevelMedium {
+			adjustedRisk = RiskLevelHigh
+		}
+	}
+
+	return adjustedRisk
+}
+
+// assessProximityRisk checks for multiple PI types within proximity
+func (d *detector) assessProximityRisk(content string, centerLine int) bool {
+	lines := strings.Split(content, "\n")
+	if centerLine <= 0 || centerLine > len(lines) {
+		return false
+	}
+
+	// Check 5 lines before and after
+	start := max(0, centerLine-6)
+	end := min(len(lines), centerLine+5)
+
+	proximityContent := strings.Join(lines[start:end], "\n")
+	proximityContentLower := strings.ToLower(proximityContent)
+
+	// Count different PI indicators
+	piIndicators := 0
+	indicators := []string{"tfn", "abn", "medicare", "bsb", "account", "email", "phone", "name"}
+
+	for _, indicator := range indicators {
+		if strings.Contains(proximityContentLower, indicator) {
+			piIndicators++
+		}
+	}
+
+	// Multiple PI types in proximity indicate higher risk
+	return piIndicators >= 3
+}
+
+// assessContentContext analyzes the content context around the finding
+func (d *detector) assessContentContext(content string, line int) string {
+	// Extract 3 lines before and after
+	context := d.extractLineContext(content, line, 3)
+	contextLower := strings.ToLower(context)
+
+	// Database context
+	if strings.Contains(contextLower, "insert into") ||
+		strings.Contains(contextLower, "update") ||
+		strings.Contains(contextLower, "select") ||
+		strings.Contains(contextLower, "create table") {
+		return "database"
+	}
+
+	// API response context
+	if strings.Contains(contextLower, "return") &&
+		(strings.Contains(contextLower, "{") || strings.Contains(contextLower, "response")) {
+		return "api_response"
+	}
+
+	// Comment context
+	if strings.Contains(context, "//") || strings.Contains(context, "/*") || strings.Contains(context, "#") {
+		return "comment"
+	}
+
+	// Test data patterns
+	if strings.Contains(contextLower, "test") ||
+		strings.Contains(contextLower, "mock") ||
+		strings.Contains(contextLower, "example") ||
+		strings.Contains(contextLower, "dummy") {
+		return "test_data"
+	}
+
+	// Check for synthetic data patterns (repeated/sequential)
+	// Extract just the finding value from the line
+	if d.looksLikeSyntheticData(context) {
+		return "test_data"
+	}
+
+	return "normal"
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// max returns the maximum of two integers
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // getPosition calculates line and column from byte index
@@ -767,8 +1023,11 @@ func (d *detector) validateContext(finding Finding, fileContent string) bool {
 	isTestFile := finding.ContextModifier <= 0.1
 
 	// Check if finding is in test data context
-	if !isTestFile && d.isInTestContext(finding, fileContent) {
-		return false // Suppress findings in test contexts (but not in test files)
+	// Don't suppress for documentation files (README, docs, etc)
+	isDocFile := strings.HasSuffix(strings.ToLower(finding.File), ".md") ||
+		strings.Contains(strings.ToLower(finding.File), "doc")
+	if !isTestFile && !isDocFile && d.isInTestContext(finding, fileContent) {
+		return false // Suppress findings in test contexts (but not in test files or docs)
 	}
 
 	// Check if finding is in comment and looks like example data
@@ -780,6 +1039,11 @@ func (d *detector) validateContext(finding Finding, fileContent string) bool {
 	// Check if finding looks like mock/dummy data
 	if d.isInMockContext(finding, fileContent) {
 		return false // Suppress mock data
+	}
+
+	// Check for specific false positive patterns
+	if d.isFalsePositiveContext(finding, fileContent) {
+		return false // Suppress known false positives
 	}
 
 	return true // Include by default
@@ -849,6 +1113,197 @@ func (d *detector) isInMockContext(finding Finding, content string) bool {
 	for _, keyword := range mockKeywords {
 		if strings.Contains(contextLower, keyword) {
 			return true
+		}
+	}
+
+	return false
+}
+
+// looksLikeSyntheticData checks if the context contains synthetic-looking data patterns
+func (d *detector) looksLikeSyntheticData(context string) bool {
+	// Look for patterns like:
+	// - Multiple sequential numbers: "123456789", "123456790", "123456791"
+	// - Repeated digits: "111111111", "222222"
+	// - Arrays/lists of similar numbers
+
+	// Check for array/list patterns with multiple similar numbers
+	if strings.Contains(context, `"111`) || strings.Contains(context, `"222`) ||
+		strings.Contains(context, `"333`) || strings.Contains(context, `"444`) ||
+		strings.Contains(context, `"555`) || strings.Contains(context, `"666`) ||
+		strings.Contains(context, `"777`) || strings.Contains(context, `"888`) ||
+		strings.Contains(context, `"999`) || strings.Contains(context, `"000`) {
+		return true
+	}
+
+	// Check for sequential patterns in arrays or lists
+	// Look for patterns like {"123456789", "123456790", "123456791"}
+	numbers := regexp.MustCompile(`\d{9}`).FindAllString(context, -1)
+	if len(numbers) >= 2 {
+		// Check if all numbers are sequential
+		sequential := true
+		for i := 1; i < len(numbers); i++ {
+			prev, _ := strconv.Atoi(numbers[i-1])
+			curr, _ := strconv.Atoi(numbers[i])
+			// Allow gaps of 1 or -1 for ascending/descending sequences
+			if curr != prev+1 && curr != prev-1 {
+				sequential = false
+				break
+			}
+		}
+		if sequential {
+			return true
+		}
+
+		// Also check if all numbers are very similar (differ by < 10)
+		similar := true
+		first, _ := strconv.Atoi(numbers[0])
+		for i := 1; i < len(numbers); i++ {
+			curr, _ := strconv.Atoi(numbers[i])
+			diff := curr - first
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > 10 {
+				similar = false
+				break
+			}
+		}
+		if similar && len(numbers) >= 3 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isSyntheticPattern checks if a numeric string is likely synthetic/test data
+func (d *detector) isSyntheticPattern(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	// Check for all same digit (111111, 222222, etc)
+	allSame := true
+	firstChar := s[0]
+	for i := 1; i < len(s); i++ {
+		if s[i] != firstChar {
+			allSame = false
+			break
+		}
+	}
+	if allSame {
+		return true
+	}
+
+	// Check for sequential patterns (123456789, 987654321)
+	sequential := true
+	ascending := true
+	descending := true
+
+	for i := 1; i < len(s); i++ {
+		prev := int(s[i-1] - '0')
+		curr := int(s[i] - '0')
+
+		if curr != prev+1 {
+			ascending = false
+		}
+		if curr != prev-1 {
+			descending = false
+		}
+		if !ascending && !descending {
+			sequential = false
+			break
+		}
+	}
+
+	return sequential
+}
+
+// isFalsePositiveContext checks for known false positive patterns
+func (d *detector) isFalsePositiveContext(finding Finding, content string) bool {
+	// Get the line content
+	line := d.getLineContent(content, finding.Line)
+	lineLower := strings.ToLower(line)
+
+	// Check for URL context (numbers in URLs are not PI)
+	if strings.Contains(line, "http://") || strings.Contains(line, "https://") ||
+		strings.Contains(line, ".com/") || strings.Contains(line, ".org/") {
+		// Check if the match is part of a URL path
+		beforeMatch := ""
+		if finding.Column > 1 {
+			beforeMatch = line[:finding.Column-1]
+		}
+		if strings.HasSuffix(beforeMatch, "/") || strings.HasSuffix(beforeMatch, "user/") {
+			return true
+		}
+	}
+
+	// Check for PR/Issue number context
+	// More specific checks to avoid over-filtering
+	beforeMatch := ""
+	if finding.Column > 1 {
+		beforeMatch = line[:finding.Column-1]
+	}
+
+	// Check if the match is preceded by common false positive indicators
+	fpPrefixes := []string{
+		"PR #", "PR#", "Issue #", "issue #", "ticket #",
+		"Order #", "order #", "Invoice #", "invoice #",
+		"Build #", "build #", "Reference #", "ref #",
+		"JIRA-", "PROJ-", "ID: ", "id: ",
+	}
+
+	for _, prefix := range fpPrefixes {
+		if strings.HasSuffix(beforeMatch, prefix) || strings.HasSuffix(beforeMatch, strings.TrimSpace(prefix)) {
+			return true
+		}
+	}
+
+	// Also check the full line for these patterns
+	if regexp.MustCompile(`(?i)(order|invoice|reference|build)\s*#\s*` + regexp.QuoteMeta(finding.Match)).MatchString(line) {
+		return true
+	}
+
+	// Check for version number context
+	if regexp.MustCompile(`(?i)version:?\s*\d+\.\d+`).MatchString(line) {
+		return true
+	}
+
+	// Check for timestamp/ID patterns
+	if strings.Contains(lineLower, "timestamp") || strings.Contains(lineLower, "_id") ||
+		strings.Contains(lineLower, "created:") || strings.Contains(lineLower, "modified:") {
+		return true
+	}
+
+	// Check for hash/checksum context
+	if strings.Contains(lineLower, "checksum") || strings.Contains(lineLower, "hash") ||
+		strings.Contains(lineLower, "crc") || strings.Contains(lineLower, "md5") ||
+		strings.Contains(lineLower, "sha") {
+		return true
+	}
+
+	// Credit card false positives
+	if finding.Type == PITypeCreditCard {
+		// Check for order number context
+		falsePositivePatterns := []string{
+			"order", "order#", "order #", "invoice", "invoice#",
+			"transaction", "transaction#", "receipt", "receipt#",
+			"reference", "ref#", "id:", "uuid", "guid",
+		}
+
+		for _, pattern := range falsePositivePatterns {
+			if strings.Contains(lineLower, pattern) {
+				// Additional check: is it prefixed with # or other order indicators?
+				beforeMatch := ""
+				if finding.Column > 1 {
+					beforeMatch = line[:finding.Column-1]
+				}
+				if strings.HasSuffix(beforeMatch, "#") ||
+					strings.HasSuffix(beforeMatch, "Order ") ||
+					strings.HasSuffix(beforeMatch, "ID: ") {
+					return true
+				}
+			}
 		}
 	}
 
@@ -1151,6 +1606,11 @@ func (d *detector) isValidAustralianTFN(tfnStr string) bool {
 		return false
 	}
 
+	// Check for synthetic patterns (all same digit, sequential)
+	if d.isSyntheticPattern(clean) {
+		return false
+	}
+
 	// Convert to array of integers
 	digits := make([]int, 9)
 	for i, char := range clean {
@@ -1235,6 +1695,11 @@ func (d *detector) isValidAustralianBSB(bsbStr string) bool {
 
 	// Must be exactly 6 digits
 	if len(clean) != 6 {
+		return false
+	}
+
+	// Check for synthetic patterns (all same digit)
+	if d.isSyntheticPattern(clean) {
 		return false
 	}
 
