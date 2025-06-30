@@ -84,11 +84,11 @@ func TestCreateValidationPrompt(t *testing.T) {
 
 	prompt := client.createValidationPrompt(req)
 
-	assert.Contains(t, prompt, "go code")
-	assert.Contains(t, prompt, "PI Type: TFN")
-	assert.Contains(t, prompt, "Match: 123456782")
-	assert.Contains(t, prompt, "Line: 10")
-	assert.Contains(t, prompt, "Initial Risk: HIGH")
+	assert.Contains(t, prompt, "**File Type:** go (TEST FILE)")
+	assert.Contains(t, prompt, "**PI Type:** TFN")
+	assert.Contains(t, prompt, "**Detected Value:** `123456782`")
+	assert.Contains(t, prompt, "**Location:** Line 10, Column 0")
+	assert.Contains(t, prompt, "**Initial Risk:** HIGH")
 	assert.Contains(t, prompt, "Note: This is a test file")
 	assert.Contains(t, prompt, req.Context)
 }

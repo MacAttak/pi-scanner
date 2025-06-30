@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // LLMEnhancedDetector wraps a regular detector with LLM validation
@@ -13,6 +14,17 @@ type LLMEnhancedDetector struct {
 	baseDetector Detector
 	llmValidator LLMValidator
 	config       *LLMEnhancedConfig
+	progress     *ValidationProgress
+}
+
+// ValidationProgress tracks LLM validation progress
+type ValidationProgress struct {
+	mu        sync.Mutex
+	total     int
+	processed int
+	skipped   int
+	startTime time.Time
+	callback  func(processed, total int, rate float64)
 }
 
 // NewLLMEnhancedDetector creates a new LLM-enhanced detector
@@ -20,9 +32,9 @@ func NewLLMEnhancedDetector(baseDetector Detector, validator LLMValidator, confi
 	if config == nil {
 		config = &LLMEnhancedConfig{
 			Enabled:            true,
-			ValidateRiskLevels: []RiskLevel{RiskLevelHigh, RiskLevelMedium},
-			MaxConcurrency:     3,
-			SkipTestFiles:      true,
+			ValidateRiskLevels: []RiskLevel{RiskLevelCritical, RiskLevelHigh, RiskLevelMedium, RiskLevelLow},
+			MaxConcurrency:     20,    // Increased for better throughput
+			SkipTestFiles:      false, // Never skip test files - critical for DLP compliance
 			ContextLinesBefore: 50,
 			ContextLinesAfter:  50,
 		}
@@ -32,11 +44,15 @@ func NewLLMEnhancedDetector(baseDetector Detector, validator LLMValidator, confi
 		baseDetector: baseDetector,
 		llmValidator: validator,
 		config:       config,
+		progress: &ValidationProgress{
+			startTime: time.Now(),
+		},
 	}
 }
 
 // Detect runs the base detector and enhances findings with LLM validation
 func (d *LLMEnhancedDetector) Detect(ctx context.Context, content []byte, filename string) ([]Finding, error) {
+
 	// Run base detection
 	findings, err := d.baseDetector.Detect(ctx, content, filename)
 	if err != nil {
@@ -53,23 +69,39 @@ func (d *LLMEnhancedDetector) Detect(ctx context.Context, content []byte, filena
 		return findings, nil
 	}
 
+	// First, apply smart filtering
+	toValidate := make([]int, 0)
+	for i := range findings {
+		if d.shouldValidate(findings[i], filename) {
+			toValidate = append(toValidate, i)
+		}
+	}
+
+	// Set up progress tracking
+	d.progress.mu.Lock()
+	d.progress.total = len(toValidate)
+	d.progress.processed = 0
+	d.progress.skipped = len(findings) - len(toValidate)
+	d.progress.mu.Unlock()
+
 	// Enhance findings with LLM validation
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, d.config.MaxConcurrency)
 
-	for i := range findings {
-		if !d.shouldValidate(findings[i]) {
-			continue
-		}
-
+	for _, idx := range toValidate {
 		wg.Add(1)
-		go func(idx int) {
+		go func(i int) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			d.validateFinding(ctx, &findings[idx], string(content), filename)
-		}(i)
+			// Get dynamic context size based on risk
+			linesBefore, linesAfter := d.getContextSize(findings[i].RiskLevel)
+			d.validateFinding(ctx, &findings[i], string(content), filename, linesBefore, linesAfter)
+
+			// Update progress
+			d.updateProgress()
+		}(idx)
 	}
 
 	wg.Wait()
@@ -82,9 +114,9 @@ func (d *LLMEnhancedDetector) Name() string {
 }
 
 // validateFinding validates a single finding with LLM
-func (d *LLMEnhancedDetector) validateFinding(ctx context.Context, finding *Finding, content, filename string) {
+func (d *LLMEnhancedDetector) validateFinding(ctx context.Context, finding *Finding, content, filename string, linesBefore, linesAfter int) {
 	// Extract context around the finding
-	context := ExtractContext(content, *finding, d.config.ContextLinesBefore, d.config.ContextLinesAfter)
+	context := ExtractContext(content, *finding, linesBefore, linesAfter)
 
 	// Create validation request
 	req := LLMValidationRequest{
@@ -110,13 +142,82 @@ func (d *LLMEnhancedDetector) validateFinding(ctx context.Context, finding *Find
 }
 
 // shouldValidate determines if a finding should be validated by LLM
-func (d *LLMEnhancedDetector) shouldValidate(finding Finding) bool {
+func (d *LLMEnhancedDetector) shouldValidate(finding Finding, filename string) bool {
+	// Skip obvious false positives
+	if d.isObviousFalsePositive(finding, filename) {
+		return false
+	}
+
+	// Check risk level
 	for _, risk := range d.config.ValidateRiskLevels {
 		if finding.RiskLevel == risk {
 			return true
 		}
 	}
 	return false
+}
+
+// isObviousFalsePositive checks for patterns that are clearly not real PI
+func (d *LLMEnhancedDetector) isObviousFalsePositive(finding Finding, filename string) bool {
+	// Only skip very obvious false positives based on content, not file type
+	// Let LLM decide for most cases
+
+	// Skip common example values that are definitely not real PI
+	examplePatterns := []string{
+		"john doe", "jane doe", "john smith", "jane smith",
+		"example@email.com", "test@test.com", "user@example.com",
+		"foo@bar.com", "admin@example.com",
+	}
+
+	matchLower := strings.ToLower(finding.Match)
+	for _, pattern := range examplePatterns {
+		if matchLower == pattern || strings.Contains(matchLower, pattern) {
+			return true
+		}
+	}
+
+	// Skip sequential test patterns
+	if finding.Type == PITypeTFN || finding.Type == PITypeDriverLicense {
+		if finding.Match == "123456789" || finding.Match == "000000000" ||
+			finding.Match == "111111111" || finding.Match == "999999999" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// getContextSize returns dynamic context size based on risk level
+func (d *LLMEnhancedDetector) getContextSize(risk RiskLevel) (before, after int) {
+	switch risk {
+	case RiskLevelCritical, RiskLevelHigh:
+		return 50, 50
+	case RiskLevelMedium:
+		return 30, 30
+	default: // LOW
+		return 20, 20
+	}
+}
+
+// updateProgress updates validation progress
+func (d *LLMEnhancedDetector) updateProgress() {
+	d.progress.mu.Lock()
+	defer d.progress.mu.Unlock()
+
+	d.progress.processed++
+
+	if d.progress.callback != nil {
+		elapsed := time.Since(d.progress.startTime).Minutes()
+		rate := float64(d.progress.processed) / elapsed
+		d.progress.callback(d.progress.processed, d.progress.total, rate)
+	}
+}
+
+// SetProgressCallback sets the progress callback function
+func (d *LLMEnhancedDetector) SetProgressCallback(callback func(processed, total int, rate float64)) {
+	d.progress.mu.Lock()
+	defer d.progress.mu.Unlock()
+	d.progress.callback = callback
 }
 
 // ExtractContext extracts lines of context around a finding

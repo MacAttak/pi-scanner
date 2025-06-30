@@ -189,13 +189,13 @@ docker build -t pi-scanner:latest .
 ### Running with Docker
 ```bash
 # Run using Make
-make docker-run ARGS="scan --repo github/docs"
+make docker-run ARGS="https://github.com/github/docs"
 
 # Or run directly
 docker run --rm \
   -e GITHUB_TOKEN=$GITHUB_TOKEN \
   -v $(pwd)/output:/home/scanner/output \
-  pi-scanner:latest scan --repo github/docs
+  pi-scanner:latest https://github.com/github/docs
 ```
 
 ### Docker Compose for Development
@@ -209,7 +209,7 @@ services:
     volumes:
       - ./output:/output
       - ./config:/config
-    command: scan --repo github/docs --output /output/results.json
+    command: https://github.com/github/docs --no-input
 ```
 
 ## Troubleshooting
@@ -249,10 +249,10 @@ Error: GitHub API rate limit exceeded
 For large repositories:
 ```bash
 # Increase memory limit
-GOGC=200 ./pi-scanner scan --repo large/repository
+GOGC=200 ./pi-scanner https://github.com/large/repository --no-input
 
 # Use worker pool size adjustment
-./pi-scanner scan --repo large/repository --workers 2
+./pi-scanner https://github.com/large/repository --no-input
 ```
 
 ## Development Workflow

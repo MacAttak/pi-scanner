@@ -139,7 +139,11 @@ repos:
         args: ['--markdown-linebreak-ext=md']
       - id: check-merge-conflict
       - id: detect-private-key
-        exclude: configs/gitleaks.toml
+        exclude: |
+          (?x)^(
+            config/gitleaks.toml|
+            pkg/detection/gitleaks_default.toml
+          )$
       - id: mixed-line-ending
         args: ['--fix=lf']
       - id: check-executables-have-shebangs

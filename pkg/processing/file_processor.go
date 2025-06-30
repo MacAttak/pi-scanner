@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MacAttak/pi-scanner/pkg/ast"
 	contextval "github.com/MacAttak/pi-scanner/pkg/context"
 	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"github.com/MacAttak/pi-scanner/pkg/discovery"
@@ -15,9 +16,10 @@ import (
 
 // FileJob represents a file to be processed through the detection pipeline
 type FileJob struct {
-	FilePath string
-	Content  []byte
-	FileInfo discovery.FileResult
+	FilePath   string
+	Content    []byte
+	FileInfo   discovery.FileResult
+	ASTContext *ast.FileContext // Optional AST analysis context
 }
 
 // ProcessingResult represents the result of processing a file
@@ -354,6 +356,41 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 				}
 				// Update confidence based on context validation
 				f.Confidence = float32(validationResult.Confidence)
+			}
+
+			// Apply AST context if available
+			if job.ASTContext != nil {
+				// Adjust risk level based on AST context
+				if job.ASTContext.IsTestFile {
+					// Downgrade risk for test files
+					switch f.RiskLevel {
+					case detection.RiskLevelCritical, detection.RiskLevelHigh:
+						f.RiskLevel = detection.RiskLevelMedium
+					case detection.RiskLevelMedium:
+						f.RiskLevel = detection.RiskLevelLow
+					}
+					f.ContextModifier = -0.3 // Reduce confidence for test files
+				} else if job.ASTContext.RiskLevel == ast.RiskLevelCritical {
+					// Upgrade risk for critical zones
+					if f.RiskLevel == detection.RiskLevelMedium {
+						f.RiskLevel = detection.RiskLevelHigh
+					} else if f.RiskLevel == detection.RiskLevelLow {
+						f.RiskLevel = detection.RiskLevelMedium
+					}
+					f.ContextModifier = 0.2 // Increase confidence for critical zones
+				}
+
+				// Apply context modifier to confidence
+				if f.ContextModifier != 0 {
+					newConfidence := float32(float64(f.Confidence) + float64(f.ContextModifier))
+					// Clamp between 0 and 1
+					if newConfidence > 1.0 {
+						newConfidence = 1.0
+					} else if newConfidence < 0 {
+						newConfidence = 0
+					}
+					f.Confidence = newConfidence
+				}
 			}
 
 			validFindings = append(validFindings, f)

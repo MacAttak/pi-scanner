@@ -1,0 +1,4 @@
+# ./e2e/...
+pattern ./e2e/...: directory prefix e2e does not contain main module or its selected dependencies
+FAIL	./e2e/... [setup failed]
+FAIL

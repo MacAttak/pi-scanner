@@ -42,6 +42,7 @@ security-audit-*/
 
 # Test artifacts
 test-results/
+test/reports/
 *.log
 
 
@@ -54,7 +55,8 @@ temp/
 test-output.log
 test-results.log
 
-# Scan results
+# Scan results and reports
 scan-results.json
 scan-*.json
 **/scan-results.json
+/reports/

@@ -34,6 +34,9 @@ RUN adduser -D -u 1000 scanner
 # Copy binary from builder
 COPY --from=builder /build/pi-scanner /usr/local/bin/pi-scanner
 
+# Copy config files
+COPY --from=builder /build/config /etc/pi-scanner/config
+
 # Create directories
 RUN mkdir -p /home/scanner/output && \
     chown -R scanner:scanner /home/scanner

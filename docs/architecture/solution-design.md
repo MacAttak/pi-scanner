@@ -63,17 +63,17 @@ The solution prioritizes:
 
 **Core Commands**:
 ```bash
-# Basic scan
-pi-scanner scan --repo https://github.com/org/repo
+# Interactive guided scan
+pi-scanner https://github.com/org/repo
 
-# Scan multiple repos
-pi-scanner scan --repo-list repos.txt
+# Non-interactive scan (pattern only)
+pi-scanner https://github.com/example/repo --no-input
 
-# Custom configuration
-pi-scanner scan --repo https://github.com/org/repo --config scanner.yaml
+# Automated scan with validation
+pi-scanner https://github.com/org/repo --no-input --validate=high
 
-# Generate report only
-pi-scanner report --input scan-results.json --format html
+# Check LLM availability
+pi-scanner llm-check
 ```
 
 **Key Features**:
@@ -158,17 +158,17 @@ func (v *ContextValidator) Validate(finding Finding, fileContent string) Validat
 func ValidateTFN(tfn string) bool {
     weights := []int{1, 4, 3, 7, 5, 8, 6, 9, 10}
     tfn = regexp.MustCompile(`[^\d]`).ReplaceAllString(tfn, "")
-    
+
     if len(tfn) != 9 {
         return false
     }
-    
+
     sum := 0
     for i, weight := range weights {
         digit := int(tfn[i] - '0')
         sum += weight * digit
     }
-    
+
     return sum%11 == 0
 }
 ```
@@ -218,7 +218,7 @@ Risk Summary:
 Top Risks:
 1. [CRITICAL] customer_export.go:142 - Full customer record exposed
    - Name, TFN, Address, Bank Account found in proximity
-   
+
 2. [CRITICAL] config/prod.yaml:23 - Hardcoded credentials with PI
    - Database connection string contains real customer data
 ```
@@ -263,12 +263,12 @@ scanner:
     - vendor/
     - node_modules/
     - .git/
-  
+
   # Additional test path patterns
   test_paths:
     - "**/testdata/**"
     - "**/fixtures/**"
-  
+
   # Risk score overrides (rarely needed)
   risk_weights:
     tfn: 100      # Default: 100
@@ -282,11 +282,11 @@ scanner:
 performance:
   workers: 8
   max_file_size: 100MB
-  
+
 ml_model:
   threshold: 0.85
   context_window: 100
-  
+
 output:
   format: sarif
   include_code_snippet: true

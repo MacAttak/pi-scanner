@@ -25,100 +25,100 @@ keywords = ["private", "key", "begin"]
 id = "australian-tfn"
 description = "Australian Tax File Number"
 regex = '''\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b'''
-keywords = ["tfn", "tax file", "tax_file", "taxfile"]
+keywords = ["tfn", "TFN", "tax file", "Tax File", "tax_file", "taxfile"]
 
 [[rules]]
 id = "australian-abn"
 description = "Australian Business Number"
 regex = '''\b\d{2}[\s]?\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
-keywords = ["abn", "business number", "business_number"]
+keywords = ["abn", "ABN", "business number", "Business Number", "business_number"]
 
 [[rules]]
 id = "australian-medicare"
 description = "Australian Medicare Number"
 regex = '''\b[2-6]\d{3}[\s\-]?\d{5}[\s\-]?\d{1}(?:/\d)?\b'''
-keywords = ["medicare", "health card", "health_card"]
+keywords = ["medicare", "Medicare", "MEDICARE", "health card", "Health Card", "health_card"]
 
 [[rules]]
 id = "australian-bsb"
 description = "Australian Bank State Branch"
 regex = '''\b\d{3}[\-]?\d{3}\b'''
-keywords = ["bsb", "bank state", "bank_state", "branch"]
+keywords = ["bsb", "BSB", "bank state", "Bank State", "bank_state", "branch", "Branch"]
 
 [[rules]]
 id = "australian-acn"
 description = "Australian Company Number"
 regex = '''\b\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
-keywords = ["acn", "company number", "company_number"]
+keywords = ["acn", "ACN", "company number", "Company Number", "company_number"]
 
 # Australian Registered Body Number (ARBN)
 [[rules]]
 id = "australian-arbn"
 description = "Australian Registered Body Number"
 regex = '''\b\d{3}[\s]?\d{3}[\s]?\d{3}\b'''
-keywords = ["arbn", "registered body", "registered_body"]
+keywords = ["arbn", "ARBN", "registered body", "Registered Body", "registered_body"]
 
 # Australian Bank Account Numbers
 [[rules]]
 id = "australian-bank-account"
 description = "Australian Bank Account Number"
-regex = '''\b\d{6,10}\b'''
-keywords = ["account", "account number", "account_number", "bank account", "bank_account"]
+regex = '''(?i)\b(?:(?:account|acct|acc)[\s\-]*(?:number|no\.?)?[\s:#\-=]*|bank[\s\-]*account[\s:#\-=]*)\d{6,10}\b'''
+keywords = ["account", "Account", "ACCOUNT", "account number", "Account Number", "account_number", "bank account", "Bank Account", "bank_account", "acct", "Acct", "ACCT", "acc", "Acc", "ACC"]
 
 # Australian Driver's License patterns (state-specific)
 [[rules]]
 id = "australian-drivers-license-nsw"
 description = "Australian Driver's License - NSW"
-regex = '''\b(\d{8}|[A-Z]{2}\d{6})\b'''
-keywords = ["license", "licence", "driver", "nsw"]
+regex = '''(?i)\b(?:nsw[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?(?:\d{8}|[A-Z]{2}\d{6})\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "nsw", "NSW"]
 
 [[rules]]
 id = "australian-drivers-license-vic"
 description = "Australian Driver's License - VIC"
-regex = '''\b(\d{1,10}|\d{1,9}[A-Z])\b'''
-keywords = ["license", "licence", "driver", "vic", "victoria"]
+regex = '''(?i)\b(?:vic(?:toria)?[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{8,10}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "vic", "VIC", "victoria", "Victoria"]
 
 [[rules]]
 id = "australian-drivers-license-qld"
 description = "Australian Driver's License - QLD"
-regex = '''\b\d{9}\b'''
-keywords = ["license", "licence", "driver", "qld", "queensland"]
+regex = '''(?i)\b(?:qld|queensland[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{9}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "qld", "QLD", "queensland", "Queensland"]
 
 [[rules]]
 id = "australian-drivers-license-sa"
 description = "Australian Driver's License - SA"
-regex = '''\b[A-Z]\d{6}\b'''
-keywords = ["license", "licence", "driver", "sa", "south australia"]
+regex = '''(?i)\b(?:sa|south[\s\-]*australia[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?[A-Z]\d{6}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "sa", "SA", "south australia", "South Australia"]
 
 [[rules]]
 id = "australian-drivers-license-wa"
 description = "Australian Driver's License - WA"
-regex = '''\b\d{7}\b'''
-keywords = ["license", "licence", "driver", "wa", "western australia"]
+regex = '''(?i)\b(?:wa|western[\s\-]*australia[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{7}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "wa", "WA", "western australia", "Western Australia"]
 
 [[rules]]
 id = "australian-drivers-license-tas"
 description = "Australian Driver's License - TAS"
-regex = '''\b(\d{7}|[A-Z0-9]{8})\b'''
-keywords = ["license", "licence", "driver", "tas", "tasmania"]
+regex = '''(?i)\b(?:tas(?:mania)?[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?[A-Z0-9]{7,8}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "tas", "TAS", "tasmania", "Tasmania"]
 
 [[rules]]
 id = "australian-drivers-license-nt"
 description = "Australian Driver's License - NT"
-regex = '''\b\d{10}\b'''
-keywords = ["license", "licence", "driver", "nt", "northern territory"]
+regex = '''(?i)\b(?:nt|northern[\s\-]*territory[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{10}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "nt", "NT", "northern territory", "Northern Territory"]
 
 [[rules]]
 id = "australian-drivers-license-act"
 description = "Australian Driver's License - ACT"
-regex = '''\b\d{10}\b'''
-keywords = ["license", "licence", "driver", "act", "australian capital territory"]
+regex = '''(?i)\b(?:act|australian[\s\-]*capital[\s\-]*territory[\s\-]*)?(?:driver'?s?[\s\-]*)?(?:licen[cs]e|dl)[\s:#\-]*(?:number[\s:#\-]*)?\d{10}\b'''
+keywords = ["license", "License", "licence", "Licence", "driver", "Driver", "act", "ACT", "australian capital territory", "Australian Capital Territory"]
 
 [[rules]]
 id = "australian-passport"
 description = "Australian Passport Number"
 regex = '''\b([A-Z]\d{7}|[A-Z]{2}\d{7})\b'''
-keywords = ["passport", "travel document", "travel_document"]
+keywords = ["passport", "Passport", "PASSPORT", "travel document", "Travel Document", "travel_document"]
 
 [[rules]]
 id = "australian-phone-mobile"

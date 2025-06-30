@@ -2,7 +2,6 @@ package detection
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,10 +9,8 @@ import (
 )
 
 func TestGitleaksDetector_WithCustomConfig(t *testing.T) {
-	// Use our custom config file
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
-
-	detector, err := NewGitleaksDetector(configPath)
+	// Use auto config which will fall back to embedded config
+	detector, err := NewGitleaksDetectorAuto()
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -108,8 +105,8 @@ func TestGitleaksDetector_WithCustomConfig(t *testing.T) {
 }
 
 func TestGitleaksDetector_ContextModifier(t *testing.T) {
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
-	detector, err := NewGitleaksDetector(configPath)
+	// Use auto config which will fall back to embedded config
+	detector, err := NewGitleaksDetectorAuto()
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -165,8 +162,8 @@ func TestCombinedDetection(t *testing.T) {
 	// Create both detectors
 	patternDetector := NewDetector()
 
-	configPath := filepath.Join("..", "..", "configs", "gitleaks.toml")
-	gitleaksDetector, err := NewGitleaksDetector(configPath)
+	// Use auto config which will fall back to embedded config
+	gitleaksDetector, err := NewGitleaksDetectorAuto()
 	require.NoError(t, err)
 
 	// Content with both API secrets and Australian PI

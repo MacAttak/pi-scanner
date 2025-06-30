@@ -22,6 +22,20 @@ type gitleaksDetector struct {
 
 // NewGitleaksDetector creates a new Gitleaks-based detector
 func NewGitleaksDetector(configPath string) (Detector, error) {
+	// Use config loader to find the config file
+	loader := NewConfigLoader()
+	actualPath, err := loader.LoadGitleaksConfig(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load gitleaks config: %w", err)
+	}
+
+	// Check if we're using embedded config (temp file)
+	isEmbedded := configPath == "" && actualPath != configPath
+	if isEmbedded {
+		defer os.Remove(actualPath) // Clean up temp file after reading
+	}
+
+	configPath = actualPath
 	// Read config file
 	viperConfig := viper.New()
 	viperConfig.SetConfigFile(configPath)
@@ -47,10 +61,19 @@ func NewGitleaksDetector(configPath string) (Detector, error) {
 	detector.Verbose = false
 	detector.Redact = 0 // 0 means don't redact secrets
 
-	return &gitleaksDetector{
+	gd := &gitleaksDetector{
 		detector: detector,
 		config:   cfg,
-	}, nil
+	}
+
+	return gd, nil
+}
+
+// NewGitleaksDetectorAuto creates a detector with automatic config resolution
+func NewGitleaksDetectorAuto() (Detector, error) {
+	// Try to load with empty path, which will search standard locations
+	// and fall back to embedded config
+	return NewGitleaksDetector("")
 }
 
 // NewGitleaksDetectorWithDefaults creates a detector with default config + Australian rules
@@ -188,6 +211,8 @@ func (g *gitleaksDetector) mapRuleToType(ruleID string) PIType {
 		return PITypePhone
 	case "australian-drivers-license-nsw":
 		return PITypeDriverLicense
+	case "australian-bank-account":
+		return PITypeBankAccount
 	case "aws-access-key-id":
 		return PIType("AWS_ACCESS_KEY")
 	case "github-pat":
@@ -215,6 +240,8 @@ func (g *gitleaksDetector) mapRuleToType(ruleID string) PIType {
 			return PITypePassport
 		case strings.Contains(ruleID, "driver") || strings.Contains(ruleID, "license"):
 			return PITypeDriverLicense
+		case strings.Contains(ruleID, "bank") && strings.Contains(ruleID, "account"):
+			return PITypeBankAccount
 		case strings.Contains(ruleID, "ip") || strings.Contains(ruleID, "address"):
 			return PITypeIP
 		default:

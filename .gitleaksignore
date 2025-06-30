@@ -9,3 +9,6 @@ configs/gitleaks.toml
 
 # Ignore documentation files
 docs/**/*.md
+
+# False positive - this is a regex pattern to detect private keys, not an actual private key
+pkg/detection/gitleaks_default.toml

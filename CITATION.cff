@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: GitHub PI Scanner
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "McCarthy"
+    given-names: "D"
+    email: macmilky1@gmail.com
+repository-code: "https://github.com/MacAttak/pi-scanner"
+url: "https://github.com/MacAttak/pi-scanner"
+abstract: "A high-performance scanner for detecting Australian Personal Information (PI) in GitHub repositories, designed for enterprise compliance with Australian privacy regulations."
+keywords:
+  - security
+  - privacy
+  - compliance
+  - golang
+  - scanner
+  - personal-information
+  - australia
+license: MIT
+version: 1.0.0
+date-released: 2025-01-01

@@ -118,9 +118,9 @@ func CreateEnhancedDetector(baseDetector detection.Detector, config *detection.C
 	enhancedConfig := &detection.LLMEnhancedConfig{
 		Enabled:            true,
 		ValidateRiskLevels: config.LLMValidateRisks,
-		MaxConcurrency:     3,
-		SkipTestFiles:      true,
-		ContextLinesBefore: 50,
+		MaxConcurrency:     20,    // Increased for better throughput
+		SkipTestFiles:      false, // Never skip test files - critical for DLP compliance
+		ContextLinesBefore: 50,    // Will be dynamically adjusted based on risk
 		ContextLinesAfter:  50,
 	}
 

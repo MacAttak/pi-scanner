@@ -28,17 +28,17 @@ build_platform() {
     local GOOS=$1
     local GOARCH=$2
     local OUTPUT_NAME=$3
-    
+
     echo "Building for ${GOOS}/${GOARCH}..."
-    
+
     # Set environment
     export GOOS=${GOOS}
     export GOARCH=${GOARCH}
     export CGO_ENABLED=0  # Disable CGO for cross-platform builds
-    
+
     # Build
     go build -ldflags="${LDFLAGS}" -o "${RELEASE_DIR}/${OUTPUT_NAME}" ./cmd/pi-scanner
-    
+
     # Create archive
     if [ "${GOOS}" = "windows" ]; then
         # Create ZIP for Windows
@@ -53,7 +53,7 @@ build_platform() {
         rm "${OUTPUT_NAME}"
         cd - > /dev/null
     fi
-    
+
     echo "✓ Created ${RELEASE_DIR}/${OUTPUT_NAME}.tar.gz" || echo "✓ Created ${RELEASE_DIR}/${OUTPUT_NAME}.zip"
 }
 
@@ -90,7 +90,7 @@ Requirements:
 - libtokenizers.a is included
 
 Usage:
-  ./pi-scanner scan --repo https://github.com/org/repo
+  ./pi-scanner https://github.com/org/repo
 
 For more information:
   ./pi-scanner help
