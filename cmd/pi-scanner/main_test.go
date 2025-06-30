@@ -178,7 +178,7 @@ func TestLLMCheckCommand(t *testing.T) {
 			name: "llm-check help",
 			args: []string{"llm-check", "--help"},
 			expectedOutput: []string{
-				"Check LLM service status and configuration",
+				"Check if the LLM service is available",
 				"--endpoint",
 				"--model",
 			},

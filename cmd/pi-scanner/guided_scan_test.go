@@ -463,10 +463,14 @@ func TestPatternScanWithResourceManager(t *testing.T) {
 	gitContent := `#!/bin/bash
 case "$1" in
   "clone")
-    mkdir -p "$4"
+    # Get the last argument as the clone directory
+    for arg in "$@"; do
+      CLONE_DIR="$arg"
+    done
+    mkdir -p "$CLONE_DIR"
     # Create test files with PI patterns
-    echo "TFN: 123456782" > "$4/test.txt"
-    echo "Medicare: 2123456781" > "$4/data.txt"
+    echo "TFN: 123456782" > "$CLONE_DIR/test.txt"
+    echo "Medicare: 2123456781" > "$CLONE_DIR/data.txt"
     ;;
   *)
     exit 0
@@ -520,8 +524,12 @@ func TestResourceLifecycleIntegration(t *testing.T) {
 	gitContent := `#!/bin/bash
 case "$1" in
   "clone")
-    mkdir -p "$4"
-    echo "Test PI: 123456782" > "$4/test.txt"
+    # Get the last argument as the clone directory
+    for arg in "$@"; do
+      CLONE_DIR="$arg"
+    done
+    mkdir -p "$CLONE_DIR"
+    echo "Test PI: 123456782" > "$CLONE_DIR/test.txt"
     ;;
   *)
     exit 0

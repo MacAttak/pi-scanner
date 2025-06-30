@@ -361,6 +361,165 @@ func (d *detector) initializeMatchers() {
 			return false
 		},
 	})
+
+	// Combined BSB + Account matcher (must come before individual matchers)
+	// Matches BSB followed by account number with account context
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `(?i)(?:account|acc|acct)[\s:#\-]*\d{3}[\-\s]?\d{3}[\s]+\d{6,10}\b`,
+		piType:  PITypeBankAccount,
+		d:       d,
+		extractor: func(match string) string {
+			// Extract just the numbers part
+			numRe := regexp.MustCompile(`\d{3}[\-\s]?\d{3}[\s]+\d{6,10}`)
+			if nums := numRe.FindString(match); nums != "" {
+				return nums
+			}
+			return match
+		},
+		validator: func(match string) bool {
+			// Extract numeric part
+			numRe := regexp.MustCompile(`(\d{3}[\-\s]?\d{3})[\s]+(\d{6,10})`)
+			matches := numRe.FindStringSubmatch(match)
+			if len(matches) != 3 {
+				return false
+			}
+
+			// Validate BSB part
+			bsb := strings.ReplaceAll(matches[1], "-", "")
+			bsb = strings.ReplaceAll(bsb, " ", "")
+			if len(bsb) != 6 {
+				return false
+			}
+
+			// Validate account part
+			account := matches[2]
+			if len(account) < 6 || len(account) > 10 {
+				return false
+			}
+
+			return true
+		},
+	})
+
+	// Bank Account matcher
+	// Matches account numbers (6-10 digits) with appropriate context
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `(?i)\b(?:(?:account|acct|acc)[\s\-]*(?:number|no\.?)?[\s:#\-=]*|bank[\s\-]*account[\s:#\-=]*)\d{6,10}\b`,
+		piType:  PITypeBankAccount,
+		d:       d,
+		extractor: func(match string) string {
+			// Extract just the numeric part
+			numRe := regexp.MustCompile(`\d{6,10}`)
+			if num := numRe.FindString(match); num != "" {
+				return num
+			}
+			return match
+		},
+		validator: func(match string) bool {
+			// Basic validation for account numbers
+			clean := strings.ReplaceAll(match, " ", "")
+			clean = strings.ReplaceAll(clean, "-", "")
+
+			// Must be 6-10 digits
+			if len(clean) < 6 || len(clean) > 10 {
+				return false
+			}
+
+			// Must be all digits
+			for _, ch := range clean {
+				if ch < '0' || ch > '9' {
+					return false
+				}
+			}
+
+			// Skip obvious test patterns
+			if clean == "12345678" || clean == "123456789" || clean == "1234567890" {
+				return false
+			}
+
+			return true
+		},
+	})
+
+	// SWIFT/BIC Code matcher
+	// Format: 8 or 11 alphanumeric characters (e.g., ANZBNZ22, ANZBNZ22MEL)
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b`,
+		piType:  PIType("SWIFT_BIC"),
+		d:       d,
+		validator: func(match string) bool {
+			// SWIFT codes are 8 or 11 characters
+			if len(match) != 8 && len(match) != 11 {
+				return false
+			}
+
+			// First 6 characters must be letters (bank code + country)
+			for i := 0; i < 6; i++ {
+				if match[i] < 'A' || match[i] > 'Z' {
+					return false
+				}
+			}
+
+			// Characters 5-6 should be a valid country code
+			// For now, accept any 2-letter combination
+
+			return true
+		},
+	})
+
+	// IBAN matcher
+	// International Bank Account Number - various country formats
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b[A-Z]{2}\d{2}(?:[\s]?[A-Z0-9]{1,4})+\b`,
+		piType:  PIType("IBAN"),
+		d:       d,
+		extractor: func(match string) string {
+			// Return the original match with spaces
+			return match
+		},
+		validator: func(match string) bool {
+			// Remove spaces
+			clean := strings.ReplaceAll(match, " ", "")
+
+			// IBAN length varies by country (15-34 characters)
+			if len(clean) < 15 || len(clean) > 34 {
+				return false
+			}
+
+			// First 2 chars must be country code (letters)
+			if clean[0] < 'A' || clean[0] > 'Z' || clean[1] < 'A' || clean[1] > 'Z' {
+				return false
+			}
+
+			// Next 2 must be check digits
+			if clean[2] < '0' || clean[2] > '9' || clean[3] < '0' || clean[3] > '9' {
+				return false
+			}
+
+			// Country-specific validation (simplified)
+			countryCode := clean[0:2]
+			expectedLength := map[string]int{
+				"AD": 24, "AE": 23, "AT": 20, "AZ": 28, "BA": 20, "BE": 16,
+				"BG": 22, "BH": 22, "BR": 29, "CH": 21, "CR": 22, "CY": 28,
+				"CZ": 24, "DE": 22, "DK": 18, "DO": 28, "EE": 20, "ES": 24,
+				"FI": 18, "FO": 18, "FR": 27, "GB": 22, "GE": 22, "GI": 23,
+				"GL": 18, "GR": 27, "GT": 28, "HR": 21, "HU": 28, "IE": 22,
+				"IL": 23, "IS": 26, "IT": 27, "JO": 30, "KW": 30, "KZ": 20,
+				"LB": 28, "LI": 21, "LT": 20, "LU": 20, "LV": 21, "MC": 27,
+				"MD": 24, "ME": 22, "MK": 19, "MR": 27, "MT": 31, "MU": 30,
+				"NL": 18, "NO": 15, "PK": 24, "PL": 28, "PS": 29, "PT": 25,
+				"QA": 29, "RO": 24, "RS": 22, "SA": 24, "SE": 24, "SI": 19,
+				"SK": 24, "SM": 27, "TN": 24, "TR": 26, "XK": 20,
+			}
+
+			if expLen, ok := expectedLength[countryCode]; ok {
+				return len(clean) == expLen
+			}
+
+			// Unknown country code - accept if within valid range
+			return true
+		},
+	})
 }
 
 // shouldExclude checks if a file should be excluded from scanning
