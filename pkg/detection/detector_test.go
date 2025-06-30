@@ -79,9 +79,9 @@ func TestDetector_Detect(t *testing.T) {
 		{
 			name:         "detect ABN with spaces",
 			content:      `ABN: 51 824 753 556`,
-			expectedPIs:  []string{"51 824 753 556"},
-			expectedType: []PIType{PITypeABN},
-			description:  "Should detect ABN with spaces",
+			expectedPIs:  []string{"51 824 753 556", "824 753 556"},
+			expectedType: []PIType{PITypeABN, PITypeTFN},
+			description:  "May detect both ABN and TFN patterns (LLM will disambiguate)",
 		},
 		// BSB tests
 		{

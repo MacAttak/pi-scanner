@@ -267,11 +267,11 @@ func TestBankingPIDetection(t *testing.T) {
 // DEBUG FINDINGS:
 // 1. BSB detection works but risk level is LOW (weight=50) instead of expected HIGH
 // 2. Bank account numbers like "12345678" are NOT detected without context keywords
-//    - Pattern requires "account", "acct", etc. before the number
-//    - Standalone numbers in variables like TEST_ACCOUNT = "12345678" won't match
+//   - Pattern requires "account", "acct", etc. before the number
+//   - Standalone numbers in variables like TEST_ACCOUNT = "12345678" won't match
+//
 // 3. Context validation was filtering some findings when enabled
 // 4. Risk weights: BSB=50 (LOW), BankAccount=70 (MEDIUM) per DefaultConfig
-//
 func TestBankingContextualDetection(t *testing.T) {
 	// Create detector with custom config to help debug
 	config := DefaultConfig()
@@ -371,15 +371,26 @@ INSERT INTO accounts (bsb, account_number, balance) VALUES
 			}
 
 			// Group findings by risk level
-			highRiskFindings := []string{}
-			lowRiskFindings := []string{}
+			// Use maps to deduplicate matches (same value can appear multiple times)
+			highRiskMap := make(map[string]bool)
+			lowRiskMap := make(map[string]bool)
 
 			for _, finding := range findings {
 				if finding.RiskLevel == RiskLevelHigh || finding.RiskLevel == RiskLevelCritical {
-					highRiskFindings = append(highRiskFindings, finding.Match)
+					highRiskMap[finding.Match] = true
 				} else if finding.RiskLevel == RiskLevelLow {
-					lowRiskFindings = append(lowRiskFindings, finding.Match)
+					lowRiskMap[finding.Match] = true
 				}
+			}
+
+			// Convert maps to slices for comparison
+			highRiskFindings := []string{}
+			for match := range highRiskMap {
+				highRiskFindings = append(highRiskFindings, match)
+			}
+			lowRiskFindings := []string{}
+			for match := range lowRiskMap {
+				lowRiskFindings = append(lowRiskFindings, match)
 			}
 
 			// Debug: Show what was actually categorized

@@ -127,8 +127,8 @@ func TestContextAwareDetection(t *testing.T) {
 			name:          "Migration script",
 			content:       `UPDATE users SET tfn = '` + validTFN + `' WHERE id = 1`,
 			filename:      "migrations/001_add_test_data.sql",
-			expectedRisk:  RiskLevelMedium,
-			contextReason: "PI in migration might be test data",
+			expectedRisk:  RiskLevelCritical,
+			contextReason: "PI in database context is critical (LLM will determine if test data)",
 		},
 		{
 			name:          "Script file",
@@ -272,10 +272,10 @@ func TestFilePathContext(t *testing.T) {
 
 			risk := findings[0].RiskLevel
 			if tp.shouldBeLow {
-				assert.True(t, risk <= RiskLevelMedium,
+				assert.True(t, risk.Compare(RiskLevelMedium) <= 0,
 					"%s should have low/medium risk, got %s", tp.reason, risk)
 			} else {
-				assert.True(t, risk >= RiskLevelMedium,
+				assert.True(t, risk.Compare(RiskLevelMedium) >= 0,
 					"%s should have medium/high risk, got %s", tp.reason, risk)
 			}
 		})
