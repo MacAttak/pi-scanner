@@ -1,6 +1,6 @@
 # Multi-stage build for GitHub PI Scanner
 # Stage 1: Build Go application
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Build arguments
 ARG VERSION="dev"
@@ -30,7 +30,7 @@ RUN go build -ldflags="-s -w \
     -o pi-scanner ./cmd/pi-scanner
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Build arguments for labels
 ARG VERSION="dev"
