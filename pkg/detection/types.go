@@ -96,6 +96,9 @@ type Finding struct {
 	// Metadata
 	DetectedAt   time.Time `json:"detected_at"`
 	DetectorName string    `json:"detector_name"`
+
+	// AST Context
+	ASTContext *ASTContext `json:"ast_context,omitempty"`
 }
 
 // Detector is the interface for PI detection engines

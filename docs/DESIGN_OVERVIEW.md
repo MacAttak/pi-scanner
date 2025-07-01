@@ -12,10 +12,10 @@ Australian organizations face strict compliance requirements under the Privacy A
 
 ### Key Capabilities
 
-- **Comprehensive PI Detection**: Identifies 12+ types of Australian PI including Tax File Numbers (TFN), Medicare numbers, credit cards (Luhn validated), and Australian Business Numbers (ABN)
-- **Two-Phase Architecture**: Fast pattern detection followed by optional AI validation for 100% accuracy
-- **Banking Domain Intelligence**: AST-based code analysis using Tree-sitter for Java, Scala, and Python with automated detection of high-risk zones (customer data, transactions, integrations)
-- **Context-Aware Analysis**: Repository structure analysis and code pattern recognition to minimize false positives
+- **Comprehensive PI Detection**: Identifies 18 PI types including Australian-specific patterns (TFN, Medicare, ABN, ACN, BSB, Driver Licenses) and international patterns (credit cards, SWIFT/BIC, IBAN)
+- **Two-Phase Architecture**: Pattern detection followed by optional AI validation to reduce false positives
+- **Banking Domain Intelligence**: Code structure analysis using regular expressions for Java, Scala, and Python to identify high-risk zones (customer data, transactions, integrations)
+- **Context-Aware Analysis**: Repository structure analysis and code pattern recognition with inclusive pattern matching (multiple patterns can match the same text for LLM disambiguation)
 - **Local LLM Integration**: Code-aware validation using on-premise models (LM Studio) with context extraction and intelligent false positive reduction
 - **Enterprise Integration**: Supports CI/CD pipelines with multiple output formats
 - **Privacy-First Design**: Operates without creating new disclosure risks
@@ -57,14 +57,15 @@ The PI Scanner employs a sophisticated two-phase approach with intelligent resou
 Resource Initialization
 ScanResourceManager → Repository Clone → Context Setup
        ↓                    ↓                 ↓
- Lifecycle Control    GitHub API        AST Analysis
-                     Integration         for Java/Scala/Python
+ Lifecycle Control    GitHub API        Code Structure
+                     Integration         Analysis
 
-Phase 1: Pattern-Based Detection with AST Intelligence
+Phase 1: Pattern-Based Detection
 File Discovery → AST Analysis → Pattern Matching → Risk Mapping → Initial Report
-      ↓              ↓               ↓                ↓              ↓
- Concurrent      Tree-sitter    Regex + Checksum  Banking Domain  Masked JSON
- Processing      Parsing        + Luhn Algorithm   Intelligence    Output
+      ↓              ↓                ↓                ↓              ↓
+ Concurrent      Regex-based     Regex + Checksum  Banking Domain  Masked JSON
+ Processing      Structure       + Luhn Algorithm   Intelligence    + AST Context
+                 Extraction
 
 Interactive Decision Point
        ↓
@@ -73,8 +74,8 @@ User Reviews Findings → Choose Validation Scope → Proceed or Skip
 Phase 2: AI-Powered Validation (Optional)
 Load Raw Findings → Context Extraction → LLM Analysis → Enhanced Report
        ↓                   ↓                  ↓               ↓
- Unmasked Data      Full Code Context    Local LLM      Risk-Adjusted
- From Phase 1       for Accuracy      (LM Studio)       Final Report
+ Unmasked Data      Code + AST Context   Local LLM      Risk-Adjusted
+ From Phase 1       for Deep Analysis   (LM Studio)     Final Report
 
 Resource Cleanup (Automatic)
        ↓
@@ -101,8 +102,9 @@ Repository Cleanup → Memory Clear → Report Finalization
    - Checksum validation for structured PI (TFN, ABN, Medicare)
    - Luhn algorithm validation for credit card numbers
    - Context extraction (±50 lines around matches)
-   - Initial risk scoring based on patterns and context
-   - AST analysis integration for code-aware risk assessment
+   - AST analysis to extract code structure (classes, methods, imports)
+   - Initial risk scoring based on patterns, context, and code structure
+   - Banking domain risk zone identification
 
 4. **Phase 1 Report Generation**
    - Masked PI values by default (configurable)
@@ -123,10 +125,11 @@ Repository Cleanup → Memory Clear → Report Finalization
 **Phase 2: AI-Powered Validation (Optional)**
 
 6. **LLM-Enhanced Analysis**
-   - Loads findings from Phase 1
-   - Sends context to local LLM for analysis
-   - LLM determines if PI is real or test data
-   - Updates risk scores based on deeper context understanding
+   - Loads findings from Phase 1 with AST context
+   - Sends code context and structural information to local LLM
+   - LLM analyzes based on code structure, risk zones, and patterns
+   - Determines if PI is real or test data using enhanced context
+   - Updates risk scores based on comprehensive understanding
 
 7. **Final Report Generation**
    - Enhanced JSON with LLM explanations
@@ -142,32 +145,40 @@ Repository Cleanup → Memory Clear → Report Finalization
 
 ## PI Detection Methodology
 
-### What Types of Australian PI are Detected
+### What Types of PI are Detected
 
-The scanner detects these Australian PI types:
+The scanner detects these PI types:
 
+**Australian-Specific PI:**
 1. **Tax File Number (TFN)**: 9-digit identifier with modulo 11 checksum
 2. **Australian Business Number (ABN)**: 11-digit identifier with modulo 89 checksum
 3. **Medicare Number**: 10-11 digit health identifier with position-based checksum
-4. **Bank State Branch (BSB)**: 6-digit bank routing codes with state validation
+4. **Bank State Branch (BSB)**: 6-digit bank routing codes (requires context keywords to avoid false positives)
 5. **Australian Company Number (ACN)**: 9-digit company identifier with checksum
-6. **Phone Numbers**: Australian mobile and landline numbers
-7. **Email Addresses**: Standard email format validation
-8. **Person Names**: Context-aware detection excluding code constructs
-9. **Australian Addresses**: Street addresses with postcode validation
-10. **Driver Licenses**: State-specific format validation
-11. **Passport Numbers**: Australian passport pattern (letter + 7 digits)
-12. **Credit Cards**: All major card types with Luhn algorithm validation
+6. **Australian Registered Body Number (ARBN)**: Similar to ACN format
+7. **Driver Licenses**: State-specific patterns for NSW, VIC, QLD, SA, WA, TAS
+8. **Australian Phone Numbers**: Mobile (04xx) and landline formats
+9. **Australian Addresses**: Street addresses with Australian state codes and postcodes
+10. **Australian Passport Numbers**: Letter followed by 7 digits
+
+**International PI Types:**
+11. **Credit Cards**: Major card types with Luhn algorithm validation
+12. **Email Addresses**: Standard email format validation
+13. **Person Names**: Context-aware detection excluding programming terms
+14. **Bank Account Numbers**: 6-10 digit accounts with contextual keywords
+15. **SWIFT/BIC Codes**: 8 or 11 character bank identifiers
+16. **IBAN**: International Bank Account Numbers
+17. **IP Addresses**: IPv4 and IPv6 formats
+18. **Generic Account Numbers**: Various account formats
 
 ### How Pattern Matching Works
 
-Pattern matching uses a three-layer approach:
+Pattern matching uses a multi-layer approach:
 
 1. **Initial Pattern Detection**
-   ```
-   TFN Pattern: \b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b
-   ```
-   This finds any 9-digit sequence that could be a TFN
+   - Regular expressions identify potential PI patterns
+   - Patterns are designed to be inclusive to minimize false negatives
+   - Multiple patterns may match the same text (e.g., "ID: 123456782" matches both generic and TFN patterns)
 
 2. **Format Normalization**
    - Removes spaces and hyphens
@@ -176,17 +187,20 @@ Pattern matching uses a three-layer approach:
 3. **Checksum Validation**
    - Each PI type has specific validation rules
    - For TFN: Multiply each digit by weight [1,4,3,7,5,8,6,9,10], sum must be divisible by 11
+   - Patterns that fail validation are still included but with lower confidence scores
 
-### Confidence Scoring Explained
+**Note on Inclusive Matching**: The scanner intentionally allows overlapping pattern matches. This design choice ensures maximum detection coverage in Phase 1, with the expectation that Phase 2 (LLM validation) will disambiguate cases where the same text matches multiple patterns.
 
-The scanner assigns confidence scores (0.0-1.0) based on multiple factors:
+### Confidence Scoring
 
-- **Base Score**: Pattern match (0.5) + valid checksum (0.3)
-- **Context Bonus**: Label proximity (+0.2), form field (+0.1)
-- **Context Penalty**: Test file (-0.4), documentation (-0.3)
-- **Co-occurrence**: Multiple PI types nearby (+0.1)
+The scanner assigns confidence scores based on multiple factors:
 
-Example: A TFN with valid checksum in a variable named "customerTFN" in production code would score 0.9 (High confidence)
+- **Pattern Match**: Base confidence when pattern is found
+- **Checksum Validation**: Higher confidence if checksum is valid
+- **Context Modifiers**: Adjustments based on file type and code context
+- **Risk Level Assignment**: Based on PI type weight and context
+
+The exact scoring varies by PI type and surrounding context. Failed checksum validation typically results in lower confidence scores.
 
 ### Context-Aware Detection
 
@@ -199,18 +213,21 @@ Context analysis examines surrounding code to determine if PI is real or test da
 
 **Low-Risk Contexts**:
 - Test files: `describe("TFN validation", () => {`
-- Documentation: `// Example TFN: 123-456-789`
 - Mock data: `const TEST_TFN = "123456789"`
 
-### Banking Domain Intelligence with AST Analysis
+**Important Note**: In the current two-phase architecture, the scanner uses inclusive pattern matching. This means patterns in comments or examples are still detected in Phase 1, allowing the LLM in Phase 2 to make the final determination about whether they represent real PI.
+
+### Banking Domain Intelligence
 
 The scanner includes specialized intelligence for financial services codebases:
 
-**AST-Based Code Analysis**:
-- Uses Tree-sitter for language-agnostic parsing
-- Supports Java, Scala, and Python (optimized for Spark pipelines)
-- Understands code structure beyond simple pattern matching
-- Identifies function calls, variable assignments, and data flows
+**Code Structure Analysis**:
+- Uses regular expression-based AST analysis to extract code structure
+- Extracts classes, methods, imports, and dependencies
+- Supports Java, Scala, Python, Go, and other languages
+- Identifies high-risk code zones for banking systems
+- AST context is passed to Phase 2 LLM for enhanced validation
+- Structure analysis helps identify enclosing methods and classes for each finding
 
 **Banking-Specific Risk Zones**:
 1. **Customer Data Processing**:
@@ -258,23 +275,31 @@ The scanner's Phase 2 includes optional LLM validation designed exclusively for 
 3. **How LLM Validation Works**
    - **Smart Selection**: User chooses which risk levels to validate
    - **Context Extraction**: ±50 lines of surrounding code
+   - **AST Integration**: Structural context from Phase 1 analysis
    - **Intelligent Analysis**: Determines if code handles real or test data
    - **Risk Refinement**: Updates confidence scores based on context
    - **Detailed Explanation**: Documents reasoning for each decision
 
-4. **Interactive Validation Options**
+4. **AST Context Enhancement**
+   - **Structural Information**: Classes, methods, imports passed to LLM
+   - **Risk Zone Awareness**: LLM considers if finding is in payment/customer zones
+   - **Method Context**: Identifies which method contains the finding
+   - **Banking Indicators**: Highlights payment processing or data handling patterns
+   - **Security Patterns**: Notes encryption/authentication implementations nearby
+
+5. **Interactive Validation Options**
    - **All Findings**: Comprehensive but time-intensive
    - **HIGH + MEDIUM**: Balanced approach for most use cases
    - **HIGH + CRITICAL Only**: Quick validation of highest risks
    - **Skip**: Use Phase 1 results only (pattern matching)
 
-5. **Security Safeguards**
+6. **Security Safeguards**
    - Configuration validates localhost-only endpoints
    - Warning system for non-local configurations
    - All PI processing remains on local infrastructure
    - Audit logging of all LLM interactions
 
-6. **Performance Optimization**
+7. **Performance Optimization**
    - Time estimates based on finding count
    - Progress tracking during validation
    - Concurrent processing with configurable limits
@@ -425,11 +450,11 @@ The scanner provides an intuitive, guided experience that helps users make infor
 4. **Interactive Decision Point**
    ```
    📊 Would you like to validate these findings with AI?
-   This can significantly reduce false positives.
+   This can help reduce false positives.
 
-   1) Validate all findings (329 items) - Est. 10-15 minutes
-   2) Validate HIGH + MEDIUM only (28 items) - Est. 1-2 minutes
-   3) Validate HIGH + CRITICAL only (5 items) - Est. < 1 minute
+   1) Validate all findings (329 items)
+   2) Validate HIGH + MEDIUM only (28 items)
+   3) Validate HIGH + CRITICAL only (5 items)
    4) Skip validation
 
    Your choice:
@@ -446,9 +471,10 @@ The scanner provides an intuitive, guided experience that helps users make infor
    ```
    ✅ Validation complete! Results refined:
 
-   Before AI    After AI    Reduction
-   ---------    --------    ---------
-   28 items  →  12 items    57% fewer false positives
+   Before AI: 28 items
+   After AI:  12 items
+
+   The AI validation has identified which findings are likely to be real PI versus test data.
 
    Reports saved to: ./reports/20250628_140000_myrepo/
    ```
@@ -539,16 +565,14 @@ The scanner generates comprehensive reports in a structured directory format:
 - Some Australian PI types not yet supported
 - International PI requires different patterns
 
-### Performance Constraints
+### Performance Considerations
 
-- **Repository Size**: Optimized for repos up to 10,000 files
+- **Repository Size**: Tested with repositories containing thousands of files
 - **File Size**: Files over 1MB are skipped by default (configurable)
-- **Memory Usage**: ~500MB base + ~100MB per concurrent worker
-- **Scan Time**:
-  - Pattern scan: ~1-2 minutes per 1,000 files
-  - LLM validation: ~2-3 seconds per finding
-- **Concurrency**: Default 2x CPU cores, adjustable via config
-- **Single Repository**: Processes one repository at a time (batch processing not supported)
+- **Memory Usage**: Uses streaming for large files to manage memory efficiently
+- **Scan Time**: Varies based on repository size, file count, and system resources
+- **Concurrency**: Default uses 2x CPU cores, adjustable via configuration
+- **Single Repository**: Processes one repository at a time
 
 ## Current Implementation Status
 
@@ -556,11 +580,11 @@ The scanner generates comprehensive reports in a structured directory format:
 
 **Core Functionality**
 - Two-phase scanning architecture with interactive decision point
-- Pattern-based detection for 12+ Australian PI types including credit cards
+- Pattern-based detection for 18 PI types (Australian and international)
 - Context-aware analysis with confidence scoring
 - Checksum validation for structured identifiers (TFN, ABN, Medicare)
 - Luhn algorithm validation for credit card numbers
-- AST-based code analysis for Java, Scala, and Python
+- Code structure analysis for Java, Scala, and Python using regex patterns
 - Banking domain intelligence with automated risk zone detection
 - File processing with concurrent worker pools
 - Comprehensive report generation (JSON format)
@@ -590,7 +614,7 @@ The scanner generates comprehensive reports in a structured directory format:
 - Separate storage of raw and masked findings
 - In-memory processing of sensitive data
 - No external API calls for PI data
-- SkipTestFiles hardcoded to false for compliance
+- Test files are always scanned (never skipped) for compliance
 
 ### In Active Development 🚧
 
@@ -639,7 +663,7 @@ For enterprise deployment:
 - **High Availability**: Redundant scanner instances
 - **Compliance Dashboard**: Real-time compliance status
 
-The PI Scanner provides enterprise-grade Australian PI protection for code repositories. Its privacy-first design, banking domain intelligence, and local processing approach make it ideal for financial institutions and security-conscious organizations. The two-phase architecture with optional AI validation delivers both speed and accuracy, while the robust resource management ensures reliable operation at scale.
+The PI Scanner provides automated PI detection for code repositories with a focus on Australian compliance requirements. Its privacy-first design, banking domain intelligence, and local processing approach make it suitable for organizations handling sensitive data. The two-phase architecture allows for pattern-based detection followed by optional AI validation to reduce false positives.
 
 ## Additional Resources
 

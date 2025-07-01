@@ -216,3 +216,130 @@ func TestHealthCheck(t *testing.T) {
 	err = client.HealthCheck(context.Background())
 	assert.NoError(t, err)
 }
+
+func TestCreateValidationPrompt_WithASTContext(t *testing.T) {
+	client, err := NewLMStudioClient(Config{})
+	require.NoError(t, err)
+
+	req := detection.LLMValidationRequest{
+		Finding: detection.Finding{
+			Type:       detection.PITypeTFN,
+			Match:      "123456782",
+			Line:       25,
+			Column:     10,
+			RiskLevel:  detection.RiskLevelHigh,
+			Confidence: 0.9,
+			Validated:  true,
+		},
+		Context:    "func ProcessPayment() {\n>   tfn := \"123456782\"\n}",
+		FilePath:   "/src/payment/processor.go",
+		FileType:   "go",
+		IsTestFile: false,
+		ASTContext: &detection.ASTContext{
+			Language:                "go",
+			FileType:                "payment",
+			RiskZone:                "payment_processing",
+			RiskLevel:               "Critical",
+			IsTestFile:              false,
+			IsConfigFile:            false,
+			Classes:                 []string{"PaymentProcessor"},
+			Methods:                 []string{"ProcessPayment", "ValidateTransaction"},
+			Imports:                 []string{"crypto/aes", "encoding/json"},
+			BankingDomainIndicators: []string{"processes_payments", "handles_transactions"},
+			SecurityPatterns:        []string{"uses_encryption"},
+			EnclosingClass:          "PaymentProcessor",
+			EnclosingMethod:         "ProcessPayment",
+			NearbyComments:          "// Process customer payment with TFN for tax reporting",
+		},
+	}
+
+	prompt := client.createValidationPrompt(req)
+
+	// Verify prompt contains AST context information
+	assert.Contains(t, prompt, "Structural Context (AST Analysis)")
+	assert.Contains(t, prompt, "Language:** go")
+	assert.Contains(t, prompt, "Risk Zone:** payment_processing")
+	assert.Contains(t, prompt, "Risk Level: Critical")
+	assert.Contains(t, prompt, "Classes:** PaymentProcessor")
+	assert.Contains(t, prompt, "Within Class:** PaymentProcessor")
+	assert.Contains(t, prompt, "Within Method:** ProcessPayment")
+	assert.Contains(t, prompt, "Banking Indicators:** processes_payments, handles_transactions")
+	assert.Contains(t, prompt, "Security Patterns:** uses_encryption")
+	assert.Contains(t, prompt, "Relevant Comments:**")
+	assert.Contains(t, prompt, "Process customer payment with TFN for tax reporting")
+
+	// Verify other parts of prompt are still present
+	assert.Contains(t, prompt, "PI Type:** TFN")
+	assert.Contains(t, prompt, "Detected Value:** `123456782`")
+	assert.Contains(t, prompt, "Location:** Line 25, Column 10")
+}
+
+func TestCreateValidationPrompt_WithoutASTContext(t *testing.T) {
+	client, err := NewLMStudioClient(Config{})
+	require.NoError(t, err)
+
+	req := detection.LLMValidationRequest{
+		Finding: detection.Finding{
+			Type:       detection.PITypeEmail,
+			Match:      "test@example.com",
+			Line:       10,
+			Column:     5,
+			RiskLevel:  detection.RiskLevelMedium,
+			Confidence: 0.8,
+		},
+		Context:    "// Contact: test@example.com",
+		FilePath:   "/docs/readme.md",
+		FileType:   "markdown",
+		IsTestFile: false,
+		ASTContext: nil, // No AST context
+	}
+
+	prompt := client.createValidationPrompt(req)
+
+	// Verify prompt does not contain AST context section
+	assert.NotContains(t, prompt, "Structural Context (AST Analysis)")
+	assert.NotContains(t, prompt, "Risk Zone:**")
+	assert.NotContains(t, prompt, "Within Method:**")
+
+	// Verify other parts of prompt are present
+	assert.Contains(t, prompt, "PI Type:** EMAIL")
+	assert.Contains(t, prompt, "Detected Value:** `test@example.com`")
+	assert.Contains(t, prompt, "File Type:** markdown")
+}
+
+func TestCreateValidationPrompt_PartialASTContext(t *testing.T) {
+	client, err := NewLMStudioClient(Config{})
+	require.NoError(t, err)
+
+	req := detection.LLMValidationRequest{
+		Finding: detection.Finding{
+			Type:      detection.PITypeCreditCard,
+			Match:     "4111111111111111",
+			RiskLevel: detection.RiskLevelHigh,
+		},
+		Context:    "const testCard = \"4111111111111111\"",
+		FilePath:   "/test/fixtures.js",
+		FileType:   "javascript",
+		IsTestFile: true,
+		ASTContext: &detection.ASTContext{
+			Language:     "javascript",
+			RiskZone:     "tests",
+			RiskLevel:    "Low",
+			IsTestFile:   true,
+			IsConfigFile: false,
+			// Only partial context - no classes, methods, etc.
+		},
+	}
+
+	prompt := client.createValidationPrompt(req)
+
+	// Verify AST context section is present
+	assert.Contains(t, prompt, "Structural Context (AST Analysis)")
+	assert.Contains(t, prompt, "Language:** javascript")
+	assert.Contains(t, prompt, "Risk Zone:** tests")
+
+	// Verify empty fields are not included
+	assert.NotContains(t, prompt, "Classes:**")
+	assert.NotContains(t, prompt, "Within Method:**")
+	assert.NotContains(t, prompt, "Banking Indicators:**")
+}

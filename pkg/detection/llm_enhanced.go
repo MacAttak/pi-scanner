@@ -125,6 +125,7 @@ func (d *LLMEnhancedDetector) validateFinding(ctx context.Context, finding *Find
 		FilePath:   filename,
 		FileType:   getFileType(filename),
 		IsTestFile: isTestFile(filename),
+		ASTContext: finding.ASTContext, // Pass AST context from finding
 	}
 
 	// Perform validation
