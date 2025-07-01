@@ -125,6 +125,11 @@ build-all: check-docker ## Build for all platforms
 		CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags='-s -w' -o bin/pi-scanner-darwin-arm64 ./cmd/pi-scanner && \
 		CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags='-s -w' -o bin/pi-scanner-windows-amd64.exe ./cmd/pi-scanner"
 
+# Release commands
+release-all: check-docker ## Build release artifacts for all platforms
+	@echo "📦 Building release artifacts in Docker..."
+	docker compose run --rm -e VERSION=$${VERSION:-1.2.0} dev bash -c "./scripts/build-release.sh"
+
 # Legacy support with warnings (gradually migrate users to Docker commands)
 legacy-test: go-warning
 	@echo "🚨 Use 'make test' instead for environment parity!"
