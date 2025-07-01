@@ -1,9 +1,13 @@
+// Package config provides configuration management for the PI scanner.
+// It supports loading configuration from YAML files, environment variables,
+// and command-line flags, with proper validation and default values.
 package config
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -371,9 +375,9 @@ func ConfigFromEnvironment() *Config {
 
 	// Scanner environment variables
 	if workers := os.Getenv("PI_SCANNER_WORKERS"); workers != "" {
-		// TODO: Parse and set workers
-		// This will be implemented when environment override feature is added
-		_ = workers // Acknowledge unused variable
+		if w, err := strconv.Atoi(workers); err == nil && w > 0 {
+			config.Scanner.Workers = w
+		}
 	}
 
 	// GitHub token

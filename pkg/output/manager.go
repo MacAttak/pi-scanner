@@ -1,3 +1,6 @@
+// Package output manages the presentation and formatting of scan results.
+// It supports multiple output formats including JSON, YAML, SARIF, and
+// human-readable formats with proper filtering and organization of findings.
 package output
 
 import (

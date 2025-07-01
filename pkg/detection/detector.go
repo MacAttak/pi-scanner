@@ -1,3 +1,7 @@
+// Package detection implements the core PI detection engine for identifying
+// personally identifiable information in source code. It supports multiple
+// detection strategies including pattern matching, validation algorithms,
+// and integration with external tools like Gitleaks.
 package detection
 
 import (

@@ -60,3 +60,4 @@ scan-results.json
 scan-*.json
 **/scan-results.json
 /reports/
+cmd/pi-scanner/reports/

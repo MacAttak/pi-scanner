@@ -1,3 +1,6 @@
+// Package report generates various report formats for scan results.
+// It supports industry-standard formats like SARIF for integration with
+// security tools and IDEs, as well as custom formats for specific use cases.
 package report
 
 import (

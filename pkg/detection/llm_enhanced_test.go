@@ -2,6 +2,7 @@ package detection
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,10 +15,14 @@ type mockLLMValidator struct {
 	validateFunc func(ctx context.Context, req LLMValidationRequest) (*LLMValidationResult, error)
 	healthFunc   func(ctx context.Context) error
 	lastRequest  *LLMValidationRequest // Store last request for verification
+	mu           sync.Mutex
 }
 
 func (m *mockLLMValidator) ValidateFinding(ctx context.Context, req LLMValidationRequest) (*LLMValidationResult, error) {
+	m.mu.Lock()
 	m.lastRequest = &req // Store the request for verification
+	m.mu.Unlock()
+
 	if m.validateFunc != nil {
 		return m.validateFunc(ctx, req)
 	}

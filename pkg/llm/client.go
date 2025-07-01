@@ -1,3 +1,6 @@
+// Package llm provides integration with Large Language Models for advanced
+// PI validation. It supports multiple LLM providers through a unified interface
+// and uses AI to analyze code context and reduce false positives in PI detection.
 package llm
 
 import (
