@@ -1,6 +1,6 @@
 # Multi-stage build for GitHub PI Scanner
 # Stage 1: Build Go application
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev
