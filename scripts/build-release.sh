@@ -76,8 +76,12 @@ NATIVE_RELEASE_DIR="${RELEASE_DIR}/pi-scanner-${NATIVE_OS}-${NATIVE_ARCH}-ml"
 rm -rf "${NATIVE_RELEASE_DIR}"
 mkdir -p "${NATIVE_RELEASE_DIR}"
 cp "${RELEASE_DIR}/${NATIVE_BINARY_FILE}" "${NATIVE_RELEASE_DIR}/pi-scanner"
-cp lib/libtokenizers.a "${NATIVE_RELEASE_DIR}/"
-cp pkg/config/default_config.yaml "${NATIVE_RELEASE_DIR}/"
+if [ -f "lib/libtokenizers.a" ]; then
+    cp lib/libtokenizers.a "${NATIVE_RELEASE_DIR}/"
+fi
+if [ -f "pkg/config/default_config.yaml" ]; then
+    cp pkg/config/default_config.yaml "${NATIVE_RELEASE_DIR}/"
+fi
 
 # Create README for native release
 cat > "${NATIVE_RELEASE_DIR}/README.txt" << EOF
