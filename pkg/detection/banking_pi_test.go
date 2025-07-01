@@ -157,16 +157,16 @@ func TestBankingPIDetection(t *testing.T) {
 				{
 					name:        "Standard SWIFT code",
 					content:     "SWIFT: ANZBNZ22",
-					shouldFind:  false, // Changed to false since we removed SWIFT detection
+					shouldFind:  true, // Restored with SQL awareness
 					expectedPI:  "ANZBNZ22",
-					description: "8-character SWIFT code (removed due to false positives)",
+					description: "8-character SWIFT code",
 				},
 				{
 					name:        "SWIFT with branch",
 					content:     "BIC: ANZBNZ22MEL",
-					shouldFind:  false, // Changed to false since we removed SWIFT detection
+					shouldFind:  true, // Restored with SQL awareness
 					expectedPI:  "ANZBNZ22MEL",
-					description: "11-character SWIFT code (removed due to false positives)",
+					description: "11-character SWIFT code",
 				},
 			},
 		},

@@ -25,6 +25,7 @@ const (
 	PITypePassport      PIType = "PASSPORT"
 	PITypeAccount       PIType = "ACCOUNT"
 	PITypeIP            PIType = "IP_ADDRESS"
+	PITypeSWIFT         PIType = "SWIFT"
 )
 
 // RiskLevel represents the severity of a finding
@@ -306,6 +307,7 @@ func DefaultConfig() *Config {
 			PITypePhone:         30,
 			PITypeEmail:         20,
 			PITypeIP:            10,
+			PITypeSWIFT:         60,
 		},
 
 		ProximityWindow: 5,

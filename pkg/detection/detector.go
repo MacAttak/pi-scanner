@@ -116,6 +116,13 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 			baseConfidence := float32(0.8)
 			if !match.ValidationPassed {
 				baseConfidence = 0.5 // Lower confidence for patterns that fail validation
+
+				// For certain PI types, skip invalid matches entirely
+				if matcher.Type() == PITypeSWIFT {
+					// SWIFT codes have strict format requirements
+					// Invalid patterns should not be included at all
+					continue
+				}
 			}
 
 			finding := Finding{
@@ -508,6 +515,199 @@ func (d *detector) initializeMatchers() {
 
 			// Skip synthetic patterns
 			if d.isSyntheticPattern(num) {
+				return false
+			}
+
+			return true
+		},
+	})
+
+	// SWIFT/BIC Code matcher with SQL context awareness
+	// Format: 8 or 11 characters (4 bank + 2 country + 2 location + optional 3 branch)
+	d.matchers = append(d.matchers, &regexMatcher{
+		pattern: `\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b`,
+		piType:  PITypeSWIFT,
+		d:       d,
+		validator: func(match string) bool {
+			upperMatch := strings.ToUpper(match)
+			// First check against SQL keywords (regardless of file type)
+			// Common SQL keywords that might match SWIFT pattern
+			sqlKeywords8 := []string{
+				// 8-character SQL keywords
+				"DISTINCT", "TRUNCATE", "COALESCE", "INTERVAL", "ROLLBACK",
+				"FUNCTION", "EXTERNAL", "POSITION", "ABSOLUTE", "RELATIVE",
+				"LANGUAGE", "DEFINER", "SECURITY", "INVOKER", "CONTAINS",
+				"OPTIMIZE", "ANALYZE", "COMPUTE", "FULLTEXT", "GEOMETRY",
+				"MULTISET", "NATIONAL", "NVARCHAR", "OVERLAPS", "PRESERVE",
+				"REFERENC", "RESTRICT", "REVOKE", "SAVEPOINT", "SPECIFIC",
+				"SQLSTATE", "TRAILING", "TRIGGERS", "UNSIGNED", "VARYING",
+				"DESCRIBE", "EXECUTE", "EXPLAIN", "HANDLER", "ITERATE",
+				"MODIFIES", "NATURAL", "NUMERIC", "PARTIAL", "PRIMARY",
+				"RELEASE", "REPLACE", "RETURNS", "SCHEMAS", "SECTION",
+				"SIMILAR", "SMALLINT", "SPATIAL", "SQLCODE", "STORAGE",
+				"SYNONYM", "SYSDATE", "SYSTIME", "TRIGGER", "UNIQUE",
+				"UNKNOWN", "UNLOCK", "UPDATE", "VALUES", "VARCHAR",
+				"VERBOSE", "VIRTUAL", "WITHOUT",
+			}
+
+			sqlKeywords11 := []string{
+				// 11-character SQL keywords
+				"CONSTRAINTS", "DETERMINISTIC", "INSENSITIVE", "REFERENCES",
+				"TABLESPACE", "UNCOMMITTED", "DIAGNOSTICS", "DISTRIBUTED",
+				"PRIVILEGES", "PROCEDURES", "INPUTFORMAT", "OUTPUTFORMAT",
+				"REPLICATION", "STATISTICS", "TRANSACTION", "COMPRESSION",
+				"CONNECTIONS", "CONSISTENCY", "CONSTRAINTS", "CONSTRUCTOR",
+				"DEALLOCATE", "DEFERRABLE", "DELIMITED", "DESCRIPTOR",
+				"DIMENSIONS", "DIRECTORIES", "EXCEPTION", "EXCLUSIVE",
+				"GENERATED", "IDENTIFIED", "IMMEDIATE", "INCREMENT",
+				"INDICATORS", "INITIALLY", "ISOLATION", "LOCALTIMESTAMP",
+			}
+
+			// Check 8-character keywords
+			if len(match) == 8 {
+				for _, keyword := range sqlKeywords8 {
+					if upperMatch == keyword {
+						// DEBUG: uncomment to trace SQL keyword filtering
+						// fmt.Printf("DEBUG: Filtering SQL keyword '%s' (matched '%s')\n", match, keyword)
+						return false
+					}
+				}
+			}
+
+			// Check 11-character keywords
+			if len(match) == 11 {
+				for _, keyword := range sqlKeywords11 {
+					if upperMatch == keyword {
+						return false
+					}
+				}
+			}
+
+			// Check if we're in a SQL file for additional context
+			d.mu.RLock()
+			isSQLFile := strings.HasSuffix(strings.ToLower(d.currentFile), ".sql") ||
+				strings.HasSuffix(strings.ToLower(d.currentFile), ".hql") ||
+				strings.HasSuffix(strings.ToLower(d.currentFile), ".cql")
+			d.mu.RUnlock()
+
+			// In SQL files, be extra cautious
+			if isSQLFile {
+				// Common SQL prefixes that shouldn't be SWIFT codes
+				sqlPrefixes := []string{
+					"CAST", "CASE", "CHAR", "DATE", "DESC", "DIST",
+					"DROP", "EXEC", "FROM", "FULL", "FUNC", "HASH",
+					"JOIN", "LEFT", "LIKE", "LOAD", "LOCK", "LOOP",
+					"NULL", "ONLY", "OPEN", "OVER", "PART", "PROC",
+					"RANK", "READ", "REAL", "ROLE", "ROWS", "SAVE",
+					"SOME", "SORT", "TEMP", "TEXT", "TIME", "TRAN",
+					"TRUE", "TYPE", "UNDO", "USER", "VIEW", "WHEN",
+					"WITH", "WORK", "YEAR", "ZONE",
+				}
+
+				for _, prefix := range sqlPrefixes {
+					if strings.HasPrefix(upperMatch, prefix) {
+						return false
+					}
+				}
+			}
+
+			// Basic SWIFT validation
+			if len(match) != 8 && len(match) != 11 {
+				return false
+			}
+
+			// First 4 must be letters (bank code)
+			for i := 0; i < 4; i++ {
+				if match[i] < 'A' || match[i] > 'Z' {
+					return false
+				}
+			}
+
+			// Validate country code against ISO 3166-1 alpha-2 list
+			countryCode := match[4:6]
+			validCountryCodes := map[string]bool{
+				// Africa
+				"DZ": true, "AO": true, "BJ": true, "BW": true, "BF": true, "BI": true,
+				"CV": true, "CM": true, "CF": true, "TD": true, "KM": true, "CG": true,
+				"CD": true, "CI": true, "DJ": true, "EG": true, "GQ": true, "ER": true,
+				"SZ": true, "ET": true, "GA": true, "GM": true, "GH": true, "GN": true,
+				"GW": true, "KE": true, "LS": true, "LR": true, "LY": true, "MG": true,
+				"MW": true, "ML": true, "MR": true, "MU": true, "YT": true, "MA": true,
+				"MZ": true, "NA": true, "NE": true, "NG": true, "RW": true, "SH": true,
+				"ST": true, "SN": true, "SC": true, "SL": true, "SO": true, "ZA": true,
+				"SS": true, "SD": true, "TZ": true, "TG": true, "TN": true, "UG": true,
+				"ZM": true, "ZW": true,
+
+				// Americas
+				"AI": true, "AG": true, "AR": true, "AW": true, "BS": true, "BB": true,
+				"BZ": true, "BM": true, "BO": true, "BQ": true, "BR": true, "CA": true,
+				"KY": true, "CL": true, "CO": true, "CR": true, "CU": true, "CW": true,
+				"DM": true, "DO": true, "EC": true, "SV": true, "FK": true, "GF": true,
+				"GL": true, "GD": true, "GP": true, "GT": true, "GY": true, "HT": true,
+				"HN": true, "JM": true, "MQ": true, "MX": true, "MS": true, "NI": true,
+				"PA": true, "PY": true, "PE": true, "PR": true, "BL": true, "KN": true,
+				"LC": true, "MF": true, "PM": true, "VC": true, "SX": true, "SR": true,
+				"TT": true, "TC": true, "US": true, "UY": true, "VE": true, "VG": true,
+				"VI": true,
+
+				// Asia
+				"AF": true, "AM": true, "AZ": true, "BH": true, "BD": true, "BT": true,
+				"BN": true, "KH": true, "CN": true, "GE": true, "HK": true, "IN": true,
+				"ID": true, "IR": true, "IQ": true, "IL": true, "JP": true, "JO": true,
+				"KZ": true, "KP": true, "KR": true, "KW": true, "KG": true, "LA": true,
+				"LB": true, "MO": true, "MY": true, "MV": true, "MN": true, "MM": true,
+				"NP": true, "OM": true, "PK": true, "PS": true, "PH": true, "QA": true,
+				"SA": true, "SG": true, "LK": true, "SY": true, "TW": true, "TJ": true,
+				"TH": true, "TL": true, "TR": true, "TM": true, "AE": true, "UZ": true,
+				"VN": true, "YE": true,
+
+				// Europe
+				"AX": true, "AL": true, "AD": true, "AT": true, "BY": true, "BE": true,
+				"BA": true, "BG": true, "HR": true, "CY": true, "CZ": true, "DK": true,
+				"EE": true, "FO": true, "FI": true, "FR": true, "DE": true, "GI": true,
+				"GR": true, "GG": true, "VA": true, "HU": true, "IS": true, "IE": true,
+				"IM": true, "IT": true, "JE": true, "LV": true, "LI": true, "LT": true,
+				"LU": true, "MK": true, "MT": true, "MD": true, "MC": true, "ME": true,
+				"NL": true, "NO": true, "PL": true, "PT": true, "RO": true, "RU": true,
+				"SM": true, "RS": true, "SK": true, "SI": true, "ES": true, "SJ": true,
+				"SE": true, "CH": true, "UA": true, "GB": true,
+				"XK": true, // Kosovo (user-assigned but used by SWIFT)
+
+				// Oceania
+				"AS": true, "AU": true, "CX": true, "CC": true, "CK": true, "FJ": true,
+				"PF": true, "GU": true, "KI": true, "MH": true, "FM": true, "NR": true,
+				"NC": true, "NZ": true, "NU": true, "NF": true, "MP": true, "PW": true,
+				"PG": true, "PN": true, "WS": true, "SB": true, "TK": true, "TO": true,
+				"TV": true, "VU": true, "WF": true,
+
+				// Antarctica & Others
+				"AQ": true, "BV": true, "IO": true, "TF": true, "HM": true, "UM": true,
+			}
+
+			if !validCountryCodes[countryCode] {
+				return false
+			}
+
+			// Location code (positions 7-8) can be letters or numbers
+			for i := 6; i < 8; i++ {
+				if !((match[i] >= 'A' && match[i] <= 'Z') ||
+					(match[i] >= '0' && match[i] <= '9')) {
+					return false
+				}
+			}
+
+			// If 11 characters, validate branch code
+			if len(match) == 11 {
+				for i := 8; i < 11; i++ {
+					if !((match[i] >= 'A' && match[i] <= 'Z') ||
+						(match[i] >= '0' && match[i] <= '9')) {
+						return false
+					}
+				}
+			}
+
+			// Skip if it looks like a programming constant or environment variable
+			if strings.Contains(match, "_") {
 				return false
 			}
 
@@ -955,11 +1155,66 @@ func (d *detector) isValidPersonName(name string) bool {
 
 		// In SQL files, reject any name that contains SQL keywords
 		sqlKeywords := []string{
-			"select", "from", "where", "join", "group", "order", "having",
-			"insert", "update", "delete", "create", "alter", "drop", "truncate",
-			"table", "view", "index", "schema", "database", "column", "constraint",
-			"distinct", "union", "intersect", "except", "case", "when", "then",
-			"null", "not", "and", "or", "in", "exists", "between", "like",
+			// DML operations
+			"select", "insert", "update", "delete", "merge", "upsert", "replace",
+			"truncate", "copy", "bulk", "load", "unload", "import", "export",
+
+			// DDL operations
+			"create", "alter", "drop", "rename", "comment", "grant", "revoke",
+			"deny", "backup", "restore", "analyze", "vacuum", "optimize",
+
+			// Joins and set operations
+			"join", "inner", "outer", "left", "right", "full", "cross", "natural",
+			"union", "intersect", "except", "minus", "all", "distinct", "unique",
+
+			// Clauses and keywords
+			"from", "where", "group", "having", "order", "limit", "offset", "fetch",
+			"partition", "window", "over", "within", "range", "rows", "unbounded",
+			"preceding", "following", "current", "recursive", "with", "as", "using",
+
+			// Predicates and operators
+			"and", "or", "not", "in", "exists", "between", "like", "ilike", "glob",
+			"regexp", "similar", "any", "some", "all", "is", "null", "notnull",
+			"true", "false", "unknown", "case", "when", "then", "else", "end",
+
+			// Functions and aggregates
+			"count", "sum", "avg", "min", "max", "stddev", "variance", "median",
+			"percentile", "rank", "dense", "row", "number", "first", "last", "lag",
+			"lead", "ntile", "cume", "percent", "ratio", "corr", "covar",
+
+			// String functions
+			"concat", "substring", "substr", "trim", "ltrim", "rtrim", "upper",
+			"lower", "initcap", "length", "char", "ascii", "replace", "translate",
+			"reverse", "split", "regexp", "position", "locate", "instr",
+
+			// Date/time functions
+			"date", "time", "timestamp", "interval", "extract", "epoch", "now",
+			"current", "sysdate", "getdate", "dateadd", "datediff", "datepart",
+			"year", "month", "day", "hour", "minute", "second", "week", "quarter",
+
+			// Type conversions
+			"cast", "convert", "parse", "try", "safe", "coalesce", "nullif",
+			"greatest", "least", "decode", "nvl", "nvl2", "ifnull", "isnull",
+
+			// Database objects
+			"table", "view", "index", "sequence", "trigger", "function", "procedure",
+			"package", "synonym", "materialized", "temporary", "external", "virtual",
+			"column", "constraint", "primary", "foreign", "unique", "check", "default",
+
+			// Data types
+			"int", "integer", "bigint", "smallint", "tinyint", "decimal", "numeric",
+			"float", "real", "double", "char", "varchar", "text", "blob", "clob",
+			"binary", "varbinary", "boolean", "bool", "uuid", "json", "jsonb", "xml",
+
+			// System and metadata
+			"information", "schema", "catalog", "dictionary", "performance", "sys",
+			"system", "admin", "user", "role", "privilege", "session", "transaction",
+			"isolation", "level", "read", "write", "committed", "uncommitted",
+
+			// Common SQL patterns that might match name patterns
+			"format", "pattern", "escape", "collate", "charset", "engine", "partition",
+			"distribute", "cluster", "sort", "bucket", "sample", "tablesample",
+			"lateral", "unnest", "pivot", "unpivot", "rollup", "cube", "grouping",
 		}
 
 		for _, keyword := range sqlKeywords {

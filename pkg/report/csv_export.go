@@ -329,6 +329,7 @@ func getPITypeDisplay(piType detection.PIType) string {
 		detection.PITypePassport:      "Passport Number",
 		detection.PITypeDriverLicense: "Driver License",
 		detection.PITypeIP:            "IP Address",
+		detection.PITypeSWIFT:         "SWIFT/BIC Code",
 	}
 
 	if display, exists := displays[piType]; exists {
