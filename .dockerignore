@@ -1,0 +1,103 @@
+# Git files
+.git/
+.github/
+.gitignore
+.gitmodules
+
+# Build artifacts
+bin/
+dist/
+releases/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test and coverage files
+*.test
+*.out
+coverage.html
+coverage.txt
+test-results/
+test/reports/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in runtime image)
+docs/
+*.md
+!README.md
+
+# CI/CD files
+.pre-commit-config.yaml
+.pre-push-config.yaml
+.gitlab-ci.yml
+.travis.yml
+
+# Development files
+docker-compose.yml
+Dockerfile.dev
+Makefile
+scripts/
+
+# Security scan reports
+gosec-report.json
+trivy-results.sarif
+security-audit-*/
+scan-results.json
+scan-*.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Vendor directory (if exists)
+vendor/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux specific
+.directory
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+
+# Output directories
+output/
+reports/

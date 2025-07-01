@@ -130,6 +130,34 @@ release-all: check-docker ## Build release artifacts for all platforms
 	@echo "📦 Building release artifacts in Docker..."
 	docker compose run --rm -e VERSION=$${VERSION:-1.2.0} dev bash -c "./scripts/build-release.sh"
 
+# Docker image commands
+docker-build: check-docker ## Build Docker image locally
+	@echo "🐳 Building Docker image..."
+	docker build -t ghcr.io/macattak/pi-scanner:local \
+		--build-arg VERSION=$${VERSION:-dev} \
+		--build-arg COMMIT=$$(git rev-parse --short HEAD) \
+		--build-arg BUILD_DATE=$$(date -u '+%Y-%m-%dT%H:%M:%SZ') \
+		.
+
+docker-test: docker-build ## Test the Docker image
+	@echo "🧪 Testing Docker image..."
+	docker run --rm ghcr.io/macattak/pi-scanner:local version
+	docker run --rm ghcr.io/macattak/pi-scanner:local help
+
+docker-push: check-docker ## Push Docker image to GitHub Container Registry
+	@echo "📤 Pushing Docker image to ghcr.io..."
+	@if [ -z "$${GITHUB_TOKEN}" ]; then \
+		echo "❌ GITHUB_TOKEN environment variable is required"; \
+		exit 1; \
+	fi
+	@echo "$${GITHUB_TOKEN}" | docker login ghcr.io -u $${GITHUB_USER:-$$(git config user.name)} --password-stdin
+	docker push ghcr.io/macattak/pi-scanner:local
+
+docker-scan: docker-build ## Scan Docker image for vulnerabilities
+	@echo "🔍 Scanning Docker image for vulnerabilities..."
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+		aquasec/trivy image ghcr.io/macattak/pi-scanner:local
+
 # Legacy support with warnings (gradually migrate users to Docker commands)
 legacy-test: go-warning
 	@echo "🚨 Use 'make test' instead for environment parity!"
