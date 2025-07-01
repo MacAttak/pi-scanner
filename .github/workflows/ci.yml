@@ -1,4 +1,4 @@
-name: Fixed CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -7,201 +7,209 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: "1.23.9"  # Exact version match with Dockerfile.dev
+  GO_VERSION: "1.23.9"
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  test:
-    name: Test & Quality Checks
-    runs-on: ubuntu-24.04  # Match Dockerfile.dev base
+  # Quick syntax and format checks - fail fast
+  quick-checks:
+    name: Quick Checks
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build development environment
-        run: docker compose build --no-cache dev
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-      - name: Run comprehensive test suite
+      - name: Check Go formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Code needs formatting:"
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...
+
+  # Build Docker dev environment with caching
+  build-dev-env:
+    name: Build Dev Environment
+    runs-on: ubuntu-24.04
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: pi-scanner-dev
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+
+      - name: Build dev image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.dev
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/dev-image.tar
+
+      - name: Upload dev image
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-image
+          path: /tmp/dev-image.tar
+          retention-days: 1
+
+  # Run tests in parallel
+  test:
+    name: Test Suite
+    needs: [quick-checks, build-dev-env]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - name: "Unit Tests"
+            cmd: "CGO_ENABLED=1 go test -tags ci -v -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v '/test$')"
+          - name: "Integration Tests"
+            cmd: "go test -tags ci -v ./test -run TestPIScannerE2E -timeout=10m"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download dev image
+        uses: actions/download-artifact@v4
+        with:
+          name: dev-image
+          path: /tmp
+
+      - name: Load dev image
+        run: |
+          docker load --input /tmp/dev-image.tar
+          docker tag pi-scanner-dev:${{ needs.build-dev-env.outputs.image-tag }} pi-scanner-dev:latest
+
+      - name: Run ${{ matrix.test-suite.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker compose run --rm -e GITHUB_TOKEN dev bash -c "
-            set -e
-            echo '=== Running Go Format Check ==='
-            if [ -n \"\$(gofmt -l .)\" ]; then
-              echo 'Code needs formatting:'
-              gofmt -l .
-              exit 1
-            fi
+          docker run --rm \
+            -v $PWD:/workspace \
+            -w /workspace \
+            -e GITHUB_TOKEN \
+            pi-scanner-dev:latest \
+            bash -c "${{ matrix.test-suite.cmd }}"
 
-            echo '=== Running Go Vet ==='
-            go vet ./...
-
-            echo '=== Running Tests with Coverage ==='
-            PACKAGES=\$(go list ./... | grep -v '/test\$')
-            echo \"Testing packages: \$PACKAGES\"
-
-            # Temporarily disable race detection to unblock CI
-            # TODO: Re-enable after fixing race condition
-            CGO_ENABLED=1 go test -tags ci -v -coverprofile=coverage.out -covermode=atomic \$PACKAGES
-            TEST_EXIT_CODE=\$?
-            echo \"Test exit code: \$TEST_EXIT_CODE\"
-
-            if [ \$TEST_EXIT_CODE -ne 0 ]; then
-              echo \"❌ Tests failed with exit code \$TEST_EXIT_CODE\"
-              exit \$TEST_EXIT_CODE
-            fi
-
-            go tool cover -html=coverage.out -o coverage.html
-
-            echo '=== Running Linter ==='
-            GOROOT=/usr/local/go golangci-lint run --timeout=5m
-
-            echo '=== Test Results Summary ==='
-            echo 'All tests passed!'
-          "
-
-      - name: Extract coverage file
-        run: |
-          docker compose run --rm dev cat /workspace/coverage.out > coverage.out
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage
+        if: matrix.test-suite.name == 'Unit Tests'
+        uses: actions/upload-artifact@v4
         with:
-          file: ./coverage.out
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: coverage-report
+          path: coverage.out
 
+  # Run linting in parallel
+  lint:
+    name: Lint
+    needs: [quick-checks, build-dev-env]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download dev image
+        uses: actions/download-artifact@v4
+        with:
+          name: dev-image
+          path: /tmp
+
+      - name: Load dev image
+        run: |
+          docker load --input /tmp/dev-image.tar
+          docker tag pi-scanner-dev:${{ needs.build-dev-env.outputs.image-tag }} pi-scanner-dev:latest
+
+      - name: Cache golangci-lint
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/go.sum') }}
+
+      - name: Run golangci-lint
+        run: |
+          docker run --rm \
+            -v $PWD:/workspace \
+            -v ~/.cache/golangci-lint:/root/.cache/golangci-lint \
+            -w /workspace \
+            pi-scanner-dev:latest \
+            bash -c "GOROOT=/usr/local/go golangci-lint run --timeout=5m"
+
+  # Security scans in parallel
   security:
     name: Security Scans
+    needs: [quick-checks]
     runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
       security-events: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build development environment
-        run: docker compose build --no-cache dev
-
-      - name: Run security scans
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker compose run --rm -e GITHUB_TOKEN dev bash -c "
-            echo '=== Running gosec Security Scanner ==='
-            gosec -fmt sarif -out gosec-results.sarif ./... || echo 'gosec found issues'
-
-            echo '=== Running govulncheck ==='
-            govulncheck ./... || echo 'govulncheck found issues'
-
-            echo '=== Running Trivy File System Scan ==='
-            trivy fs --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH,MEDIUM . || echo 'trivy found issues'
-
-            echo '=== Security scan results ==='
-            ls -la *-results.sarif || echo 'No SARIF files generated'
-          "
-
-      - name: Extract SARIF files
-        run: |
-          docker compose run --rm dev cat gosec-results.sarif > gosec-results.sarif 2>/dev/null || echo '{}' > gosec-results.sarif
-          docker compose run --rm dev cat trivy-results.sarif > trivy-results.sarif 2>/dev/null || echo '{}' > trivy-results.sarif
-
-          echo "=== Extracted SARIF files ==="
-          ls -la *.sarif
-
-      - name: Upload gosec results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: gosec-results.sarif
-        continue-on-error: true
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-        continue-on-error: true
-
-  build:
-    name: Cross-Platform Build
-    needs: [test, security]
-    runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
+        scanner:
+          - name: "gosec"
+            cmd: "gosec -fmt sarif -out gosec-results.sarif ./..."
+            sarif: "gosec-results.sarif"
+          - name: "trivy"
+            cmd: "trivy fs --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH,MEDIUM ."
+            sarif: "trivy-results.sarif"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build development environment
-        run: docker compose build --no-cache dev
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-      - name: Build binary for ${{ matrix.goos }}-${{ matrix.goarch }}
+      - name: Install ${{ matrix.scanner.name }}
         run: |
-          mkdir -p dist
-          output_name="pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            output_name="${output_name}.exe"
+          if [ "${{ matrix.scanner.name }}" = "gosec" ]; then
+            go install github.com/securego/gosec/v2/cmd/gosec@latest
+          elif [ "${{ matrix.scanner.name }}" = "trivy" ]; then
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
           fi
 
-          docker compose run --rm dev bash -c "
-            CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-            go build -ldflags='-s -w' -o dist/${output_name} ./cmd/pi-scanner
-          "
+      - name: Run ${{ matrix.scanner.name }}
+        continue-on-error: true
+        run: ${{ matrix.scanner.cmd }}
 
-      - name: Extract binary
-        run: |
-          docker compose run --rm dev cat /workspace/dist/pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} > dist/pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/*
+          sarif_file: ${{ matrix.scanner.sarif }}
+          category: ${{ matrix.scanner.name }}
+        continue-on-error: true
 
-  benchmark:
-    name: Performance Benchmark
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build development environment
-        run: docker compose build --no-cache dev
-
-      - name: Run benchmarks
-        run: |
-          docker compose run --rm dev bash -c "
-            go test -bench=. -benchmem -run=^$ ./... | tee benchmark.txt
-          " > benchmark.txt
-
-      - name: Comment benchmark results
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          script: |
-            const fs = require('fs');
-            const benchmarkResults = fs.readFileSync('benchmark.txt', 'utf8');
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '## Benchmark Results\n```\n' + benchmarkResults + '\n```'
-            });
-
+  # CodeQL runs independently
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
@@ -224,22 +232,133 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-  integration:
-    name: End-to-End Integration Tests
-    needs: [test]
+  # Build binaries in parallel
+  build:
+    name: Build Binaries
+    needs: [test, lint]
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build development environment
-        run: docker compose build --no-cache dev
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-      - name: Run E2E tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
-          docker compose run --rm dev bash -c "
-            echo '=== Running End-to-End Tests ==='
-            go test -tags ci -v ./test -run TestPIScannerE2E -timeout=10m
-          "
+          output_name="pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            output_name="${output_name}.exe"
+          fi
+
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -ldflags='-s -w' -o dist/${output_name} ./cmd/pi-scanner
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-scanner-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  # Upload coverage results
+  coverage:
+    name: Upload Coverage
+    needs: [test]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: .
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Benchmark on PRs
+  benchmark:
+    name: Performance Benchmark
+    needs: [build-dev-env]
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download dev image
+        uses: actions/download-artifact@v4
+        with:
+          name: dev-image
+          path: /tmp
+
+      - name: Load dev image
+        run: |
+          docker load --input /tmp/dev-image.tar
+          docker tag pi-scanner-dev:${{ needs.build-dev-env.outputs.image-tag }} pi-scanner-dev:latest
+
+      - name: Run benchmarks
+        run: |
+          docker run --rm \
+            -v $PWD:/workspace \
+            -w /workspace \
+            pi-scanner-dev:latest \
+            bash -c "go test -bench=. -benchmem -run=^$ ./... | tee benchmark.txt"
+
+      - name: Comment benchmark results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const benchmarkResults = fs.readFileSync('benchmark.txt', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## Benchmark Results\n```\n' + benchmarkResults + '\n```'
+            });
+
+  # Final status check
+  ci-status:
+    name: CI Status
+    needs: [test, lint, security, build]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.security.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "CI pipeline failed"
+            exit 1
+          fi
+          echo "✅ CI pipeline completed successfully"
