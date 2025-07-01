@@ -28,6 +28,36 @@ A high-performance scanner for detecting Australian Personal Information (PI) in
 
 ### Installation
 
+#### Option 1: Docker (Recommended)
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/macattak/pi-scanner:latest
+
+# Run with GitHub token
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  ghcr.io/macattak/pi-scanner:latest https://github.com/example/repo
+
+# Run with local output directory
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -v $(pwd)/output:/home/scanner/output \
+  ghcr.io/macattak/pi-scanner:latest https://github.com/example/repo
+```
+
+#### Option 2: Download Binary
+
+Download the latest release from the [releases page](https://github.com/MacAttak/pi-scanner/releases).
+
+```bash
+# macOS/Linux
+curl -LO https://github.com/MacAttak/pi-scanner/releases/download/v1.2.0/pi-scanner-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
+tar -xzf pi-scanner-*.tar.gz
+chmod +x pi-scanner
+sudo mv pi-scanner /usr/local/bin/
+```
+
+#### Option 3: Build from Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/MacAttak/pi-scanner.git
@@ -131,9 +161,49 @@ reports/
     └── summary.txt                   # Human-readable summary
 ```
 
+## Docker Usage
+
+The PI Scanner is available as a Docker image from GitHub Container Registry.
+
+### Basic Docker Commands
+
+```bash
+# Pull specific version
+docker pull ghcr.io/macattak/pi-scanner:1.2.0
+
+# Run scan with GitHub token
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  ghcr.io/macattak/pi-scanner:latest https://github.com/example/repo
+
+# Save reports to local directory
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -v $(pwd)/reports:/home/scanner/output \
+  ghcr.io/macattak/pi-scanner:latest https://github.com/example/repo
+
+# Run with custom config
+docker run --rm -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -v $(pwd)/config.yaml:/etc/pi-scanner/config/config.yaml:ro \
+  ghcr.io/macattak/pi-scanner:latest https://github.com/example/repo
+```
+
+### Docker Compose Example
+
+```yaml
+version: '3.8'
+services:
+  pi-scanner:
+    image: ghcr.io/macattak/pi-scanner:latest
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    volumes:
+      - ./reports:/home/scanner/output
+      - ./config.yaml:/etc/pi-scanner/config/config.yaml:ro
+    command: https://github.com/example/repo --no-input --validate=high
+```
+
 ## CI/CD Integration
 
-Example GitHub Actions workflow:
+### GitHub Actions Example
 
 ```yaml
 - name: PI Security Scan
@@ -142,6 +212,19 @@ Example GitHub Actions workflow:
       --no-input \
       --validate=high \
       --masking=full
+```
+
+### Using Docker in CI
+
+```yaml
+- name: PI Security Scan (Docker)
+  run: |
+    docker run --rm \
+      -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+      -v ${{ github.workspace }}/reports:/home/scanner/output \
+      ghcr.io/macattak/pi-scanner:latest \
+      ${{ github.event.repository.html_url }} \
+      --no-input --validate=high --masking=full
 ```
 
 ## Environment Variables

@@ -23,6 +23,8 @@ go.work.sum
 # Build output
 /pi-scanner
 /dist/
+/bin/
+/releases/
 
 # IDE specific files
 .idea/
