@@ -43,8 +43,8 @@ func ExampleCSVExporter_Export() {
 	}
 
 	// Output:
-	// Timestamp,Repository,Branch,File Path,Line,Column,PI Type,PI Type Display,Validated,Test Data,Confidence Score,Risk Level,Risk Score,Masked Value,Impact Score,Likelihood Score,Exposure Score,Risk Category,Environment,APRA Relevant,Privacy Act Issue,Notifiable Breach
-	// 2024-01-15 14:30:00,example-repo,main,src/customer.go,42,0,TFN,Tax File Number,true,false,0.95,CRITICAL,0.00,123****89,0.00,0.00,0.00,,,false,false,false
+	// Timestamp,Repository,Branch,File Path,Line,Column,PI Type,PI Type Display,Validated,Test Data,Confidence Score,Risk Level,Original Risk Level,LLM Validated,LLM Explanation,Risk Score,Masked Value,Impact Score,Likelihood Score,Exposure Score,Risk Category,Environment,APRA Relevant,Privacy Act Issue,Notifiable Breach
+	// 2024-01-15 14:30:00,example-repo,main,src/customer.go,42,0,TFN,Tax File Number,true,false,0.95,CRITICAL,,false,,0.00,123****89,0.00,0.00,0.00,,,false,false,false
 }
 
 func ExampleCSVExporter_ExportFindings() {

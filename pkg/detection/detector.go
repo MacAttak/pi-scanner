@@ -21,11 +21,12 @@ import (
 
 // detector implements the Detector interface
 type detector struct {
-	config     *Config
-	matchers   []PatternMatcher
-	mu         sync.RWMutex
-	compiled   map[string]*regexp.Regexp
-	validators *validation.ValidatorRegistry
+	config      *Config
+	matchers    []PatternMatcher
+	mu          sync.RWMutex
+	compiled    map[string]*regexp.Regexp
+	validators  *validation.ValidatorRegistry
+	currentFile string // Current file being processed for context-aware validation
 }
 
 // NewDetector creates a new detector with default configuration
@@ -61,6 +62,11 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 		return nil, ctx.Err()
 	default:
 	}
+
+	// Store current filename for context-aware validation
+	d.mu.Lock()
+	d.currentFile = filename
+	d.mu.Unlock()
 
 	// Check file size limit
 	if d.config.MaxFileSize > 0 && int64(len(content)) > d.config.MaxFileSize {
@@ -187,6 +193,11 @@ func (d *detector) Detect(ctx context.Context, content []byte, filename string) 
 		}
 		return findings[i].Column < findings[j].Column
 	})
+
+	// Clear current file context
+	d.mu.Lock()
+	d.currentFile = ""
+	d.mu.Unlock()
 
 	return findings, nil
 }
@@ -356,13 +367,10 @@ func (d *detector) initializeMatchers() {
 	// Name matcher with context-aware filtering for code scanning
 	// Only detects names in appropriate contexts (comments, strings, documentation)
 	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?\b`,
-		piType:  PITypeName,
-		d:       d,
-		validator: func(match string) bool {
-			// Context-aware validation for code scanning
-			return d.isValidPersonName(match)
-		},
+		pattern:   `\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?\b`,
+		piType:    PITypeName,
+		d:         d,
+		validator: d.createNameValidator(),
 	})
 
 	// Australian Address matcher
@@ -502,32 +510,6 @@ func (d *detector) initializeMatchers() {
 			if d.isSyntheticPattern(num) {
 				return false
 			}
-
-			return true
-		},
-	})
-
-	// SWIFT/BIC Code matcher
-	// Format: 8 or 11 alphanumeric characters (e.g., ANZBNZ22, ANZBNZ22MEL)
-	d.matchers = append(d.matchers, &regexMatcher{
-		pattern: `\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b`,
-		piType:  PIType("SWIFT_BIC"),
-		d:       d,
-		validator: func(match string) bool {
-			// SWIFT codes are 8 or 11 characters
-			if len(match) != 8 && len(match) != 11 {
-				return false
-			}
-
-			// First 6 characters must be letters (bank code + country)
-			for i := 0; i < 6; i++ {
-				if match[i] < 'A' || match[i] > 'Z' {
-					return false
-				}
-			}
-
-			// Characters 5-6 should be a valid country code
-			// For now, accept any 2-letter combination
 
 			return true
 		},
@@ -920,6 +902,13 @@ func (d *detector) extractContext(content string, start, end int) (before, after
 	return before, after
 }
 
+// createNameValidator returns a validator function that has access to the detector's state
+func (d *detector) createNameValidator() func(string) bool {
+	return func(name string) bool {
+		return d.isValidPersonName(name)
+	}
+}
+
 // isValidPersonName performs context-aware validation for person names in code
 // Returns false for code constructs, technical terms, and non-person names
 func (d *detector) isValidPersonName(name string) bool {
@@ -928,6 +917,57 @@ func (d *detector) isValidPersonName(name string) bool {
 
 	// Debug: uncomment to trace name validation
 	// fmt.Printf("isValidPersonName: checking '%s' (lower: '%s')\n", name, nameLower)
+
+	// Check if we're processing a SQL file - be extra strict
+	d.mu.RLock()
+	isSQLFile := strings.HasSuffix(strings.ToLower(d.currentFile), ".sql")
+	d.mu.RUnlock()
+
+	// SQL files have additional common patterns that aren't real names
+	if isSQLFile {
+		sqlSpecificTerms := []string{
+			// Column naming patterns
+			"first name", "last name", "full name", "given name", "family name",
+			"middle name", "display name", "user name", "account name", "customer name",
+			"company name", "business name", "entity name", "schema name", "table name",
+			"column name", "field name", "attribute name", "parameter name", "variable name",
+
+			// SQL operations and functions
+			"inner join", "left join", "right join", "full join", "cross join",
+			"group by", "order by", "partition by", "distinct on", "union all",
+			"case when", "coalesce null", "is null", "not null", "null value",
+
+			// Data types and constraints
+			"varchar max", "char length", "date time", "time stamp", "big int",
+			"primary key", "foreign key", "unique key", "composite key", "surrogate key",
+			"not null", "default value", "check constraint", "unique constraint",
+
+			// Common SQL table/schema names
+			"public schema", "dbo schema", "sys schema", "information schema",
+			"temp schema", "staging schema", "raw schema", "processed schema",
+		}
+
+		for _, term := range sqlSpecificTerms {
+			if nameLower == term || strings.Contains(nameLower, term) {
+				return false
+			}
+		}
+
+		// In SQL files, reject any name that contains SQL keywords
+		sqlKeywords := []string{
+			"select", "from", "where", "join", "group", "order", "having",
+			"insert", "update", "delete", "create", "alter", "drop", "truncate",
+			"table", "view", "index", "schema", "database", "column", "constraint",
+			"distinct", "union", "intersect", "except", "case", "when", "then",
+			"null", "not", "and", "or", "in", "exists", "between", "like",
+		}
+
+		for _, keyword := range sqlKeywords {
+			if strings.Contains(nameLower, keyword) {
+				return false
+			}
+		}
+	}
 
 	// Filter out common programming language constructs
 	programmingTerms := []string{
@@ -950,6 +990,28 @@ func (d *detector) isValidPersonName(name string) bool {
 		"middleware handler", "context processor", "template loader",
 		"database router", "cache backend", "storage backend",
 		"task scheduler", "message broker", "event dispatcher",
+
+		// SQL and Database terms
+		"staging table", "temp table", "temporary table", "backup table",
+		"audit table", "log table", "history table", "archive table",
+		"master table", "detail table", "lookup table", "reference table",
+		"fact table", "dimension table", "junction table", "bridge table",
+		"everyday banking", "savings account", "checking account", "credit account",
+		"debit account", "loan account", "mortgage account", "investment account",
+		"pending product", "product description", "product category", "product type",
+		"product status", "product code", "product name", "product id",
+		"contract account", "contract type", "contract status", "contract date",
+		"customer profile", "customer type", "customer status", "customer segment",
+		"transaction type", "transaction status", "transaction history", "transaction log",
+		"payment method", "payment status", "payment type", "payment history",
+		"account balance", "account status", "account type", "account number",
+		"system user", "batch user", "service account", "technical user",
+		"data warehouse", "data mart", "data lake", "data store",
+		"source system", "target system", "external system", "legacy system",
+		"business rule", "business logic", "business process", "business entity",
+		"risk category", "risk level", "risk assessment", "risk score",
+		"audit trail", "audit log", "audit report", "audit status",
+		"error log", "system log", "application log", "debug log",
 
 		// Generic technical terms
 		"system admin", "database admin", "network admin",

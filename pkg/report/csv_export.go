@@ -89,6 +89,12 @@ type CSVRecord struct {
 	ExposureScore   float64
 	RiskCategory    string
 
+	// LLM Validation
+	LLMValidated      bool
+	LLMRiskLevel      string
+	LLMExplanation    string
+	OriginalRiskLevel string // To show the original risk before LLM adjustment
+
 	// Context
 	CodeContext      string
 	ProximityContext string
@@ -165,6 +171,9 @@ func (e *CSVExporter) getHeaders() []string {
 		"Test Data",
 		"Confidence Score",
 		"Risk Level",
+		"Original Risk Level",
+		"LLM Validated",
+		"LLM Explanation",
 		"Risk Score",
 	}
 
@@ -217,6 +226,9 @@ func (e *CSVExporter) recordToRow(record CSVRecord) []string {
 		strconv.FormatBool(record.IsTestData),
 		fmt.Sprintf("%.2f", record.ConfidenceScore),
 		record.RiskLevel,
+		record.OriginalRiskLevel,
+		strconv.FormatBool(record.LLMValidated),
+		record.LLMExplanation,
 		fmt.Sprintf("%.2f", record.RiskScore),
 	}
 
@@ -277,10 +289,25 @@ func (e *CSVExporter) findingToRecord(finding detection.Finding, metadata Export
 	// Mask the match value
 	record.MaskedMatch = maskSensitiveData(finding.Match, string(finding.Type))
 
-	// Add placeholder values for fields that would come from scoring
-	// In a real implementation, these would be populated from the risk assessment
-	record.ConfidenceScore = 0.0
-	record.RiskLevel = "UNKNOWN"
+	// Always store the original risk level
+	record.OriginalRiskLevel = string(finding.RiskLevel)
+
+	// Use LLM validation results if available, otherwise use original risk level
+	if finding.LLMValidated {
+		record.LLMValidated = true
+		record.RiskLevel = string(finding.LLMRisk)
+		record.LLMRiskLevel = string(finding.LLMRisk)
+		record.LLMExplanation = finding.LLMExplanation
+		record.ConfidenceScore = finding.LLMConfidence
+	} else {
+		record.LLMValidated = false
+		record.RiskLevel = string(finding.RiskLevel)
+		record.LLMRiskLevel = ""
+		record.LLMExplanation = ""
+		record.ConfidenceScore = float64(finding.Confidence)
+	}
+
+	// Default values for scoring fields
 	record.RiskScore = 0.0
 	record.Environment = "unknown"
 
