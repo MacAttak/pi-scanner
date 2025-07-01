@@ -629,7 +629,7 @@ func validateWithProgress(ctx context.Context, llmClient *llm.LMStudioClient, to
 	// Set up progress tracking
 	enhancedDetector.SetProgressCallback(func(p, t int, rate float64) {
 		remaining := float64(t-p) / rate
-		fmt.Printf("\r   Validating: [%s] %d/%d (%.0f%%) | %.1f/min | ~%.0f min remaining",
+		fmt.Printf("\r   Validating: [%s] %d/%d findings (%.0f%%) | %.1f findings/min | ~%.0f min remaining",
 			progressBar(p, t, 30), p, t, float64(p)/float64(t)*100, rate, remaining)
 	})
 
@@ -691,7 +691,8 @@ func validateWithProgress(ctx context.Context, llmClient *llm.LMStudioClient, to
 		}
 	}
 
-	fmt.Println() // Clear progress line
+	fmt.Printf("\r   Validating: [%s] %d/%d findings (100%%) | Complete!                        \n",
+		progressBar(len(toValidate), len(toValidate), 30), len(toValidate), len(toValidate))
 
 	// Convert back to slice
 	var result []detection.Finding
