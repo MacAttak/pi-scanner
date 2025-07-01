@@ -21,7 +21,7 @@ COPY . .
 RUN go build -ldflags="-s -w" -o pi-scanner ./cmd/pi-scanner
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install runtime dependencies
 RUN apk add --no-cache \
