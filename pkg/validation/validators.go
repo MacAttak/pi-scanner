@@ -1,3 +1,7 @@
+// Package validation implements validation algorithms for Australian PI types.
+// It provides checksum validation for TFN, ABN, ACN, Medicare numbers, and
+// other PI types using official Australian government algorithms to ensure
+// detected values are structurally valid.
 package validation
 
 import (

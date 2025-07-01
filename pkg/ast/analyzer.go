@@ -1,3 +1,7 @@
+// Package ast provides Abstract Syntax Tree analysis capabilities for extracting
+// structural information from source code files. It supports multiple programming
+// languages and identifies code constructs, risk zones, and contextual information
+// that helps improve the accuracy of PI detection.
 package ast
 
 import (

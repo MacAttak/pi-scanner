@@ -388,12 +388,15 @@ func TestFileProcessor_Cancellation(t *testing.T) {
 }
 
 func TestFileProcessor_QueueCapacity(t *testing.T) {
+	// Test that the processor handles queue overflow gracefully
 	queueSize := 2
+
+	// Create a mock detector with controlled processing delay
 	detector := NewMockDetector("queue-test-detector", []detection.Finding{})
-	detector.SetDelay(100 * time.Millisecond) // Slow processing
+	detector.SetDelay(500 * time.Millisecond) // Slow processing to keep queue full
 
 	config := DefaultProcessorConfig()
-	config.NumWorkers = 1
+	config.NumWorkers = 1 // Single worker to control processing rate
 	config.QueueSize = queueSize
 	processor := NewFileProcessor(config, []detection.Detector{detector})
 
@@ -402,27 +405,39 @@ func TestFileProcessor_QueueCapacity(t *testing.T) {
 	require.NoError(t, err)
 	defer processor.Stop()
 
-	// Fill queue capacity
-	for i := 0; i < queueSize; i++ {
+	// Submit jobs to fill the queue
+	submitted := 0
+	for i := 0; i < queueSize+10; i++ { // Try to submit more than queue capacity
 		job := FileJob{
 			FilePath: fmt.Sprintf("/test/file%d.txt", i),
 			Content:  []byte("test"),
 			FileInfo: discovery.FileResult{Path: fmt.Sprintf("/test/file%d.txt", i)},
 		}
 
-		err = processor.Submit(job)
-		require.NoError(t, err)
+		// Try to submit with a short timeout
+		select {
+		case processor.jobQueue <- job:
+			submitted++
+		case <-time.After(10 * time.Millisecond):
+			// Queue is full, can't submit
+			break
+		}
 	}
 
-	// This should fail as queue is full
+	// We should have submitted at least queue size + 1 (worker picks up one)
+	assert.GreaterOrEqual(t, submitted, queueSize, "Should submit at least queue size jobs")
+	assert.Less(t, submitted, queueSize+10, "Should not submit all jobs when queue is full")
+
+	// Now verify that Submit returns error when queue is full
 	overflowJob := FileJob{
 		FilePath: "/test/overflow.txt",
 		Content:  []byte("overflow"),
 		FileInfo: discovery.FileResult{Path: "/test/overflow.txt"},
 	}
 
+	// Submit should fail immediately due to full queue (non-blocking check)
 	err = processor.Submit(overflowJob)
-	assert.Error(t, err)
+	assert.Error(t, err, "Submit should fail when queue is full")
 	assert.Contains(t, err.Error(), "job queue is full")
 }
 

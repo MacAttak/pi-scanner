@@ -1,3 +1,6 @@
+// Package discovery handles file discovery and traversal for scanning.
+// It efficiently walks directory trees, respects gitignore patterns,
+// and filters files based on configured criteria like file type and size.
 package discovery
 
 import (

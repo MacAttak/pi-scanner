@@ -1,3 +1,6 @@
+// Package processing coordinates the file processing pipeline for PI scanning.
+// It manages concurrent file processing, integrates AST analysis with detection,
+// and orchestrates the two-phase detection approach (pattern matching + LLM validation).
 package processing
 
 import (
@@ -480,86 +483,6 @@ func (bp *BatchProcessor) ProcessFiles(ctx context.Context, jobs []FileJob) ([]P
 	}
 
 	return results, nil
-}
-
-// Pipeline represents a configurable processing pipeline
-type Pipeline struct {
-	fileDiscovery *discovery.FileDiscovery
-	fileProcessor *FileProcessor
-	config        PipelineConfig
-}
-
-// PipelineConfig configures the entire processing pipeline
-type PipelineConfig struct {
-	Discovery discovery.Config
-	Processor ProcessorConfig
-	Detectors []detection.Detector
-}
-
-// NewPipeline creates a complete processing pipeline
-func NewPipeline(config PipelineConfig) *Pipeline {
-	return &Pipeline{
-		fileDiscovery: discovery.NewFileDiscovery(config.Discovery),
-		fileProcessor: NewFileProcessor(config.Processor, config.Detectors),
-		config:        config,
-	}
-}
-
-// ProcessRepository processes an entire repository
-func (p *Pipeline) ProcessRepository(ctx context.Context, repoPath string) (*RepositoryResult, error) {
-	// Discover files
-	files, err := p.fileDiscovery.DiscoverFiles(ctx, repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("file discovery failed: %w", err)
-	}
-
-	if len(files) == 0 {
-		return &RepositoryResult{
-			RepoPath:     repoPath,
-			FilesScanned: 0,
-			Results:      []ProcessingResult{},
-		}, nil
-	}
-
-	// Convert file results to jobs
-	jobs := make([]FileJob, 0, len(files))
-	for _, file := range files {
-		// Skip binary files
-		if file.IsBinary {
-			continue
-		}
-
-		// Read file content here (implementation would read from disk)
-		content := []byte{} // TODO: Implement file reading
-
-		jobs = append(jobs, FileJob{
-			FilePath: file.Path,
-			Content:  content,
-			FileInfo: file,
-		})
-	}
-
-	// Process files using batch processor
-	batchProcessor := NewBatchProcessor(p.fileProcessor, 50)
-	results, err := batchProcessor.ProcessFiles(ctx, jobs)
-	if err != nil {
-		return nil, fmt.Errorf("file processing failed: %w", err)
-	}
-
-	return &RepositoryResult{
-		RepoPath:     repoPath,
-		FilesScanned: len(results),
-		Results:      results,
-		Stats:        p.fileDiscovery.GetStats(files),
-	}, nil
-}
-
-// RepositoryResult represents the complete results for a repository
-type RepositoryResult struct {
-	RepoPath     string
-	FilesScanned int
-	Results      []ProcessingResult
-	Stats        discovery.DiscoveryStats
 }
 
 // determineFileType determines the file type based on AST context

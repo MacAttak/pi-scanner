@@ -1,3 +1,6 @@
+// Package repository provides functionality for cloning and managing Git repositories.
+// It supports GitHub repositories with authentication via CLI or personal tokens,
+// handles repository analysis, and manages temporary storage with automatic cleanup.
 package repository
 
 import (
@@ -108,7 +111,13 @@ func (g *gitHubManager) CheckAuthentication(ctx context.Context) error {
 	}
 
 	if g.config.PersonalToken != "" {
-		// TODO: Validate personal token by making an API call
+		// Validate personal token by making a simple API call
+		cmd := exec.CommandContext(ctx, "curl", "-s", "-f", "-H",
+			fmt.Sprintf("Authorization: token %s", g.config.PersonalToken),
+			"https://api.github.com/user")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("invalid GitHub personal token: %w", err)
+		}
 		return nil
 	}
 

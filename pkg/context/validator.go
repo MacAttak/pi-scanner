@@ -1,3 +1,7 @@
+// Package context provides contextual validation for PI findings.
+// It analyzes the surrounding code context to determine if a potential
+// PI match is a true positive or a false positive based on usage patterns,
+// variable names, and code structure.
 package context
 
 import (

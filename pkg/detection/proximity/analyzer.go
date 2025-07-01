@@ -1,3 +1,6 @@
+// Package proximity implements proximity-based PI detection enhancement.
+// It analyzes surrounding text for PI-related keywords and patterns to
+// increase confidence in PI detection when relevant context is found nearby.
 package proximity
 
 import (
