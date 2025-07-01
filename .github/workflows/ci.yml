@@ -58,7 +58,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha
 
       - name: Build dev image
         uses: docker/build-push-action@v5
