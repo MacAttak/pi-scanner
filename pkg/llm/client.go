@@ -204,6 +204,38 @@ func (c *LMStudioClient) createValidationPrompt(req detection.LLMValidationReque
 		sb.WriteString("\n**Note: This is a test file** - PI found in test files is often synthetic test data.\n")
 	}
 
+	// Add AST context if available
+	if req.ASTContext != nil {
+		sb.WriteString("\n## Structural Context (AST Analysis)\n\n")
+		sb.WriteString(fmt.Sprintf("**Language:** %s\n", req.ASTContext.Language))
+		sb.WriteString(fmt.Sprintf("**Risk Zone:** %s (", req.ASTContext.RiskZone))
+		sb.WriteString(fmt.Sprintf("Risk Level: %s)\n", req.ASTContext.RiskLevel))
+
+		if len(req.ASTContext.Classes) > 0 {
+			sb.WriteString(fmt.Sprintf("**Classes:** %s\n", strings.Join(req.ASTContext.Classes, ", ")))
+		}
+
+		if req.ASTContext.EnclosingClass != "" {
+			sb.WriteString(fmt.Sprintf("**Within Class:** %s\n", req.ASTContext.EnclosingClass))
+		}
+
+		if req.ASTContext.EnclosingMethod != "" {
+			sb.WriteString(fmt.Sprintf("**Within Method:** %s\n", req.ASTContext.EnclosingMethod))
+		}
+
+		if len(req.ASTContext.BankingDomainIndicators) > 0 {
+			sb.WriteString(fmt.Sprintf("**Banking Indicators:** %s\n", strings.Join(req.ASTContext.BankingDomainIndicators, ", ")))
+		}
+
+		if len(req.ASTContext.SecurityPatterns) > 0 {
+			sb.WriteString(fmt.Sprintf("**Security Patterns:** %s\n", strings.Join(req.ASTContext.SecurityPatterns, ", ")))
+		}
+
+		if req.ASTContext.NearbyComments != "" {
+			sb.WriteString(fmt.Sprintf("**Relevant Comments:**\n%s\n", req.ASTContext.NearbyComments))
+		}
+	}
+
 	sb.WriteString("\n## Code Context\n\n")
 	sb.WriteString("The following shows the detected PI value in its surrounding code context:\n\n")
 	sb.WriteString("```" + req.FileType + "\n")
@@ -274,12 +306,20 @@ Use a step-by-step Chain-of-Thought approach:
    - Examine the file path and name
    - Identify the type of file (test, config, source, docs)
    - Consider the broader module/package purpose
+   - If AST context is provided:
+     * Review the risk zone classification (customer_data, payment_processing, etc.)
+     * Consider the structural context (classes, methods, imports)
+     * Note any banking domain indicators or security patterns
 
 2. **Code Pattern Analysis**
    - Analyze how the value is used in the code
    - Check if it's hardcoded or dynamically generated
    - Look for indicators of test/example data
    - Examine variable names and comments
+   - If AST context is provided:
+     * Check if the finding is within critical methods (e.g., payment processing)
+     * Look for nearby security implementations (encryption, authentication)
+     * Consider the enclosing class/method purpose
 
 3. **Data Characteristics**
    - Evaluate if the format matches real PI
@@ -291,6 +331,9 @@ Use a step-by-step Chain-of-Thought approach:
    - Assess exposure risk (logs, APIs, configs)
    - Check if data is properly protected
    - Consider the sensitivity of the specific PI type
+   - If AST context indicates high-risk zones:
+     * Apply stricter scrutiny for customer_data or financial_data zones
+     * Consider the cumulative risk of multiple PI types in sensitive areas
 
 ## Common False Positive Patterns
 
@@ -327,6 +370,16 @@ Provide your analysis as JSON:
 - **HIGH**: Very likely real PI requiring immediate attention
 - **MEDIUM**: Possibly real PI, requires human review
 - **LOW**: Likely false positive (test data, examples, patterns)
+
+## Risk Zone Impact
+
+When AST context indicates specific risk zones, adjust your assessment:
+
+- **customer_data zone**: Elevate risk for any potential customer PI
+- **payment_processing zone**: Critical scrutiny for financial data
+- **authentication zone**: High risk for credentials or access tokens
+- **financial_data zone**: Strict assessment for account/transaction data
+- **test zone**: Lower risk but verify it's not production test data
 
 ## Important Notes
 

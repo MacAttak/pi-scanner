@@ -13,9 +13,11 @@ import (
 type mockLLMValidator struct {
 	validateFunc func(ctx context.Context, req LLMValidationRequest) (*LLMValidationResult, error)
 	healthFunc   func(ctx context.Context) error
+	lastRequest  *LLMValidationRequest // Store last request for verification
 }
 
 func (m *mockLLMValidator) ValidateFinding(ctx context.Context, req LLMValidationRequest) (*LLMValidationResult, error) {
+	m.lastRequest = &req // Store the request for verification
 	if m.validateFunc != nil {
 		return m.validateFunc(ctx, req)
 	}
@@ -287,4 +289,94 @@ func (m *mockDetector) Detect(ctx context.Context, content []byte, filename stri
 
 func (m *mockDetector) Name() string {
 	return m.name
+}
+
+func TestLLMEnhancedDetector_ASTContextPropagation(t *testing.T) {
+	content := []byte(`package payments
+
+import "crypto/aes"
+
+// ProcessPayment handles customer payments
+func ProcessPayment(customerID string, tfn string) error {
+	// Customer TFN for tax reporting
+	customerTFN := "123456782"
+	return nil
+}`)
+
+	// Create a finding with AST context
+	findings := []Finding{
+		{
+			Type:       PITypeTFN,
+			Match:      "123456782",
+			Line:       8,
+			RiskLevel:  RiskLevelHigh,
+			Confidence: 0.9,
+			ASTContext: &ASTContext{
+				Language:                "go",
+				FileType:                "payment",
+				RiskZone:                "payment_processing",
+				RiskLevel:               "Critical",
+				IsTestFile:              false,
+				IsConfigFile:            false,
+				Classes:                 []string{},
+				Methods:                 []string{"ProcessPayment"},
+				Imports:                 []string{"crypto/aes"},
+				BankingDomainIndicators: []string{"processes_payments", "handles_customer_data"},
+				SecurityPatterns:        []string{"uses_encryption"},
+				EnclosingMethod:         "ProcessPayment",
+				NearbyComments:          "// Customer TFN for tax reporting",
+			},
+		},
+	}
+
+	baseDetector := &mockDetector{
+		name: "test-detector",
+		detectFunc: func(ctx context.Context, content []byte, filename string) ([]Finding, error) {
+			// Return findings with AST context
+			result := make([]Finding, len(findings))
+			copy(result, findings)
+			return result, nil
+		},
+	}
+
+	validator := &mockLLMValidator{
+		validateFunc: func(ctx context.Context, req LLMValidationRequest) (*LLMValidationResult, error) {
+			// Verify AST context was passed through
+			assert.NotNil(t, req.ASTContext, "AST context should be present")
+			assert.Equal(t, "payment_processing", req.ASTContext.RiskZone)
+			assert.Equal(t, "Critical", req.ASTContext.RiskLevel)
+			assert.Equal(t, "ProcessPayment", req.ASTContext.EnclosingMethod)
+			assert.Contains(t, req.ASTContext.BankingDomainIndicators, "processes_payments")
+			assert.Contains(t, req.ASTContext.SecurityPatterns, "uses_encryption")
+
+			return &LLMValidationResult{
+				Risk:        RiskLevelCritical, // Elevated due to payment context
+				Explanation: "TFN found in payment processing method",
+				Confidence:  0.95,
+				Timestamp:   time.Now(),
+			}, nil
+		},
+	}
+
+	config := &LLMEnhancedConfig{
+		Enabled:            true,
+		ValidateRiskLevels: []RiskLevel{RiskLevelHigh},
+		MaxConcurrency:     1,
+	}
+
+	detector := NewLLMEnhancedDetector(baseDetector, validator, config)
+	results, err := detector.Detect(context.Background(), content, "payments/processor.go")
+
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	// Verify the finding was enhanced with LLM validation
+	finding := results[0]
+	assert.True(t, finding.LLMValidated)
+	assert.Equal(t, RiskLevelCritical, finding.LLMRisk)
+	assert.Contains(t, finding.LLMExplanation, "payment processing")
+
+	// Verify the AST context was passed to validator
+	assert.NotNil(t, validator.lastRequest)
+	assert.NotNil(t, validator.lastRequest.ASTContext)
 }

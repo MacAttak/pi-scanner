@@ -1,0 +1,99 @@
+{
+  "repository": {
+    "url": "https://github.com/test/repo",
+    "owner": "test",
+    "name": "repo",
+    "local_path": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1751329169186054000/repo",
+    "size": 36,
+    "file_count": 2,
+    "cloned_at": "2025-07-01T10:19:29.436051+10:00",
+    "is_shallow": true
+  },
+  "scan_started": "2025-07-01T10:19:29.436066+10:00",
+  "scan_finished": "2025-07-01T10:19:29.440786+10:00",
+  "duration": 4719541,
+  "files_scanned": 2,
+  "findings": [
+    {
+      "type": "MEDICARE",
+      "match": "21******81",
+      "file": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1751329169186054000/repo/data.txt",
+      "line": 1,
+      "column": 11,
+      "context": "21******81",
+      "context_before": "Medicare: ",
+      "context_after": "\n",
+      "risk_level": "HIGH",
+      "confidence": 0.95,
+      "context_modifier": 1,
+      "validated": false,
+      "validation_error": "Checksum validation failed",
+      "detected_at": "2025-07-01T10:19:29.440247+10:00",
+      "detector_name": "pattern-detector"
+    },
+    {
+      "type": "MEDICARE",
+      "match": "21******81",
+      "file": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1751329169186054000/repo/data.txt",
+      "line": 1,
+      "column": 12,
+      "context": "Medicare: 21******81",
+      "context_before": "",
+      "context_after": "",
+      "risk_level": "MEDIUM",
+      "confidence": 0.95,
+      "context_modifier": 1,
+      "validated": false,
+      "detected_at": "2025-07-01T10:19:29.440738+10:00",
+      "detector_name": "gitleaks-detector"
+    },
+    {
+      "type": "TFN",
+      "match": "123****82",
+      "file": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1751329169186054000/repo/test.txt",
+      "line": 1,
+      "column": 6,
+      "context": "123****82",
+      "context_before": "TFN: ",
+      "context_after": "\n",
+      "risk_level": "MEDIUM",
+      "confidence": 0.95,
+      "context_modifier": 0.1,
+      "validated": true,
+      "detected_at": "2025-07-01T10:19:29.44029+10:00",
+      "detector_name": "pattern-detector"
+    },
+    {
+      "type": "TFN",
+      "match": "123****82",
+      "file": "/var/folders/b0/07qf120x4zz35j_k4wx56ykw0000gn/T/pi-scanner-1751329169186054000/repo/test.txt",
+      "line": 1,
+      "column": 7,
+      "context": "TFN: 123****82",
+      "context_before": "",
+      "context_after": "",
+      "risk_level": "MEDIUM",
+      "confidence": 0.95,
+      "context_modifier": 0.1,
+      "validated": false,
+      "detected_at": "2025-07-01T10:19:29.440761+10:00",
+      "detector_name": "gitleaks-detector"
+    }
+  ],
+  "stats": {
+    "total_files": 2,
+    "scanned_files": 2,
+    "skipped_files": 0,
+    "total_size": 36,
+    "findings_by_type": {
+      "MEDICARE": 2,
+      "TFN": 2
+    },
+    "findings_by_risk": {
+      "HIGH": 1,
+      "MEDIUM": 3
+    },
+    "processing_time": 678167
+  },
+  "report_directory": "reports/20250701_101929_test_repo"
+}

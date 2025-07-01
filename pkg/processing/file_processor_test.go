@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/MacAttak/pi-scanner/pkg/ast"
 	"github.com/MacAttak/pi-scanner/pkg/detection"
 	"github.com/MacAttak/pi-scanner/pkg/discovery"
 )
@@ -648,4 +649,239 @@ func BenchmarkFileProcessor_Concurrent(b *testing.B) {
 	}()
 
 	wg.Wait()
+}
+
+// TestDetermineFileType tests the determineFileType helper function
+func TestDetermineFileType(t *testing.T) {
+	tests := []struct {
+		name     string
+		ctx      *ast.FileContext
+		expected string
+	}{
+		{
+			name: "test file",
+			ctx: &ast.FileContext{
+				IsTestFile: true,
+			},
+			expected: "test",
+		},
+		{
+			name: "config file",
+			ctx: &ast.FileContext{
+				IsConfigFile: true,
+			},
+			expected: "config",
+		},
+		{
+			name: "model class",
+			ctx: &ast.FileContext{
+				Classes: []string{"DataModel", "Entity"},
+			},
+			expected: "model",
+		},
+		{
+			name: "service class",
+			ctx: &ast.FileContext{
+				Classes: []string{"Service"},
+			},
+			expected: "service",
+		},
+		{
+			name: "controller class",
+			ctx: &ast.FileContext{
+				Classes: []string{"Controller"},
+			},
+			expected: "controller",
+		},
+		{
+			name: "repository class",
+			ctx: &ast.FileContext{
+				Classes: []string{"Repository"},
+			},
+			expected: "repository",
+		},
+		{
+			name: "dao class",
+			ctx: &ast.FileContext{
+				Classes: []string{"DAO"},
+			},
+			expected: "repository",
+		},
+		{
+			name: "customer data zone",
+			ctx: &ast.FileContext{
+				RiskZone: "customer_data",
+			},
+			expected: "data_handler",
+		},
+		{
+			name: "authentication zone",
+			ctx: &ast.FileContext{
+				RiskZone: "authentication",
+			},
+			expected: "auth",
+		},
+		{
+			name: "payment processing zone",
+			ctx: &ast.FileContext{
+				RiskZone: "payment_processing",
+			},
+			expected: "payment",
+		},
+		{
+			name: "financial data zone",
+			ctx: &ast.FileContext{
+				RiskZone: "financial_data",
+			},
+			expected: "financial",
+		},
+		{
+			name: "general file",
+			ctx: &ast.FileContext{
+				RiskZone: "general",
+			},
+			expected: "general",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := determineFileType(tt.ctx)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestFileProcessor_ASTContextIntegration tests AST context attachment to findings
+func TestFileProcessor_ASTContextIntegration(t *testing.T) {
+	// Create a mock detector that returns specific findings
+	mockFindings := []detection.Finding{
+		{
+			Type:       detection.PITypeTFN,
+			Match:      "123456782",
+			Line:       10,
+			Column:     15,
+			RiskLevel:  detection.RiskLevelHigh,
+			Confidence: 0.9,
+		},
+	}
+
+	detector := &MockDetector{
+		name:     "test-detector",
+		findings: mockFindings,
+	}
+
+	// Create file processor
+	config := DefaultProcessorConfig()
+	config.NumWorkers = 1
+	processor := NewFileProcessor(config, []detection.Detector{detector})
+
+	ctx := context.Background()
+	err := processor.Start(ctx)
+	require.NoError(t, err)
+	defer processor.Stop()
+
+	// Create test AST context
+	astContext := &ast.FileContext{
+		FilePath:     "/test/payment/service.go",
+		Language:     ast.LanguageGo,
+		RiskZone:     "payment_processing",
+		RiskLevel:    ast.RiskLevelCritical,
+		IsTestFile:   false,
+		IsConfigFile: false,
+		Classes:      []string{"PaymentService"},
+		Methods:      []string{"ProcessPayment", "ValidateCard"},
+		Imports:      []string{"crypto/aes", "encoding/json"},
+	}
+
+	// Submit job with AST context
+	job := FileJob{
+		FilePath:   "/test/payment/service.go",
+		Content:    []byte("package payment\n\nfunc ProcessPayment() {\n\t// TFN: 123456782\n}"),
+		FileInfo:   discovery.FileResult{Path: "/test/payment/service.go"},
+		ASTContext: astContext,
+	}
+
+	err = processor.Submit(job)
+	require.NoError(t, err)
+
+	// Get result
+	select {
+	case result := <-processor.Results():
+		require.NoError(t, result.Error)
+		require.Len(t, result.Findings, 1)
+
+		finding := result.Findings[0]
+
+		// Verify AST context was attached
+		require.NotNil(t, finding.ASTContext)
+		assert.Equal(t, "go", finding.ASTContext.Language)
+		assert.Equal(t, "payment", finding.ASTContext.FileType)
+		assert.Equal(t, "payment_processing", finding.ASTContext.RiskZone)
+		assert.Equal(t, "CRITICAL", finding.ASTContext.RiskLevel)
+		assert.False(t, finding.ASTContext.IsTestFile)
+		assert.Equal(t, []string{"PaymentService"}, finding.ASTContext.Classes)
+		assert.Equal(t, []string{"ProcessPayment", "ValidateCard"}, finding.ASTContext.Methods)
+		assert.Equal(t, []string{"crypto/aes", "encoding/json"}, finding.ASTContext.Imports)
+
+		// Verify risk was elevated due to critical zone
+		assert.Equal(t, detection.RiskLevelHigh, finding.RiskLevel)
+		assert.Greater(t, finding.Confidence, float32(0.9))
+
+	case <-time.After(2 * time.Second):
+		t.Fatal("Timeout waiting for results")
+	}
+}
+
+// TestFileProcessor_NilASTContext tests handling of nil AST context
+func TestFileProcessor_NilASTContext(t *testing.T) {
+	detector := &MockDetector{
+		name: "test-detector",
+		findings: []detection.Finding{
+			{
+				Type:       detection.PITypeEmail,
+				Match:      "test@example.com",
+				Line:       5,
+				RiskLevel:  detection.RiskLevelMedium,
+				Confidence: 0.8,
+			},
+		},
+	}
+
+	config := DefaultProcessorConfig()
+	config.NumWorkers = 1
+	processor := NewFileProcessor(config, []detection.Detector{detector})
+
+	ctx := context.Background()
+	err := processor.Start(ctx)
+	require.NoError(t, err)
+	defer processor.Stop()
+
+	// Submit job without AST context
+	job := FileJob{
+		FilePath:   "/test/file.txt",
+		Content:    []byte("Contact: test@example.com"),
+		FileInfo:   discovery.FileResult{Path: "/test/file.txt"},
+		ASTContext: nil, // No AST context
+	}
+
+	err = processor.Submit(job)
+	require.NoError(t, err)
+
+	// Get result
+	select {
+	case result := <-processor.Results():
+		require.NoError(t, result.Error)
+		require.Len(t, result.Findings, 1)
+
+		finding := result.Findings[0]
+
+		// Verify nil AST context is handled gracefully
+		assert.Nil(t, finding.ASTContext)
+		assert.Equal(t, detection.RiskLevelMedium, finding.RiskLevel)
+		assert.Equal(t, float32(0.8), finding.Confidence)
+
+	case <-time.After(2 * time.Second):
+		t.Fatal("Timeout waiting for results")
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -360,6 +361,19 @@ func (w *FileWorker) processFile(job FileJob) ProcessingResult {
 
 			// Apply AST context if available
 			if job.ASTContext != nil {
+				// Convert AST context to detection.ASTContext
+				f.ASTContext = &detection.ASTContext{
+					Language:     string(job.ASTContext.Language),
+					FileType:     determineFileType(job.ASTContext),
+					RiskZone:     job.ASTContext.RiskZone,
+					RiskLevel:    string(job.ASTContext.RiskLevel),
+					IsTestFile:   job.ASTContext.IsTestFile,
+					IsConfigFile: job.ASTContext.IsConfigFile,
+					Classes:      job.ASTContext.Classes,
+					Methods:      job.ASTContext.Methods,
+					Imports:      job.ASTContext.Imports,
+				}
+
 				// Adjust risk level based on AST context
 				if job.ASTContext.IsTestFile {
 					// Downgrade risk for test files
@@ -546,4 +560,42 @@ type RepositoryResult struct {
 	FilesScanned int
 	Results      []ProcessingResult
 	Stats        discovery.DiscoveryStats
+}
+
+// determineFileType determines the file type based on AST context
+func determineFileType(ctx *ast.FileContext) string {
+	if ctx.IsTestFile {
+		return "test"
+	}
+	if ctx.IsConfigFile {
+		return "config"
+	}
+
+	// Check based on classes present
+	for _, class := range ctx.Classes {
+		switch strings.ToLower(class) {
+		case "datamodel", "entity":
+			return "model"
+		case "service":
+			return "service"
+		case "controller":
+			return "controller"
+		case "repository", "dao":
+			return "repository"
+		}
+	}
+
+	// Check based on risk zone
+	switch ctx.RiskZone {
+	case "customer_data":
+		return "data_handler"
+	case "authentication":
+		return "auth"
+	case "payment_processing":
+		return "payment"
+	case "financial_data":
+		return "financial"
+	}
+
+	return "general"
 }
