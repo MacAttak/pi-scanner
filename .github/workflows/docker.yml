@@ -116,7 +116,7 @@ jobs:
   test-image:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name != 'pull_request'
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]
@@ -136,8 +136,8 @@ jobs:
 
       - name: Test Docker image
         run: |
-          # For PRs, the image is built but not pushed, so we test the build
+          # Test the pushed image
           docker run --rm --platform ${{ matrix.platform }} \
             -v $PWD:/workspace \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.number }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} \
             help
