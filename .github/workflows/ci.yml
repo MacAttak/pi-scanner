@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04  # Match Dockerfile.dev base
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build development environment
         run: docker compose build --no-cache dev
@@ -80,7 +80,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build development environment
         run: docker compose build --no-cache dev
@@ -139,7 +139,7 @@ jobs:
             goarch: arm64
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build development environment
         run: docker compose build --no-cache dev
@@ -177,7 +177,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build development environment
         run: docker compose build --no-cache dev
@@ -211,7 +211,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -230,7 +230,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build development environment
         run: docker compose build --no-cache dev
