@@ -9,7 +9,7 @@ require (
 	github.com/sashabaranov/go-openai v1.40.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/zricethezav/gitleaks/v8 v8.27.2
 	golang.org/x/time v0.12.0
 	gopkg.in/yaml.v3 v3.0.1
