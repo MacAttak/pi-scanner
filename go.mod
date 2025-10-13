@@ -1,6 +1,6 @@
 module github.com/MacAttak/pi-scanner
 
-go 1.23.9
+go 1.24.0
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
@@ -11,7 +11,7 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/zricethezav/gitleaks/v8 v8.27.2
-	golang.org/x/time v0.12.0
+	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
