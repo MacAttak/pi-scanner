@@ -5,7 +5,7 @@ go 1.23.9
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/google/uuid v1.6.0
-	github.com/nyaruka/phonenumbers v1.6.3
+	github.com/nyaruka/phonenumbers v1.6.7
 	github.com/sashabaranov/go-openai v1.40.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
