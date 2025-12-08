@@ -30,7 +30,7 @@ RUN go build -ldflags="-s -w \
     -o pi-scanner ./cmd/pi-scanner
 
 # Runtime stage
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Build arguments for labels
 ARG VERSION="dev"
