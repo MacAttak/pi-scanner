@@ -1,7 +1,7 @@
 # Development Environment Dockerfile
 # This ensures local development environment matches CI exactly
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 # Set environment variables
 ENV GO_VERSION=1.23.9
